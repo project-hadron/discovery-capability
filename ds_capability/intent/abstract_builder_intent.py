@@ -5,7 +5,6 @@ from aistac.properties.abstract_properties import AbstractPropertyManager
 from ds_capability.components.commons import Commons
 from ds_capability.intent.abstract_builder_get_intent import AbstractBuilderGetIntent
 
-
 class AbstractBuilderIntentModel(AbstractBuilderGetIntent):
 
     _INTENT_PARAMS = ['self', 'save_intent', 'column_name', 'intent_order',

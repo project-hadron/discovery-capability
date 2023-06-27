@@ -59,7 +59,7 @@ class SyntheticTest(unittest.TestCase):
     def test_for_smoke(self):
         sb = SyntheticBuilder.from_memory()
         tools: SyntheticIntentModel = sb.tools
-        tbl = tools.model_synthetic_data_types(1_000)
+        tbl = tools.get_synthetic_data_types(1_000)
         result = DataDiscovery.data_dictionary(tbl)
         pprint(result)
 

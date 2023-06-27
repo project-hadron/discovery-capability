@@ -3,11 +3,13 @@ import string
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pyarrow.compute as pc
 from typing import Any
 
+from ds_capability.components.commons import Commons
 from ds_capability.intent.wrangle_intent import WrangleIntentModel
 from ds_capability.managers.synthetic_property_manager import SyntheticPropertyManager
-from ds_discovery.sample.sample_data import Sample
+from ds_capability.sample.sample_data import Sample
 
 
 class SyntheticIntentModel(WrangleIntentModel):
@@ -74,8 +76,13 @@ class SyntheticIntentModel(WrangleIntentModel):
         seed = self._seed(seed=seed)
         rtn_list = self._get_number(seed=seed, **params)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        return pa.NumericArray.from_pandas(rtn_list)
-
+        rtn_arr = pa.NumericArray.from_pandas(rtn_list)
+        if rtn_arr.type.equals('double'):
+            try:
+                rtn_arr = pa.array(rtn_arr, pa.int64())
+            except pa.lib.ArrowInvalid:
+                pass
+        return rtn_arr
 
     def get_category(self, selection: list, size: int, relative_freq: list=None, quantity: float=None, seed: int=None,
                      save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
@@ -115,13 +122,13 @@ class SyntheticIntentModel(WrangleIntentModel):
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         return pa.DictionaryArray.from_pandas(rtn_list).dictionary_encode()
 
-    def get_boolean(self, probability: float, size: int=None, quantity: float=None, seed: int=None,
+    def get_boolean(self, size: int, relative_freq: list=None, quantity: float=None, seed: int=None,
                     save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Array:
         """A boolean discrete random distribution
 
-        :param probability: the probability occurrence of true where 0 > probability > 1
         :param size: the size of the sample
+        :param relative_freq: a weighting pattern that does not have to add to 1
         :param quantity: a number between 0 and 1 representing data that isn't null
         :param seed: a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
@@ -144,12 +151,8 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         params = locals()
-        prob = params.pop('probability', 0.5)
-        prob = prob if 0 > prob < 1 else 0.5
-        [params.pop(k) for k in self._INTENT_PARAMS + ['quantity']]
-        # set the seed and call the method
         seed = self._seed(seed=seed)
-        rtn_list = self._get_category(selection=[True,False], relative_freq=[prob, 1-prob], seed=seed, **params)
+        rtn_list = self._get_category(selection=[True,False], relative_freq=relative_freq, size=size, seed=seed)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         return pa.BooleanArray.from_pandas(rtn_list)
 
@@ -541,7 +544,7 @@ class SyntheticIntentModel(WrangleIntentModel):
         """ returns a sample set based on sector and name
         To see the sample sets available use the Sample class __dir__() method:
 
-            > from ds_discovery.sample.sample_data import Sample
+            > from ds_capability.sample.sample_data import Sample
             > Sample().__dir__()
 
         :param sample_name: The name of the Sample method to be used.
@@ -577,12 +580,132 @@ class SyntheticIntentModel(WrangleIntentModel):
         rtn_list = self._set_quantity(selection, quantity=quantity, seed=_seed)
         return pa.Array.from_pandas(rtn_list)
 
-    def get_synthetic_data_types(self, size: int, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
-                                 intent_order: int=None, replace_intent: bool=None,
-                                 remove_duplicates: bool=None) -> pa.Table:
+    def correlate_number(self, canonical: pa.Array, choice: [int, float, str]=None, choice_header: str=None,
+                         precision: int=None, jitter: [int, float, str]=None, offset: [int, float, str]=None,
+                         code_str: Any=None, lower: [int, float]=None, upper: [int, float]=None, keep_zero: bool=None,
+                         seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                         replace_intent: bool=None, remove_duplicates: bool=None) -> list:
+        """ correlate a list of continuous values adjusting those values, or a subset of those values, with a
+        normalised jitter (std from the value) along with a value offset. ``choice``, ``jitter`` and ``offset``
+        can accept environment variable string names starting with ``${`` and ending with ``}``.
+
+        If the choice is an int, it represents the number of rows to choose. If the choice is a float it must be
+        between 1 and 0 and represent a percentage of rows to choose.
+
+        :param canonical:
+        :param choice: (optional) The number of values to choose to apply the change to. Can be an environment variable.
+        :param choice_header: (optional) those not chosen are given the values of the given header
+        :param precision: (optional) to what precision the return values should be
+        :param offset: (optional) a fixed value to offset or if str an operation to perform using @ as the header value.
+        :param code_str: (optional) passing a str lambda function. e.g. 'lambda x: (x - 3) / 2''
+        :param jitter: (optional) a perturbation of the value where the jitter is a random normally distributed std
+        :param precision: (optional) how many decimal places. default to 3
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param keep_zero: (optional) if True then zeros passed remain zero despite a change, Default is False
+        :param lower: a minimum value not to go below
+        :param upper: a max value not to go above
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: an equal length list of correlated values
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        params = locals()
+        [params.pop(k) for k in self._INTENT_PARAMS]
+        # set the seed and call the method
+        seed = self._seed(seed=seed)
+        rtn_list = self._correlate_number(seed=seed, **params)
+        rtn_arr = pa.NumericArray.from_pandas(rtn_list)
+        if rtn_arr.type.equals('double'):
+            try:
+                rtn_arr = pa.array(rtn_arr, pa.int64())
+            except pa.lib.ArrowInvalid:
+                pass
+        return rtn_arr
+
+    def model_analysis(self, size: int, other: [str, pa.Table], category_limit: int=None,
+                       seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                       replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ builds a set of columns based on another (see analyse_association)
+        if a reference DataFrame is passed then as the analysis is run if the column already exists the row
+        value will be taken as the reference to the sub category and not the random value. This allows already
+        constructed association to be used as reference for a sub category.
+
+        :param size: The number of rows
+        :param other: a direct or generated pd.DataFrame. see context notes below
+        :param category_limit: (optional) a global cap on categories captured. zero value returns no limits
+        :param seed: seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run. In
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pa.Table
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        other = self._get_canonical(other)
+        rtn_tbl = None
+        for c in other.column_names:
+            column = other.column(c).combine_chunks()
+            if pa.types.is_dictionary(column.type):
+                selection = column.dictionary.to_pylist()
+                frequency = column.value_counts().field(1).to_pylist()
+                result = self.get_category(selection=selection, relative_freq=frequency, size=size, save_intent=False)
+            elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
+                precision = 0 if pa.types.is_integer(column.type) else 5
+                std = pc.round(pc.multiply(pc.stddev(column), 0.6), 5).as_py()
+                rtn_col = pa.table([self.correlate_number(column, jitter=std, precision=precision, save_intent=False)],
+                                   names=['num'])
+                while rtn_col.num_rows < size:
+                    _ = pa.table([self.correlate_number(column, jitter=std, precision=precision, save_intent=False)],
+                                 names=['num'])
+                    rtn_col = pa.concat_tables([rtn_col, _])
+                result = rtn_col.slice(0, size).column('num')
+            elif pa.types.is_boolean(column.type):
+                frequency = column.value_counts().field(1).to_pylist()
+
+            else:
+                continue
+            if isinstance(rtn_tbl, pa.Table):
+                rtn_tbl = rtn_tbl.append_column(c, result)
+            else:
+                rtn_tbl = pa.table([result], names=[c])
+        return rtn_tbl
+
+
+
+    def model_synthetic_data_types(self, size: int, inc_nulls: bool=None, p_nulls: float=None, seed: int=None,
+                                   save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                                   replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ A dataset with example data types
 
         :param size:
+        :param inc_nulls: include values with nulls
+        :param p_nulls: a value between 0 an 1 of the percentage of nulls in the *_nulls column. Default is 0.02
         :param seed: a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param column_name: (optional) the column name that groups intent to create a column
@@ -604,6 +727,7 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         seed = self._seed(seed=seed)
+        p_nulls = p_nulls if isinstance(p_nulls, float) and 0 < p_nulls < 1 else 0.02
         # cat
         _ = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE'], size=size, seed=seed,
                               relative_freq=[1, 99, 10, 40],  save_intent=False)
@@ -615,7 +739,7 @@ class SyntheticIntentModel(WrangleIntentModel):
         _ = self.get_number(start=-1000, stop=1000, size=size, seed=seed, save_intent=False)
         canonical = canonical.append_column('int', _)
         # bool
-        _ = self.get_boolean(probability=.6, size=size, seed=seed, save_intent=False)
+        _ = self.get_boolean(size=size, relative_freq=[7, 3], seed=seed, save_intent=False)
         canonical = canonical.append_column('bool', _)
         # date
         _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, seed=seed,
@@ -627,29 +751,75 @@ class SyntheticIntentModel(WrangleIntentModel):
         # binary
         _ = self.get_string_pattern(pattern='cccccccc', as_binary=True, size=size, seed=seed, save_intent=False)
         canonical = canonical.append_column('binary', _)
-        # cat_null
-        _ = self.get_category(selection=['M', 'F', 'U', None], relative_freq=[9,8,4,0.01], size=size, seed=seed,
-                              save_intent=False)
-        canonical = canonical.append_column('cat_null', _)
-        # num_null
-        _ = self.get_number(column_name='num_null', start=-1.0, stop=1.0, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21],
-                            size=size, quantity=0.01, seed=seed, save_intent=False)
-        canonical = canonical.append_column('num_null', _)
-        # int_null
-        _ = self.get_number(start=-1000, stop=1000, size=size, quantity=0.01, seed=seed, save_intent=False)
-        canonical = canonical.append_column('int_null', _)
-        # bool_null
-        _ = self.get_boolean(probability=.6, size=size, seed=seed, quantity=0.01, save_intent=False)
-        canonical = canonical.append_column('bool_null', _)
-        # date_null
-        _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, quantity=0.01, seed=seed,
-                              save_intent=False)
-        canonical = canonical.append_column('date_null', _)
-        # string_null
-        _ = self.get_sample(sample_name='us_street_names', size=size, quantity=0.01, seed=seed,  save_intent=False)
-        canonical = canonical.append_column('string_null', _)
+
+        if isinstance(inc_nulls, bool) and inc_nulls:
+            # cat_null
+            _ = self.get_category(selection=['M', 'F', 'U'], relative_freq=[9,8,4], quantity=1 - p_nulls, size=size, seed=seed,
+                                  save_intent=False)
+            canonical = canonical.append_column('cat_null', _)
+            # num_null
+            _ = self.get_number(column_name='num_null', start=-1.0, stop=1.0, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21],
+                                size=size, quantity=1 - p_nulls, seed=seed, save_intent=False)
+            canonical = canonical.append_column('num_null', _)
+            # int_null
+            _ = self.get_number(start=-1000, stop=1000, size=size, quantity=1 - p_nulls, seed=seed, save_intent=False)
+            canonical = canonical.append_column('int_null', _)
+            # bool_null
+            _ = self.get_boolean(size=size, relative_freq=[4, 6], seed=seed, quantity=1 - p_nulls, save_intent=False)
+            canonical = canonical.append_column('bool_null', _)
+            # date_null
+            _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, quantity=1 - p_nulls,
+                                  seed=seed, save_intent=False)
+            canonical = canonical.append_column('date_null', _)
+            # string_null
+            _ = self.get_sample(sample_name='us_street_names', size=size, quantity=1 - p_nulls, seed=seed, save_intent=False)
+            canonical = canonical.append_column('string_null', _)
 
         return canonical
+
+    def model_noise(self, size: int,  num_columns: int, seed: int = None,
+                    save_intent: bool = None, column_name: [int, str] = None, intent_order: int = None,
+                    replace_intent: bool = None, remove_duplicates: bool = None) -> pd.DataFrame:
+        """ Generates multiple columns of noise in your dataset
+
+        :param size: The number of rows
+        :param num_columns: the number of columns of noise
+        :param seed: seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a DataFrame
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        _seed = self._seed(seed=seed)
+        num_columns = num_columns if isinstance(num_columns, int) else 1
+        gen = Commons.label_gen()
+        tbl = None
+        generator = np.random.default_rng(seed=_seed)
+        for _ in range(num_columns):
+            _seed = self._seed(seed=_seed, increment=True)
+            a = generator.choice(range(1, 6))
+            b = generator.choice(range(1, 6))
+            arr = self.get_distribution(distribution='beta', a=a, b=b, precision=6, size=size, seed=_seed,
+                                                      save_intent=False)
+            if not tbl:
+                tbl = pa.table(arr)
+            else:
+                tbl.append_column(next(gen), arr)
+        return tbl
 
     @property
     def sample_lists(self) -> list:
@@ -660,6 +830,26 @@ class SyntheticIntentModel(WrangleIntentModel):
     """
         PRIVATE METHODS SECTION
     """
+
+    def _get_canonical(self, data: [pa.Table, str],  size: int=None) -> pa.Table:
+        """ Used to return or generate a PyArrow Table from a number of different types.
+
+        The following can be passed and their returns
+        - pa.Table -> a PyArrow Table that is directly returned
+        - str -> instantiates a connector handler with the connector_name and loads the Table from the connection
+
+        :param data: a dataframe or action event to generate a dataframe
+        :param size: (optional) a size parameter for @empty of @generate
+        :return: a pa.Table
+        """
+        if isinstance(data, pa.Table):
+            return data
+        elif isinstance(data, str):
+            if self._pm.has_connector(connector_name=data):
+                handler = self._pm.get_connector_handler(data)
+                return handler.load_canonical()
+            raise ValueError(f"The data connector name '{data}' is not in the connectors catalog")
+        raise ValueError(f"The canonical format is not a recognised pc.Field or str type, '{type(data)}' type passed")
 
     def _set_quantity(self, selection, quantity, seed=None):
         """Returns the quantity percent of good values in selection with the rest fill"""

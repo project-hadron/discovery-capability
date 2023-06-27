@@ -2,6 +2,7 @@ from abc import abstractmethod
 from typing import Any
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 from scipy import stats
 from ds_capability.components.commons import Commons
 from ds_capability.intent.abstract_common_intent import AbstractCommonsIntentModel
@@ -360,3 +361,89 @@ class AbstractBuilderGetIntent(AbstractCommonsIntentModel):
             generator = np.random.default_rng(seed=_seed)
             rtn_list = eval(f"generator.{distribution}(size=size, **kwargs)", globals(), locals())
         return list(np.around(rtn_list, precision))
+
+    def _correlate_number(self, canonical: pa.Array, choice: [int, float, str ] =None, choice_header: str =None,
+                          jitter: [int, float, str ] =None, offset: [int, float, str ] =None, code_str: str =None,
+                          lower: [int, float ] =None, upper: [int, float ] =None, precision: int =None, keep_zero: bool =None,
+                          seed: int =None):
+        """ correlate a list of continuous values adjusting those values, or a subset of those values, with a
+        normalised jitter (std from the value) along with a value offset. ``choice``, ``jitter`` and ``offset``
+        can accept environment variable string names starting with ``${`` and ending with ``}``.
+
+        If the choice is an int, it represents the number of rows to choose. If the choice is a float it must be
+        between 1 and 0 and represent a percentage of rows to choose.
+
+        :param canonical: a pd.DataFrame as the reference dataframe
+        :param choice: (optional) The number of values or percentage between 0 and 1 to choose.
+        :param choice_header: (optional) those not chosen are given the values of the given header
+        :param precision: (optional) to what precision the return values should be
+        :param offset: (optional) a fixed value or an environment variable where the name is wrapped with '${' and '}'
+        :param code_str: (optional) passing a str lambda function. e.g. 'lambda x: (x - 3) / 2''
+        :param jitter: (optional) a perturbation of the value where the jitter is a random normally distributed std
+        :param precision: (optional) how many decimal places. default to 3
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param keep_zero: (optional) if True then zeros passed remain zero despite a change, Default is False
+        :param lower: a minimum value not to go below
+        :param upper: a max value not to go above
+        :return: list
+        """
+        s_values = canonical.to_pandas()
+        s_others = s_values.copy()
+        other_size = s_others.size
+        seed = self._seed() if seed is None else seed
+        offset = self._extract_value(offset)
+        keep_zero = keep_zero if isinstance(keep_zero, bool) else False
+        precision = precision if isinstance(precision, int) else 3
+        lower = lower if isinstance(lower, (int, float)) else float('-inf')
+        upper = upper if isinstance(upper, (int, float)) else float('inf')
+        # mark the zeros and nulls
+        null_idx = s_values[s_values.isna()].index
+        zero_idx = s_values.where(s_values == 0).dropna().index if keep_zero else []
+        # choose the items to jitter
+        if isinstance(choice, (str, int, float)):
+            size = s_values.size
+            choice = self._extract_value(choice)
+            choice = int(choice * size) if isinstance(choice, float) and 0 <= choice <= 1 else int(choice)
+            choice = choice if 0 <= choice < size else size
+            gen = np.random.default_rng(seed=seed)
+            choice_idx = gen.choice(s_values.index, size=choice, replace=False)
+            choice_idx = [choice_idx] if isinstance(choice_idx, int) else choice_idx
+            s_values = s_values.iloc[choice_idx]
+        if isinstance(jitter, (str, int, float)) and s_values.size > 0:
+            jitter = self._extract_value(jitter)
+            size = s_values.size
+            gen = np.random.default_rng(seed)
+            results = gen.normal(loc=0, scale=jitter, size=size)
+            s_values = s_values.add(results)
+        # set code_str
+        if isinstance(code_str, str) and s_values.size > 0:
+            if code_str.startswith('lambda'):
+                s_values = s_values.transform(eval(code_str))
+            else:
+                code_str = code_str.replace("@", 'x')
+                s_values = s_values.transform(lambda x: eval(code_str))
+        # set offset for all values
+        if isinstance(offset, (int, float)) and offset != 0 and s_values.size > 0:
+            s_values = s_values.add(offset)
+        # set the changed values
+        if other_size == s_values.size:
+            s_others = s_values
+        else:
+            s_others.iloc[s_values.index] = s_values
+        # max and min caps
+        s_others = pd.Series([upper if x > upper else x for x in s_others])
+        s_others = pd.Series([lower if x < lower else x for x in s_others])
+        if isinstance(keep_zero, bool) and keep_zero:
+            if other_size == zero_idx.size:
+                s_others = 0 * zero_idx.size
+            else:
+                s_others.iloc[zero_idx] = 0
+        if other_size == null_idx.size:
+            s_others = np.nan * null_idx.size
+        else:
+            s_others.iloc[null_idx] = np.nan
+        s_others = s_others.round(precision)
+        if precision == 0 and not s_others.isnull().any():
+            s_others = s_others.astype(int)
+        return s_others.to_list()
+

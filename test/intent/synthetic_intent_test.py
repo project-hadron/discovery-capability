@@ -55,8 +55,21 @@ class SyntheticTest(unittest.TestCase):
     def test_for_smoke(self):
         sb = SyntheticBuilder.from_memory()
         tools: SyntheticIntentModel = sb.tools
-        tbl = tools.get_synthetic_data_types(10)
-        print(tbl.schema)
+        tbl = tools.model_synthetic_data_types(100)
+        self.assertEqual((100, 7), tbl.shape)
+        tbl = tools.model_synthetic_data_types(100, inc_nulls=True, p_nulls=0.03)
+        self.assertEqual((100, 13), tbl.shape)
+        self.assertEqual(3, tbl.column('int_null').null_count)
+
+    def test_model_analysis(self):
+        sb = SyntheticBuilder.from_memory()
+        tools: SyntheticIntentModel = sb.tools
+        sb.add_connector_uri('sample', './working/data.sample.parquet')
+        tbl = tools.model_synthetic_data_types(10)
+        sb.save_canonical('sample', tbl)
+        result = tools.model_analysis(20,'sample')
+        print(result.schema)
+
 
 
     def test_raise(self):

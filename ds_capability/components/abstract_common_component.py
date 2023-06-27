@@ -11,9 +11,9 @@ __author__ = 'Darryl Oatridge'
 
 class AbstractCommonComponent(AbstractComponent):
 
-    DEFAULT_MODULE = 'ds_discovery.handlers.pandas_handlers'
-    DEFAULT_SOURCE_HANDLER = 'PandasSourceHandler'
-    DEFAULT_PERSIST_HANDLER = 'PandasPersistHandler'
+    DEFAULT_MODULE = 'ds_capability.handlers.pyarrow_handlers'
+    DEFAULT_SOURCE_HANDLER = 'PyarrowSourceHandler'
+    DEFAULT_PERSIST_HANDLER = 'PyarrowPersistHandler'
 
     @classmethod
     @abstractmethod

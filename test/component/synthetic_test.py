@@ -56,10 +56,12 @@ class SyntheticTest(unittest.TestCase):
     def test_for_smoke(self):
         sb = SyntheticBuilder.from_memory()
         tools: SyntheticIntentModel = sb.tools
-        tbl = tools.get_synthetic_data_types(pa.table(), 'data_sample', 10)
-        print(tbl.schema)
-
-
+        tbl = tools.get_synthetic_data_types(10)
+        old_schema = tbl.schema
+        sb.add_connector_uri('sample', './working/data/sample.parquet')
+        sb.save_canonical('sample', tbl)
+        result = sb.load_canonical('sample')
+        self.assertTrue(old_schema == result.schema)
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:
