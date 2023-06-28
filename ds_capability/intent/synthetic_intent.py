@@ -122,13 +122,13 @@ class SyntheticIntentModel(WrangleIntentModel):
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         return pa.DictionaryArray.from_pandas(rtn_list).dictionary_encode()
 
-    def get_boolean(self, size: int, relative_freq: list=None, quantity: float=None, seed: int=None,
+    def get_boolean(self, size: int, probability: float=None, quantity: float=None, seed: int=None,
                     save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Array:
         """A boolean discrete random distribution
 
         :param size: the size of the sample
-        :param relative_freq: a weighting pattern that does not have to add to 1
+        :param probability: a float between 0 and 1 of the probability of success. Default = 0.5
         :param quantity: a number between 0 and 1 representing data that isn't null
         :param seed: a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
@@ -150,9 +150,9 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        params = locals()
+        prob = probability if isinstance(probability, int) and 0 < probability < 1 else 0.5
         seed = self._seed(seed=seed)
-        rtn_list = self._get_category(selection=[True,False], relative_freq=relative_freq, size=size, seed=seed)
+        rtn_list = self._get_category(selection=[True,False], relative_freq=[prob, 1-prob], size=size, seed=seed)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         return pa.BooleanArray.from_pandas(rtn_list)
 
