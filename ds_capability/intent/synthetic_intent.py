@@ -778,13 +778,14 @@ class SyntheticIntentModel(WrangleIntentModel):
 
         return canonical
 
-    def model_noise(self, size: int,  num_columns: int, seed: int = None,
+    def model_noise(self, size: int,  num_columns: int, seed: int = None, name_prefix: str=None,
                     save_intent: bool = None, column_name: [int, str] = None, intent_order: int = None,
                     replace_intent: bool = None, remove_duplicates: bool = None) -> pd.DataFrame:
         """ Generates multiple columns of noise in your dataset
 
         :param size: The number of rows
         :param num_columns: the number of columns of noise
+        :param name_prefix: a name the prefix the column names
         :param seed: seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param column_name: (optional) the column name that groups intent to create a column
@@ -807,6 +808,7 @@ class SyntheticIntentModel(WrangleIntentModel):
         # Code block for intent
         _seed = self._seed(seed=seed)
         num_columns = num_columns if isinstance(num_columns, int) else 1
+        name_prefix = name_prefix if isinstance(name_prefix, str) else ''
         label_gen = Commons.label_gen()
         tbl = None
         generator = np.random.default_rng(seed=_seed)
@@ -817,9 +819,9 @@ class SyntheticIntentModel(WrangleIntentModel):
             arr = self.get_distribution(distribution='beta', a=a, b=b, precision=6, size=size, seed=_seed,
                                                       save_intent=False)
             if isinstance(tbl, pa.Table):
-                tbl = tbl.append_column(next(label_gen), arr)
+                tbl = tbl.append_column(name_prefix + next(label_gen), arr)
             else:
-                tbl = pa.table([arr], next(label_gen))
+                tbl = pa.table([arr], names=[name_prefix + next(label_gen)])
         return tbl
 
     @property

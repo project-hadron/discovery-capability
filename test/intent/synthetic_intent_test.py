@@ -75,6 +75,10 @@ class SyntheticTest(unittest.TestCase):
         tools: SyntheticIntentModel = sb.tools
         tbl = tools.model_noise(10, num_columns=3)
         self.assertEqual((10, 3), tbl.shape)
+        self.assertEqual(['A', 'B', 'C'], tbl.column_names)
+        tbl = tools.model_noise(10, num_columns=3, name_prefix='P_')
+        self.assertEqual(['P_A', 'P_B', 'P_C'], tbl.column_names)
+
 
 
     def test_raise(self):
