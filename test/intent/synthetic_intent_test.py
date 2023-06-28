@@ -70,6 +70,11 @@ class SyntheticTest(unittest.TestCase):
         result = tools.model_analysis(20,'sample')
         print(result.schema)
 
+    def test_model_noise(self):
+        sb = SyntheticBuilder.from_memory()
+        tools: SyntheticIntentModel = sb.tools
+        tbl = tools.model_noise(10, num_columns=3)
+        self.assertEqual((10, 3), tbl.shape)
 
 
     def test_raise(self):

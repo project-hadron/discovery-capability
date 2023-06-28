@@ -686,7 +686,8 @@ class SyntheticIntentModel(WrangleIntentModel):
                     rtn_col = pa.concat_tables([rtn_col, _])
                 result = rtn_col.slice(0, size).column('num')
             elif pa.types.is_boolean(column.type):
-                frequency = column.value_counts().field(1).to_pylist()
+                frequency = dict(zip(column.value_counts().field(0).to_pylist(),
+                                     column.value_counts().field(1).to_pylist())).get(True)
 
             else:
                 continue
@@ -739,7 +740,7 @@ class SyntheticIntentModel(WrangleIntentModel):
         _ = self.get_number(start=-1000, stop=1000, size=size, seed=seed, save_intent=False)
         canonical = canonical.append_column('int', _)
         # bool
-        _ = self.get_boolean(size=size, relative_freq=[7, 3], seed=seed, save_intent=False)
+        _ = self.get_boolean(size=size, probability=0.7, seed=seed, save_intent=False)
         canonical = canonical.append_column('bool', _)
         # date
         _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, seed=seed,
@@ -765,7 +766,7 @@ class SyntheticIntentModel(WrangleIntentModel):
             _ = self.get_number(start=-1000, stop=1000, size=size, quantity=1 - p_nulls, seed=seed, save_intent=False)
             canonical = canonical.append_column('int_null', _)
             # bool_null
-            _ = self.get_boolean(size=size, relative_freq=[4, 6], seed=seed, quantity=1 - p_nulls, save_intent=False)
+            _ = self.get_boolean(size=size, probability=0.4, seed=seed, quantity=1 - p_nulls, save_intent=False)
             canonical = canonical.append_column('bool_null', _)
             # date_null
             _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, quantity=1 - p_nulls,
@@ -806,7 +807,7 @@ class SyntheticIntentModel(WrangleIntentModel):
         # Code block for intent
         _seed = self._seed(seed=seed)
         num_columns = num_columns if isinstance(num_columns, int) else 1
-        gen = Commons.label_gen()
+        label_gen = Commons.label_gen()
         tbl = None
         generator = np.random.default_rng(seed=_seed)
         for _ in range(num_columns):
@@ -815,10 +816,10 @@ class SyntheticIntentModel(WrangleIntentModel):
             b = generator.choice(range(1, 6))
             arr = self.get_distribution(distribution='beta', a=a, b=b, precision=6, size=size, seed=_seed,
                                                       save_intent=False)
-            if not tbl:
-                tbl = pa.table(arr)
+            if isinstance(tbl, pa.Table):
+                tbl = tbl.append_column(next(label_gen), arr)
             else:
-                tbl.append_column(next(gen), arr)
+                tbl = pa.table([arr], next(label_gen))
         return tbl
 
     @property
