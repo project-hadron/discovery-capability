@@ -1,6 +1,5 @@
 import pyarrow as pa
 import pyarrow.compute as pc
-import pandas as pd
 
 class DataDiscovery(object):
 
