@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
-from typing import Any
-from aistac.properties.abstract_properties import AbstractPropertyManager
+import pyarrow as pa
+from ds_core.intent.abstract_intent import AbstractIntentModel
+from ds_core.properties.abstract_properties import AbstractPropertyManager
 from ds_capability.components.commons import Commons
-from ds_capability.intent.abstract_builder_get_intent import AbstractBuilderGetIntent
 
-class AbstractBuilderIntentModel(AbstractBuilderGetIntent):
+class AbstractFeatureBuildIntentModel(AbstractIntentModel):
 
     _INTENT_PARAMS = ['self', 'save_intent', 'column_name', 'intent_order',
                       'replace_intent', 'remove_duplicates', 'seed']
@@ -32,8 +32,8 @@ class AbstractBuilderIntentModel(AbstractBuilderGetIntent):
                          default_intent_order=default_intent_order, default_replace_intent=default_replace_intent,
                          intent_type_additions=intent_type_additions)
 
-    def run_intent_pipeline(self, canonical: Any=None, intent_levels: [str, int, list]=None, run_book: str=None,
-                            seed: int=None, simulate: bool=None, **kwargs) -> pd.DataFrame:
+    def run_intent_pipeline(self, canonical: pa.Table=None, intent_levels: [str, int, list]=None, run_book: str=None,
+                            seed: int=None, simulate: bool=None, **kwargs) -> pa.Table:
         """Collectively runs all parameterised intent taken from the property manager against the code base as
         defined by the intent_contract. The whole run can be seeded though any parameterised seeding in the intent
         contracts will take precedence
@@ -48,10 +48,9 @@ class AbstractBuilderIntentModel(AbstractBuilderGetIntent):
         simulate = simulate if isinstance(simulate, bool) else False
         col_sim = {"column": [], "order": [], "method": []}
         # legacy
-        if 'size' in kwargs.keys():
-            canonical = kwargs.pop('size')
         canonical = self._get_canonical(canonical)
-        size = canonical.shape[0] if canonical.shape[0] > 0 else 1000
+        size = canonical.shape[0] if isinstance(canonical, pa.Table) else kwargs.pop('size', 1000)
+        rtn_tbl = canonical if isinstance(canonical, pa.Table) else None
         # test if there is any intent to run
         if self._pm.has_intent():
             # get the list of levels to run
@@ -64,14 +63,10 @@ class AbstractBuilderIntentModel(AbstractBuilderGetIntent):
                 _model = []
                 _get = []
                 _correlate = []
-                _frame_start = []
-                _frame_end = []
                 for column in self._pm.get_intent().keys():
                     for order in self._pm.get(self._pm.join(self._pm.KEY.intent_key, column), {}):
                         for method in self._pm.get(self._pm.join(self._pm.KEY.intent_key, column, order), {}).keys():
                             if str(method).startswith('get_'):
-                                if column in _correlate + _frame_start + _frame_end:
-                                    continue
                                 _get.append(column)
                             elif str(method).startswith('model_'):
                                 _model.append(column)
@@ -79,14 +74,7 @@ class AbstractBuilderIntentModel(AbstractBuilderGetIntent):
                                 if column in _get:
                                     _get.remove(column)
                                 _correlate.append(column)
-                            elif str(method).startswith('frame_'):
-                                if column in _get:
-                                    _get.remove(column)
-                                if str(method).startswith('frame_starter'):
-                                    _frame_start.append(column)
-                                else:
-                                    _frame_end.append(column)
-                column_names = Commons.list_unique(_frame_start + _get + _model + _correlate + _frame_end)
+                column_names = Commons.list_unique(_get + _model + _correlate)
             for column in column_names:
                 level_key = self._pm.join(self._pm.KEY.intent_key, column)
                 for order in sorted(self._pm.get(level_key, {})):
@@ -98,7 +86,7 @@ class AbstractBuilderIntentModel(AbstractBuilderGetIntent):
                                     col_sim['order'].append(order)
                                     col_sim['method'].append(method)
                                     continue
-                                result = []
+                                result = None
                                 params.update(params.pop('kwargs', {}))
                                 if isinstance(seed, int):
                                     params.update({'seed': seed})
@@ -110,28 +98,79 @@ class AbstractBuilderIntentModel(AbstractBuilderGetIntent):
                                     result = eval(f"self.{method}(canonical=canonical, save_intent=False, **params)",
                                                   globals(), locals())
                                 elif str(method).startswith('model_'):
-                                    canonical = eval(f"self.{method}(canonical=canonical, save_intent=False, **params)",
-                                                     globals(), locals())
-                                    continue
-                                elif str(method).startswith('frame_starter'):
-                                    canonical = self._get_canonical(params.pop('canonical', canonical), deep_copy=False)
-                                    size = canonical.shape[0]
-                                    canonical = eval(f"self.{method}(canonical=canonical, save_intent=False, **params)",
-                                                     globals(), locals())
-                                    continue
-                                elif str(method).startswith('frame_'):
-                                    canonical = eval(f"self.{method}(canonical=canonical, save_intent=False, **params)",
-                                                     globals(), locals())
-                                    continue
-                                if 0 < size != len(result):
-                                    raise IndexError(f"The index size of '{column}' is '{len(result)}', "
-                                                     f"should be {size}")
-                                canonical[column] = result
+                                    result = eval(f"self.{method}(canonical=canonical, save_intent=False, **params)",
+                                                  globals(), locals())
+                                if isinstance(rtn_tbl, pa.Table):
+                                    rtn_tbl = Commons.append_table(rtn_tbl, result)
+                                else:
+                                    rtn_tbl = result
                         except ValueError as ve:
                             raise ValueError(f"intent '{column}', order '{order}', method '{method}' failed with: {ve}")
                         except TypeError as te:
                             raise TypeError(f"intent '{column}', order '{order}', method '{method}' failed with: {te}")
         if simulate:
-            return pd.DataFrame.from_dict(col_sim)
-        return canonical
+            return pa.Table.from_pydict(col_sim)
+        return rtn_tbl
 
+    """
+        PRIVATE METHODS SECTION
+    """
+
+    def _get_canonical(self, data: [pa.Table, pa.Array, str]) -> pa.Table:
+        """
+        :param data: a dataframe or action event to generate a dataframe
+        :return: a pa.Table
+        """
+        if not data:
+            return None
+        if isinstance(data, pa.Table):
+            return data
+        if isinstance(data, str):
+            if not self._pm.has_connector(connector_name=data):
+                raise ValueError(f"The data connector name '{data}' is not in the connectors catalog")
+            handler = self._pm.get_connector_handler(data)
+            canonical = handler.load_canonical()
+            return canonical
+        raise ValueError(f"The canonical format is not recognised, {type(data)} passed")
+
+    def _intent_builder(self, method: str, params: dict, exclude: list = None) -> dict:
+        """builds the intent_params. Pass the method name and local() parameters
+            Example:
+                self._intent_builder(inspect.currentframe().f_code.co_name, **locals())
+
+        :param method: the name of the method (intent). can use 'inspect.currentframe().f_code.co_name'
+        :param params: the parameters passed to the method. use `locals()` in the caller method
+        :param exclude: (optional) convenience parameter identifying param keys to exclude.
+        :return: dict of the intent
+        """
+        exclude = []
+        if 'canonical' in params.keys() and not isinstance(params.get('canonical'), (str, dict, list)):
+            exclude.append('canonical')
+        return super()._intent_builder(method=method, params=params, exclude=exclude)
+
+    def _set_intend_signature(self, intent_params: dict, column_name: [int, str] = None, intent_order: int = None,
+                              replace_intent: bool = None, remove_duplicates: bool = None, save_intent: bool = None):
+        """ sets the intent section in the configuration file. Note: by default any identical intent, e.g.
+        intent with the same intent (name) and the same parameter values, are removed from any level.
+
+        :param intent_params: a dictionary type set of configuration representing a intent section contract
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        """
+        if save_intent or (not isinstance(save_intent, bool) and self._default_save_intent):
+            if not isinstance(column_name, (str, int)) or not column_name:
+                raise ValueError(f"if the intent is to be saved then a column name must be provided")
+        super()._set_intend_signature(intent_params=intent_params, intent_level=column_name, intent_order=intent_order,
+                                      replace_intent=replace_intent, remove_duplicates=remove_duplicates,
+                                      save_intent=save_intent)
+        return

@@ -32,7 +32,7 @@ class SyntheticTest(unittest.TestCase):
                 del os.environ[key]
         # Local Domain Contract
         os.environ['HADRON_PM_PATH'] = os.path.join('working', 'contracts')
-        os.environ['HADRON_PM_TYPE'] = 'json'
+        os.environ['HADRON_PM_TYPE'] = 'parquet'
         # Local Connectivity
         os.environ['HADRON_DEFAULT_PATH'] = Path('working/data').as_posix()
         # Specialist Component
@@ -55,28 +55,39 @@ class SyntheticTest(unittest.TestCase):
     def test_for_smoke(self):
         sb = SyntheticBuilder.from_memory()
         tools: SyntheticIntentModel = sb.tools
-        tbl = tools.model_synthetic_data_types(100)
+        tbl = tools.get_synthetic_data_types(100)
         self.assertEqual((100, 7), tbl.shape)
-        tbl = tools.model_synthetic_data_types(100, inc_nulls=True, p_nulls=0.03)
+        tbl = tools.get_synthetic_data_types(100, inc_nulls=True, p_nulls=0.03)
         self.assertEqual((100, 13), tbl.shape)
         self.assertEqual(3, tbl.column('int_null').null_count)
+
+    def test_run_component_pipeline(self):
+        sb = SyntheticBuilder.from_env('test', has_contract=False)
+        tools: SyntheticIntentModel = sb.tools
+        # reload the properties
+        sb = SyntheticBuilder.from_env('test')
+        tbl = tools.get_synthetic_data_types(10, column_name='d_types')
+        result = sb.tools.run_intent_pipeline(size=20)
+        print(result.shape)
+
+
 
     def test_model_analysis(self):
         sb = SyntheticBuilder.from_memory()
         tools: SyntheticIntentModel = sb.tools
         sb.add_connector_uri('sample', './working/data.sample.parquet')
-        tbl = tools.model_synthetic_data_types(10)
+        tbl = tools.get_synthetic_data_types(10)
         sb.save_canonical('sample', tbl)
-        result = tools.model_analysis(20,'sample')
+        result = tools.get_analysis(20, 'sample')
         print(result.schema)
 
     def test_model_noise(self):
         sb = SyntheticBuilder.from_memory()
         tools: SyntheticIntentModel = sb.tools
-        tbl = tools.model_noise(10, num_columns=3)
+        tbl = tools.get_noise(10, num_columns=3)
         self.assertEqual((10, 3), tbl.shape)
         self.assertEqual(['A', 'B', 'C'], tbl.column_names)
-        tbl = tools.model_noise(10, num_columns=3, name_prefix='P_')
+        tbl = tools.get_noise(10, num_columns=3, name_prefix='P_')
         self.assertEqual(['P_A', 'P_B', 'P_C'], tbl.column_names)
 
 

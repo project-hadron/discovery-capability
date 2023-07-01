@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from ds_capability.intent.synthetic_intent import SyntheticIntentModel
-from ds_capability.managers.synthetic_property_manager import SyntheticPropertyManager
+from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
+from ds_capability.managers.feature_build_property_manager import FeatureBuildPropertyManager
 from ds_capability.components.abstract_common_component import AbstractCommonComponent
 
 __author__ = 'Darryl Oatridge'
 
 
-class SyntheticBuilder(AbstractCommonComponent):
+class FeatureBuild(AbstractCommonComponent):
 
     REPORT_DICTIONARY = 'dictionary'
     REPORT_CATALOG = 'catalog'
@@ -21,7 +21,7 @@ class SyntheticBuilder(AbstractCommonComponent):
                  reset_templates: bool=None, template_path: str=None, template_module: str=None,
                  template_source_handler: str=None, template_persist_handler: str=None, align_connectors: bool=None,
                  default_save_intent: bool=None, default_intent_level: bool=None, order_next_available: bool=None,
-                 default_replace_intent: bool=None, has_contract: bool=None) -> SyntheticBuilder:
+                 default_replace_intent: bool=None, has_contract: bool=None) -> FeatureBuild:
         """ Class Factory Method to instantiates the components application. The Factory Method handles the
         instantiation of the Properties Manager, the Intent Model and the persistence of the uploaded properties.
         See class inline docs for an example method
@@ -52,8 +52,8 @@ class SyntheticBuilder(AbstractCommonComponent):
         pm_file_type = pm_file_type if isinstance(pm_file_type, str) else 'parquet'
         pm_module = pm_module if isinstance(pm_module, str) else cls.DEFAULT_MODULE
         pm_handler = pm_handler if isinstance(pm_handler, str) else cls.DEFAULT_PERSIST_HANDLER
-        _pm = SyntheticPropertyManager(task_name=task_name, creator=creator)
-        _intent_model = SyntheticIntentModel(property_manager=_pm, default_save_intent=default_save_intent,
+        _pm = FeatureBuildPropertyManager(task_name=task_name, creator=creator)
+        _intent_model = FeatureBuildIntentModel(property_manager=_pm, default_save_intent=default_save_intent,
                                              default_intent_level=default_intent_level,
                                              order_next_available=order_next_available,
                                              default_replace_intent=default_replace_intent)
@@ -66,15 +66,15 @@ class SyntheticBuilder(AbstractCommonComponent):
                    align_connectors=align_connectors)
 
     @property
-    def pm(self) -> SyntheticPropertyManager:
+    def pm(self) -> FeatureBuildPropertyManager:
         return self._component_pm
 
     @property
-    def intent_model(self) -> SyntheticIntentModel:
+    def intent_model(self) -> FeatureBuildIntentModel:
         return self._intent_model
 
     @property
-    def tools(self) -> SyntheticIntentModel:
+    def tools(self) -> FeatureBuildIntentModel:
         return self._intent_model
 
     def run_component_pipeline(self, canonical: Any=None, intent_levels: [str, int, list]=None, run_book: str=None,

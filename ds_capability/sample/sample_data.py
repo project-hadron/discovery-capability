@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 from abc import ABC, abstractmethod
-from aistac.handlers.abstract_handlers import HandlerFactory
+from ds_core.handlers.abstract_handlers import HandlerFactory
 
 __author__ = 'Darryl Oatridge'
 

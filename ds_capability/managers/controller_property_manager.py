@@ -1,4 +1,4 @@
-from aistac.properties.abstract_properties import AbstractPropertyManager
+from ds_core.properties.abstract_properties import AbstractPropertyManager
 
 
 class ControllerPropertyManager(AbstractPropertyManager):

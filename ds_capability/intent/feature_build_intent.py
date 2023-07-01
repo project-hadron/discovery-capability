@@ -6,19 +6,22 @@ import pyarrow as pa
 import pyarrow.compute as pc
 from typing import Any
 
+from scipy.stats import stats
+
 from ds_capability.components.commons import Commons
-from ds_capability.intent.wrangle_intent import WrangleIntentModel
-from ds_capability.managers.synthetic_property_manager import SyntheticPropertyManager
+from ds_capability.intent.abstract_feature_build_intent import AbstractFeatureBuildIntentModel
+from ds_capability.intent.common_intent import CommonsIntentModel
+from ds_capability.managers.feature_build_property_manager import FeatureBuildPropertyManager
 from ds_capability.sample.sample_data import Sample
 
 
-class SyntheticIntentModel(WrangleIntentModel):
+class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentModel):
 
     """Synthetic data is representative data that, depending on its application, holds statistical and
     distributive characteristics of its real world counterpart. This component provides a set of actions
     that focuses on building a synthetic data through knowledge and statistical analysis"""
     
-    def __init__(self, property_manager: SyntheticPropertyManager, default_save_intent: bool=None,
+    def __init__(self, property_manager: FeatureBuildPropertyManager, default_save_intent: bool=None,
                  default_intent_level: [str, int, float]=None, order_next_available: bool=None,
                  default_replace_intent: bool=None):
         """initialisation of the Intent class.
@@ -29,14 +32,19 @@ class SyntheticIntentModel(WrangleIntentModel):
         :param order_next_available: (optional) if the default behaviour for the order should be next available order
         :param default_replace_intent: (optional) the default replace existing intent behaviour
         """
+        default_save_intent = default_save_intent if isinstance(default_save_intent, bool) else True
+        default_replace_intent = default_replace_intent if isinstance(default_replace_intent, bool) else True
+        default_intent_level = default_intent_level if isinstance(default_intent_level, (str, int, float)) else 'A'
+        default_intent_order = -1 if isinstance(order_next_available, bool) and order_next_available else 0
         super().__init__(property_manager=property_manager, default_save_intent=default_save_intent,
-                         default_intent_level=default_intent_level, order_next_available=order_next_available,
+                         default_intent_level=default_intent_level, default_intent_order=default_intent_order,
                          default_replace_intent=default_replace_intent)
+        self.label_gen = Commons.label_gen()
 
     def get_number(self, start: [int, float, str]=None, stop: [int, float, str]=None, relative_freq: list=None,
                    precision: int=None, ordered: str=None, at_most: int=None, size: int=None, quantity: float=None,
                    seed: int=None, save_intent: bool=None, intent_order: int=None, column_name: [int, str]=None,
-                   replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Array:
+                   replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ returns a number in the range from_value to to_value. if only to_value given from_value is zero
 
         :param start: optional (signed) integer or float to start from. See below for str
@@ -70,11 +78,67 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        params = locals()
-        [params.pop(k) for k in self._INTENT_PARAMS + ['quantity']]
-        # set the seed and call the method
-        seed = self._seed(seed=seed)
-        rtn_list = self._get_number(seed=seed, **params)
+        start = self._extract_value(start)
+        stop = self._extract_value(stop)
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
+        if not isinstance(start, (int, float)) and not isinstance(stop, (int, float)):
+            raise ValueError(f"either a 'from_value' or a 'from_value' and 'to_value' must be provided")
+        if not isinstance(start, (float, int)):
+            start = 0
+        if not isinstance(stop, (float, int)):
+            (start, stop) = (0, start)
+        if stop <= start:
+            raise ValueError("The number range must be a positive difference, where to_value <= from_value")
+        at_most = 0 if not isinstance(at_most, int) else at_most
+        #        size = size if isinstance(size, int) else 1
+        _seed = self._seed() if seed is None else seed
+        precision = 3 if not isinstance(precision, int) else precision
+        if precision == 0:
+            start = int(round(start, 0))
+            stop = int(round(stop, 0))
+        is_int = True if (isinstance(stop, int) and isinstance(start, int)) else False
+        if is_int:
+            precision = 0
+        # build the distribution sizes
+        if isinstance(relative_freq, list) and len(relative_freq) > 1 and sum(relative_freq) > 1:
+            freq_dist_size = self._freq_dist_size(relative_freq=relative_freq, size=size, seed=_seed)
+        else:
+            freq_dist_size = [size]
+        # generate the numbers
+        rtn_list = []
+        generator = np.random.default_rng(seed=_seed)
+        d_type = int if is_int else float
+        bins = np.linspace(start, stop, len(freq_dist_size) + 1, dtype=d_type)
+        for idx in np.arange(1, len(bins)):
+            low = bins[idx - 1]
+            high = bins[idx]
+            if low >= high:
+                continue
+            elif at_most > 0:
+                sample = []
+                for _ in np.arange(at_most, dtype=d_type):
+                    count_size = freq_dist_size[idx - 1] * generator.integers(2, 4, size=1)[0]
+                    sample += list(set(np.linspace(bins[idx - 1], bins[idx], num=count_size, dtype=d_type,
+                                                   endpoint=False)))
+                if len(sample) < freq_dist_size[idx - 1]:
+                    raise ValueError(f"The value range has insufficient samples to choose from when using at_most."
+                                     f"Try increasing the range of values to sample.")
+                rtn_list += list(generator.choice(sample, size=freq_dist_size[idx - 1], replace=False))
+            else:
+                if d_type == int:
+                    rtn_list += generator.integers(low=low, high=high, size=freq_dist_size[idx - 1]).tolist()
+                else:
+                    choice = generator.random(size=freq_dist_size[idx - 1], dtype=float)
+                    choice = np.round(choice * (high - low) + low, precision).tolist()
+                    # make sure the precision
+                    choice = [high - 10 ** (-precision) if x >= high else x for x in choice]
+                    rtn_list += choice
+        # order or shuffle the return list
+        if isinstance(ordered, str) and ordered.lower() in ['asc', 'des']:
+            rtn_list.sort(reverse=True if ordered.lower() == 'asc' else False)
+        else:
+            generator.shuffle(rtn_list)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         rtn_arr = pa.NumericArray.from_pandas(rtn_list)
         if rtn_arr.type.equals('double'):
@@ -82,7 +146,8 @@ class SyntheticIntentModel(WrangleIntentModel):
                 rtn_arr = pa.array(rtn_arr, pa.int64())
             except pa.lib.ArrowInvalid:
                 pass
-        return rtn_arr
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([rtn_arr], names=[column_name])
 
     def get_category(self, selection: list, size: int, relative_freq: list=None, quantity: float=None, seed: int=None,
                      save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
@@ -114,13 +179,20 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        params = locals()
-        [params.pop(k) for k in self._INTENT_PARAMS + ['quantity']]
-        # set the seed and call the method
-        seed = self._seed(seed=seed)
-        rtn_list = self._get_category(seed=seed, **params)
+        if len(selection) < 1:
+            return [None] * size
+        seed = self._seed() if seed is None else seed
+        relative_freq = relative_freq if isinstance(relative_freq, list) else [1]*len(selection)
+        select_index = self._freq_dist_size(relative_freq=relative_freq, size=size, dist_length=len(selection),
+                                                  dist_on='right', seed=seed)
+        rtn_list = []
+        for idx in range(len(select_index)):
+            rtn_list += [selection[idx]]*select_index[idx]
+        gen = np.random.default_rng(seed)
+        gen.shuffle(rtn_list)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        return pa.DictionaryArray.from_pandas(rtn_list).dictionary_encode()
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([pa.DictionaryArray.from_pandas(rtn_list).dictionary_encode()], names=[column_name])
 
     def get_boolean(self, size: int, probability: float=None, quantity: float=None, seed: int=None,
                     save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
@@ -152,9 +224,11 @@ class SyntheticIntentModel(WrangleIntentModel):
         # remove intent params
         prob = probability if isinstance(probability, int) and 0 < probability < 1 else 0.5
         seed = self._seed(seed=seed)
-        rtn_list = self._get_category(selection=[True,False], relative_freq=[prob, 1-prob], size=size, seed=seed)
+        rtn_list = self.get_category(selection=[True,False], relative_freq=[prob, 1-prob], size=size, seed=seed,
+                                     save_intent=False)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        return pa.BooleanArray.from_pandas(rtn_list)
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([pa.BooleanArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_datetime(self, start: Any, until: Any,  relative_freq: list=None, at_most: int=None, ordered: str=None,
                      date_format: str=None,  as_num: bool=None, ignore_time: bool=None, ignore_seconds: bool=None,
@@ -209,13 +283,49 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        params = locals()
-        [params.pop(k) for k in self._INTENT_PARAMS + ['quantity']]
-        # set the seed and call the method
-        seed = self._seed(seed=seed)
-        rtn_list = self._get_datetime(seed=seed, **params)
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
+        if start is None or until is None:
+            raise ValueError("The start or until parameters cannot be of NoneType")
+        # Code block for intent
+        as_num = as_num if isinstance(as_num, bool) else False
+        ignore_seconds = ignore_seconds if isinstance(ignore_seconds, bool) else False
+        ignore_time = ignore_time if isinstance(ignore_time, bool) else False
+        size = 1 if size is None else size
+        _seed = self._seed() if seed is None else seed
+        # start = start.to_pydatetime() if isinstance(start, pd.Timestamp) else start
+        # until = until.to_pydatetime() if isinstance(until, pd.Timestamp) else until
+        if isinstance(start, int):
+            start = (pd.Timestamp.now() + pd.Timedelta(days=start))
+        start = pd.to_datetime(start, errors='coerce', dayfirst=day_first,
+                               yearfirst=year_first)
+        if isinstance(until, int):
+            until = (pd.Timestamp.now() + pd.Timedelta(days=until))
+        elif isinstance(until, dict):
+            until = (start + pd.Timedelta(**until))
+        until = pd.to_datetime(until, errors='coerce', dayfirst=day_first,
+                               yearfirst=year_first)
+        if start == until:
+            rtn_list = pd.Series([start] * size)
+        else:
+            dt_tz = pd.Series(start).dt.tz
+            _dt_start = Commons.date2value(start, day_first=day_first, year_first=year_first)[0]
+            _dt_until = Commons.date2value(until, day_first=day_first, year_first=year_first)[0]
+            precision = 15
+            rtn_list = self.get_number(start=_dt_start, stop=_dt_until, relative_freq=relative_freq, at_most=at_most,
+                                       ordered=ordered, precision=precision, size=size, seed=seed, save_intent=False)
+            rtn_list = pd.Series(Commons.value2date(rtn_list, dt_tz=dt_tz))
+        if ignore_time:
+            rtn_list = pd.Series(pd.DatetimeIndex(rtn_list).normalize())
+        if ignore_seconds:
+            rtn_list = rtn_list.apply(lambda t: t.replace(second=0, microsecond=0, nanosecond=0))
+        if as_num:
+            return Commons.date2value(rtn_list)
+        if isinstance(date_format, str) and len(rtn_list) > 0:
+            rtn_list = rtn_list.dt.strftime(date_format)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        return pa.TimestampArray.from_pandas(rtn_list)
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([pa.TimestampArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_intervals(self, intervals: list, relative_freq: list=None, precision: int=None, size: int=None,
                       quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
@@ -247,13 +357,50 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        params = locals()
-        [params.pop(k) for k in self._INTENT_PARAMS + ['quantity']]
-        # set the seed and call the method
-        seed = self._seed(seed=seed)
-        rtn_list = self._get_intervals(seed=seed, **params)
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
+        precision = precision if isinstance(precision, (float, int)) else 3
+        _seed = self._seed() if seed is None else seed
+        if not all(isinstance(value, tuple) for value in intervals):
+            raise ValueError("The intervals list must be a list of tuples")
+        interval_list = self.get_category(selection=intervals, relative_freq=relative_freq, size=size, seed=_seed,
+                                          save_intent=False)
+        interval_counts = pd.Series(interval_list, dtype='object').value_counts()
+        rtn_list = []
+        for index in interval_counts.index:
+            size = interval_counts[index]
+            if size == 0:
+                continue
+            if len(index) == 2:
+                (lower, upper) = index
+                if index == 0:
+                    closed = 'both'
+                else:
+                    closed = 'right'
+            else:
+                (lower, upper, closed) = index
+            if lower == upper:
+                rtn_list += [round(lower, precision)] * size
+                continue
+            if precision == 0:
+                margin = 1
+            else:
+                margin = 10 ** (((-1) * precision) - 1)
+            if str.lower(closed) == 'neither':
+                lower += margin
+                upper -= margin
+            elif str.lower(closed) == 'right':
+                lower += margin
+            elif str.lower(closed) == 'both':
+                upper += margin
+            # correct adjustments
+            if lower >= upper:
+                upper = lower + margin
+            rtn_list += self.get_number(lower, upper, precision=precision, size=size, seed=_seed, save_intent=False)
+        np.random.default_rng(seed=_seed).shuffle(rtn_list)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        return pa.StringArray.from_pandas(rtn_list)
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([pa.StringArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_dist_normal(self, mean: float, std: float, precision: int=None, size: int=None, quantity: float=None,
                         seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
@@ -285,13 +432,16 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        params = locals()
-        [params.pop(k) for k in self._INTENT_PARAMS + ['quantity']]
-        # set the seed and call the method
-        seed = self._seed(seed=seed)
-        rtn_list = self._get_dist_normal(seed=seed, **params)
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
+        _seed = self._seed() if seed is None else seed
+        precision = precision if isinstance(precision, int) else 3
+        generator = np.random.default_rng(seed=_seed)
+        rtn_list = list(generator.normal(loc=mean, scale=std, size=size))
+        rtn_list = list(np.around(rtn_list, precision))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        return pa.NumericArray.from_pandas(rtn_list)
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_dist_choice(self, number: [int, str, float], size: int=None, quantity: float=None, seed: int=None,
                         save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
@@ -325,13 +475,22 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        params = locals()
-        [params.pop(k) for k in self._INTENT_PARAMS + ['quantity']]
-        # set the seed and call the method
-        seed = self._seed(seed=seed)
-        rtn_list = self._get_dist_choice(seed=seed, **params)
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
+        _seed = self._seed() if seed is None else seed
+        number = self._extract_value(number)
+        number = int(number * size) if isinstance(number, float) and 0 <= number <= 1 else int(number)
+        number = number if 0 <= number < size else size
+        if isinstance(number, int) and 0 <= number <= size:
+            rtn_list = pd.Series(data=[0] * size)
+            choice_idx = self.get_number(stop=size, size=number, at_most=1, precision=0, ordered='asc', seed=_seed,
+                                         save_intent=False)
+            rtn_list.iloc[choice_idx] = [1] * number
+            return rtn_list.reset_index(drop=True).to_list()
+        rtn_list = pd.Series(data=[0] * size).to_list()
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        return pa.NumericArray.from_pandas(rtn_list)
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_dist_bernoulli(self, probability: float, size: int=None, quantity: float=None, seed: int=None,
                            save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
@@ -361,13 +520,14 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        params = locals()
-        [params.pop(k) for k in self._INTENT_PARAMS + ['quantity']]
-        # set the seed and call the method
-        seed = self._seed(seed=seed)
-        rtn_list = self._get_dist_bernoulli(seed=seed, **params)
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
+        _seed = self._seed() if seed is None else seed
+        probability = self._extract_value(probability)
+        rtn_list = list(stats.bernoulli.rvs(p=probability, size=size, random_state=_seed))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        return pa.NumericArray.from_pandas(rtn_list)
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_dist_bounded_normal(self, mean: float, std: float, lower: float, upper: float, precision: int=None,
                                 size: int=None, quantity: float=None, seed: int=None, save_intent: bool=None,
@@ -402,13 +562,15 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        params = locals()
-        [params.pop(k) for k in self._INTENT_PARAMS + ['quantity']]
-        # set the seed and call the method
-        seed = self._seed(seed=seed)
-        rtn_list = self._get_dist_bounded_normal(seed=seed, **params)
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
+        precision = precision if isinstance(precision, int) else 3
+        seed = self._seed() if seed is None else seed
+        rtn_list = stats.truncnorm((lower - mean) / std, (upper - mean) / std, loc=mean, scale=std)
+        rtn_list = rtn_list.rvs(size, random_state=seed).round(precision)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        return pa.NumericArray.from_pandas(rtn_list)
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_distribution(self, distribution: str, is_stats: bool=None, precision: int=None, size: int=None,
                          quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
@@ -442,14 +604,20 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        params = locals()
-        [params.pop(k) for k in self._INTENT_PARAMS + ['quantity']]
-        params.update(params.pop('kwargs', {}))
-        # set the seed and call the method
-        seed = self._seed(seed=seed)
-        rtn_list = self._get_distribution(seed=seed, **params)
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
+        _seed = self._seed() if seed is None else seed
+        precision = 3 if precision is None else precision
+        is_stats = is_stats if isinstance(is_stats, bool) else False
+        if is_stats:
+            rtn_list = eval(f"stats.{distribution}.rvs(size=size, random_state=_seed, **kwargs)", globals(), locals())
+        else:
+            generator = np.random.default_rng(seed=_seed)
+            rtn_list = eval(f"generator.{distribution}(size=size, **kwargs)", globals(), locals())
+        rtn_list = list(np.around(rtn_list, precision))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        return pa.NumericArray.from_pandas(rtn_list)
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_string_pattern(self, pattern: str, choices: dict=None, as_binary: bool=None, quantity: [float, int]=None,
                            size: int=None, choice_only: bool=None, seed: int=None, save_intent: bool=None,
@@ -536,7 +704,8 @@ class SyntheticIntentModel(WrangleIntentModel):
         if as_binary:
             rtn_list = rtn_list.str.encode(encoding='raw_unicode_escape')
         rtn_list = self._set_quantity(rtn_list.to_list(), quantity=self._quantity(quantity), seed=seed)
-        return pa.StringArray.from_pandas(rtn_list)
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([pa.StringArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_sample(self, sample_name: str, sample_size: int=None, shuffle: bool=None, size: int=None,
                    quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
@@ -578,7 +747,196 @@ class SyntheticIntentModel(WrangleIntentModel):
         shuffle = shuffle if isinstance(shuffle, bool) else True
         selection = eval(f"Sample.{sample_name}(size={size}, shuffle={shuffle}, seed={_seed})")
         rtn_list = self._set_quantity(selection, quantity=quantity, seed=_seed)
-        return pa.Array.from_pandas(rtn_list)
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([pa.Array.from_pandas(rtn_list)], names=[column_name])
+
+    def get_analysis(self, size: int, other: [str, pa.Table], category_limit: int=None,
+                     seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ builds a set of columns based on another (see analyse_association)
+        if a reference DataFrame is passed then as the analysis is run if the column already exists the row
+        value will be taken as the reference to the sub category and not the random value. This allows already
+        constructed association to be used as reference for a sub category.
+
+        :param size: The number of rows
+        :param other: a direct or generated pd.DataFrame. see context notes below
+        :param category_limit: (optional) a global cap on categories captured. zero value returns no limits
+        :param seed: seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run. In
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pa.Table
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        other = self._get_canonical(other)
+        rtn_tbl = None
+        for c in other.column_names:
+            column = other.column(c).combine_chunks()
+            if pa.types.is_dictionary(column.type):
+                selection = column.dictionary.to_pylist()
+                frequency = column.value_counts().field(1).to_pylist()
+                result = self.get_category(selection=selection, relative_freq=frequency, size=size, column_name=c, save_intent=False)
+            elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
+                precision = 0 if pa.types.is_integer(column.type) else 5
+                std = pc.round(pc.multiply(pc.stddev(column), 0.6), 5).as_py()
+                rtn_col = self.correlate_number(column, jitter=std, precision=precision, column_name='tmp_num', save_intent=False)
+                while rtn_col.num_rows < size:
+                    _ = self.correlate_number(column, jitter=std, precision=precision, column_name='tmp_num', save_intent=False)
+                    rtn_col = pa.concat_tables([rtn_col, _])
+                result = rtn_col.slice(0, size).column('num')
+            elif pa.types.is_boolean(column.type):
+                frequency = dict(zip(column.value_counts().field(0).to_pylist(),
+                                     column.value_counts().field(1).to_pylist())).get(True)
+                result = self.get_boolean(size=size, probability=frequency, column_name=c, save_intent=False)
+            else:
+                continue
+            if isinstance(rtn_tbl, pa.Table):
+                rtn_tbl = rtn_tbl.append_column(c, result)
+            else:
+                rtn_tbl = pa.table([result], names=[c])
+        return rtn_tbl
+
+    def get_synthetic_data_types(self, size: int, inc_nulls: bool=None, p_nulls: float=None, seed: int=None,
+                                 save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                                 replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ A dataset with example data types
+
+        :param size:
+        :param inc_nulls: include values with nulls
+        :param p_nulls: a value between 0 an 1 of the percentage of nulls in the *_nulls column. Default is 0.02
+        :param seed: a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pandas DataSet
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        seed = self._seed(seed=seed)
+        p_nulls = p_nulls if isinstance(p_nulls, float) and 0 < p_nulls < 1 else 0.02
+        # cat
+        _ = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE'], size=size, seed=seed,
+                              relative_freq=[1, 99, 10, 40], column_name='cat',  save_intent=False)
+        canonical = _
+        # num
+        _ = self.get_dist_normal(mean=4, std=1, size=size, seed=seed, column_name='num', save_intent=False)
+        canonical = Commons.append_table(canonical, _)
+        # int
+        _ = self.get_number(start=-1000, stop=1000, size=size, seed=seed, column_name='int', save_intent=False)
+        canonical = Commons.append_table(canonical, _)
+        # bool
+        _ = self.get_boolean(size=size, probability=0.7, seed=seed, column_name='bool', save_intent=False)
+        canonical = Commons.append_table(canonical, _)
+        # date
+        _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, seed=seed,
+                              column_name='date', save_intent=False)
+        canonical = Commons.append_table(canonical, _)
+        # string
+        _ = self.get_sample(sample_name='us_street_names', size=size, seed=seed, column_name='string',  save_intent=False)
+        canonical = Commons.append_table(canonical, _)
+
+        # binary
+        _ = self.get_string_pattern(pattern='cccccccc', as_binary=True, size=size, seed=seed, column_name='binary', save_intent=False)
+        canonical = Commons.append_table(canonical, _)
+
+        if isinstance(inc_nulls, bool) and inc_nulls:
+            # cat_null
+            _ = self.get_category(selection=['M', 'F', 'U'], relative_freq=[9,8,4], quantity=1 - p_nulls,
+                                  column_name='cat_null', size=size, seed=seed, save_intent=False)
+            canonical = Commons.append_table(canonical, _)
+            # num_null
+            _ = self.get_number(start=-1.0, stop=1.0, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21], size=size,
+                                quantity=1 - p_nulls, column_name='num_null', seed=seed, save_intent=False)
+            canonical = Commons.append_table(canonical, _)
+            # int_null
+            _ = self.get_number(start=-1000, stop=1000, size=size, quantity=1 - p_nulls, column_name='int_null',
+                                seed=seed, save_intent=False)
+            canonical = Commons.append_table(canonical, _)
+            # bool_null
+            _ = self.get_boolean(size=size, probability=0.4, seed=seed, quantity=1 - p_nulls,
+                                 column_name='bool_null', save_intent=False)
+            canonical = Commons.append_table(canonical, _)
+            # date_null
+            _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, quantity=1 - p_nulls,
+                                  column_name='date_null', seed=seed, save_intent=False)
+            canonical = Commons.append_table(canonical, _)
+            # string_null
+            _ = self.get_sample(sample_name='us_street_names', size=size, quantity=1 - p_nulls,
+                                column_name='string_null', seed=seed, save_intent=False)
+            canonical = Commons.append_table(canonical, _)
+
+        return canonical
+
+    def get_noise(self, size: int, num_columns: int, seed: int = None, name_prefix: str=None,
+                  save_intent: bool = None, column_name: [int, str] = None, intent_order: int = None,
+                  replace_intent: bool = None, remove_duplicates: bool = None) -> pd.DataFrame:
+        """ Generates multiple columns of noise in your dataset
+
+        :param size: The number of rows
+        :param num_columns: the number of columns of noise
+        :param name_prefix: a name the prefix the column names
+        :param seed: seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a DataFrame
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        _seed = self._seed(seed=seed)
+        num_columns = num_columns if isinstance(num_columns, int) else 1
+        name_prefix = name_prefix if isinstance(name_prefix, str) else ''
+        label_gen = Commons.label_gen()
+        tbl = None
+        generator = np.random.default_rng(seed=_seed)
+        for _ in range(num_columns):
+            _seed = self._seed(seed=_seed, increment=True)
+            a = generator.choice(range(1, 6))
+            b = generator.choice(range(1, 6))
+            arr = self.get_distribution(distribution='beta', a=a, b=b, precision=6, size=size, seed=_seed,
+                                                      save_intent=False)
+            if isinstance(tbl, pa.Table):
+                tbl = tbl.append_column(name_prefix + next(label_gen), arr)
+            else:
+                tbl = pa.table([arr], names=[name_prefix + next(label_gen)])
+        return tbl
 
     def correlate_number(self, canonical: pa.Array, choice: [int, float, str]=None, choice_header: str=None,
                          precision: int=None, jitter: [int, float, str]=None, offset: [int, float, str]=None,
@@ -623,259 +981,78 @@ class SyntheticIntentModel(WrangleIntentModel):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        params = locals()
-        [params.pop(k) for k in self._INTENT_PARAMS]
-        # set the seed and call the method
-        seed = self._seed(seed=seed)
-        rtn_list = self._correlate_number(seed=seed, **params)
+        s_values = canonical.to_pandas()
+        s_others = s_values.copy()
+        other_size = s_others.size
+        seed = self._seed() if seed is None else seed
+        offset = self._extract_value(offset)
+        keep_zero = keep_zero if isinstance(keep_zero, bool) else False
+        precision = precision if isinstance(precision, int) else 3
+        lower = lower if isinstance(lower, (int, float)) else float('-inf')
+        upper = upper if isinstance(upper, (int, float)) else float('inf')
+        # mark the zeros and nulls
+        null_idx = s_values[s_values.isna()].index
+        zero_idx = s_values.where(s_values == 0).dropna().index if keep_zero else []
+        # choose the items to jitter
+        if isinstance(choice, (str, int, float)):
+            size = s_values.size
+            choice = self._extract_value(choice)
+            choice = int(choice * size) if isinstance(choice, float) and 0 <= choice <= 1 else int(choice)
+            choice = choice if 0 <= choice < size else size
+            gen = np.random.default_rng(seed=seed)
+            choice_idx = gen.choice(s_values.index, size=choice, replace=False)
+            choice_idx = [choice_idx] if isinstance(choice_idx, int) else choice_idx
+            s_values = s_values.iloc[choice_idx]
+        if isinstance(jitter, (str, int, float)) and s_values.size > 0:
+            jitter = self._extract_value(jitter)
+            size = s_values.size
+            gen = np.random.default_rng(seed)
+            results = gen.normal(loc=0, scale=jitter, size=size)
+            s_values = s_values.add(results)
+        # set code_str
+        if isinstance(code_str, str) and s_values.size > 0:
+            if code_str.startswith('lambda'):
+                s_values = s_values.transform(eval(code_str))
+            else:
+                code_str = code_str.replace("@", 'x')
+                s_values = s_values.transform(lambda x: eval(code_str))
+        # set offset for all values
+        if isinstance(offset, (int, float)) and offset != 0 and s_values.size > 0:
+            s_values = s_values.add(offset)
+        # set the changed values
+        if other_size == s_values.size:
+            s_others = s_values
+        else:
+            s_others.iloc[s_values.index] = s_values
+        # max and min caps
+        s_others = pd.Series([upper if x > upper else x for x in s_others])
+        s_others = pd.Series([lower if x < lower else x for x in s_others])
+        if isinstance(keep_zero, bool) and keep_zero:
+            if other_size == zero_idx.size:
+                s_others = 0 * zero_idx.size
+            else:
+                s_others.iloc[zero_idx] = 0
+        if other_size == null_idx.size:
+            s_others = np.nan * null_idx.size
+        else:
+            s_others.iloc[null_idx] = np.nan
+        s_others = s_others.round(precision)
+        if precision == 0 and not s_others.isnull().any():
+            s_others = s_others.astype(int)
+        rtn_list = s_others.to_list()
         rtn_arr = pa.NumericArray.from_pandas(rtn_list)
         if rtn_arr.type.equals('double'):
             try:
                 rtn_arr = pa.array(rtn_arr, pa.int64())
             except pa.lib.ArrowInvalid:
                 pass
-        return rtn_arr
-
-    def model_analysis(self, size: int, other: [str, pa.Table], category_limit: int=None,
-                       seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                       replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
-        """ builds a set of columns based on another (see analyse_association)
-        if a reference DataFrame is passed then as the analysis is run if the column already exists the row
-        value will be taken as the reference to the sub category and not the random value. This allows already
-        constructed association to be used as reference for a sub category.
-
-        :param size: The number of rows
-        :param other: a direct or generated pd.DataFrame. see context notes below
-        :param category_limit: (optional) a global cap on categories captured. zero value returns no limits
-        :param seed: seed: (optional) a seed value for the random function: default to None
-        :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
-        :param intent_order: (optional) the order in which each intent should run. In
-                    - If None: default's to -1
-                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
-                    - if int: added to the level specified, overwriting any that already exist
-
-        :param replace_intent: (optional) if the intent method exists at the level, or default level
-                    - True - replaces the current intent method with the new
-                    - False - leaves it untouched, disregarding the new intent
-
-        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: a pa.Table
-        """
-        # intent persist options
-        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
-                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
-        # Code block for intent
-        other = self._get_canonical(other)
-        rtn_tbl = None
-        for c in other.column_names:
-            column = other.column(c).combine_chunks()
-            if pa.types.is_dictionary(column.type):
-                selection = column.dictionary.to_pylist()
-                frequency = column.value_counts().field(1).to_pylist()
-                result = self.get_category(selection=selection, relative_freq=frequency, size=size, save_intent=False)
-            elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
-                precision = 0 if pa.types.is_integer(column.type) else 5
-                std = pc.round(pc.multiply(pc.stddev(column), 0.6), 5).as_py()
-                rtn_col = pa.table([self.correlate_number(column, jitter=std, precision=precision, save_intent=False)],
-                                   names=['num'])
-                while rtn_col.num_rows < size:
-                    _ = pa.table([self.correlate_number(column, jitter=std, precision=precision, save_intent=False)],
-                                 names=['num'])
-                    rtn_col = pa.concat_tables([rtn_col, _])
-                result = rtn_col.slice(0, size).column('num')
-            elif pa.types.is_boolean(column.type):
-                frequency = dict(zip(column.value_counts().field(0).to_pylist(),
-                                     column.value_counts().field(1).to_pylist())).get(True)
-
-            else:
-                continue
-            if isinstance(rtn_tbl, pa.Table):
-                rtn_tbl = rtn_tbl.append_column(c, result)
-            else:
-                rtn_tbl = pa.table([result], names=[c])
-        return rtn_tbl
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([rtn_arr], names=[column_name])
 
 
-
-    def model_synthetic_data_types(self, size: int, inc_nulls: bool=None, p_nulls: float=None, seed: int=None,
-                                   save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                                   replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
-        """ A dataset with example data types
-
-        :param size:
-        :param inc_nulls: include values with nulls
-        :param p_nulls: a value between 0 an 1 of the percentage of nulls in the *_nulls column. Default is 0.02
-        :param seed: a seed value for the random function: default to None
-        :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
-        :param intent_order: (optional) the order in which each intent should run.
-                    - If None: default's to -1
-                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
-                    - if int: added to the level specified, overwriting any that already exist
-
-        :param replace_intent: (optional) if the intent method exists at the level, or default level
-                    - True - replaces the current intent method with the new
-                    - False - leaves it untouched, disregarding the new intent
-
-        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: pandas DataSet
-        """
-        # intent persist options
-        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
-                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
-        # remove intent params
-        seed = self._seed(seed=seed)
-        p_nulls = p_nulls if isinstance(p_nulls, float) and 0 < p_nulls < 1 else 0.02
-        # cat
-        _ = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE'], size=size, seed=seed,
-                              relative_freq=[1, 99, 10, 40],  save_intent=False)
-        canonical = pa.table([_], names=['cat'])
-        # num
-        _ = self.get_dist_normal(mean=4, std=1, size=size, seed=seed, save_intent=False)
-        canonical = canonical.append_column('num', _)
-        # int
-        _ = self.get_number(start=-1000, stop=1000, size=size, seed=seed, save_intent=False)
-        canonical = canonical.append_column('int', _)
-        # bool
-        _ = self.get_boolean(size=size, probability=0.7, seed=seed, save_intent=False)
-        canonical = canonical.append_column('bool', _)
-        # date
-        _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, seed=seed,
-                              save_intent=False)
-        canonical = canonical.append_column('date', _)
-        # string
-        _ = self.get_sample(sample_name='us_street_names', size=size, seed=seed,  save_intent=False)
-        canonical = canonical.append_column('string', _)
-        # binary
-        _ = self.get_string_pattern(pattern='cccccccc', as_binary=True, size=size, seed=seed, save_intent=False)
-        canonical = canonical.append_column('binary', _)
-
-        if isinstance(inc_nulls, bool) and inc_nulls:
-            # cat_null
-            _ = self.get_category(selection=['M', 'F', 'U'], relative_freq=[9,8,4], quantity=1 - p_nulls, size=size, seed=seed,
-                                  save_intent=False)
-            canonical = canonical.append_column('cat_null', _)
-            # num_null
-            _ = self.get_number(column_name='num_null', start=-1.0, stop=1.0, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21],
-                                size=size, quantity=1 - p_nulls, seed=seed, save_intent=False)
-            canonical = canonical.append_column('num_null', _)
-            # int_null
-            _ = self.get_number(start=-1000, stop=1000, size=size, quantity=1 - p_nulls, seed=seed, save_intent=False)
-            canonical = canonical.append_column('int_null', _)
-            # bool_null
-            _ = self.get_boolean(size=size, probability=0.4, seed=seed, quantity=1 - p_nulls, save_intent=False)
-            canonical = canonical.append_column('bool_null', _)
-            # date_null
-            _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, quantity=1 - p_nulls,
-                                  seed=seed, save_intent=False)
-            canonical = canonical.append_column('date_null', _)
-            # string_null
-            _ = self.get_sample(sample_name='us_street_names', size=size, quantity=1 - p_nulls, seed=seed, save_intent=False)
-            canonical = canonical.append_column('string_null', _)
-
-        return canonical
-
-    def model_noise(self, size: int,  num_columns: int, seed: int = None, name_prefix: str=None,
-                    save_intent: bool = None, column_name: [int, str] = None, intent_order: int = None,
-                    replace_intent: bool = None, remove_duplicates: bool = None) -> pd.DataFrame:
-        """ Generates multiple columns of noise in your dataset
-
-        :param size: The number of rows
-        :param num_columns: the number of columns of noise
-        :param name_prefix: a name the prefix the column names
-        :param seed: seed: (optional) a seed value for the random function: default to None
-        :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
-        :param intent_order: (optional) the order in which each intent should run.
-                    - If None: default's to -1
-                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
-                    - if int: added to the level specified, overwriting any that already exist
-
-        :param replace_intent: (optional) if the intent method exists at the level, or default level
-                    - True - replaces the current intent method with the new
-                    - False - leaves it untouched, disregarding the new intent
-
-        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: a DataFrame
-        """
-        # intent persist options
-        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
-                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
-        # Code block for intent
-        _seed = self._seed(seed=seed)
-        num_columns = num_columns if isinstance(num_columns, int) else 1
-        name_prefix = name_prefix if isinstance(name_prefix, str) else ''
-        label_gen = Commons.label_gen()
-        tbl = None
-        generator = np.random.default_rng(seed=_seed)
-        for _ in range(num_columns):
-            _seed = self._seed(seed=_seed, increment=True)
-            a = generator.choice(range(1, 6))
-            b = generator.choice(range(1, 6))
-            arr = self.get_distribution(distribution='beta', a=a, b=b, precision=6, size=size, seed=_seed,
-                                                      save_intent=False)
-            if isinstance(tbl, pa.Table):
-                tbl = tbl.append_column(name_prefix + next(label_gen), arr)
-            else:
-                tbl = pa.table([arr], names=[name_prefix + next(label_gen)])
-        return tbl
 
     @property
     def sample_lists(self) -> list:
         """A list of sample options"""
         return Sample().__dir__()
 
-
-    """
-        PRIVATE METHODS SECTION
-    """
-
-    def _get_canonical(self, data: [pa.Table, str],  size: int=None) -> pa.Table:
-        """ Used to return or generate a PyArrow Table from a number of different types.
-
-        The following can be passed and their returns
-        - pa.Table -> a PyArrow Table that is directly returned
-        - str -> instantiates a connector handler with the connector_name and loads the Table from the connection
-
-        :param data: a dataframe or action event to generate a dataframe
-        :param size: (optional) a size parameter for @empty of @generate
-        :return: a pa.Table
-        """
-        if isinstance(data, pa.Table):
-            return data
-        elif isinstance(data, str):
-            if self._pm.has_connector(connector_name=data):
-                handler = self._pm.get_connector_handler(data)
-                return handler.load_canonical()
-            raise ValueError(f"The data connector name '{data}' is not in the connectors catalog")
-        raise ValueError(f"The canonical format is not a recognised pc.Field or str type, '{type(data)}' type passed")
-
-    def _set_quantity(self, selection, quantity, seed=None):
-        """Returns the quantity percent of good values in selection with the rest fill"""
-        quantity = self._quantity(quantity)
-        if quantity == 1:
-            return selection
-        if quantity == 0:
-            return [np.nan] * len(selection)
-        seed = self._seed(seed=seed)
-        quantity = 1 - quantity
-        generator = np.random.default_rng(seed)
-        length = len(selection)
-        size = int(length * quantity)
-        nulls_idx = generator.choice(length, size=size, replace=False)
-        result = pd.Series(selection)
-        result.iloc[nulls_idx] = np.nan
-        return result.to_list()
-
-    @staticmethod
-    def _quantity(quantity: [float, int]) -> float:
-        """normalises quantity to a percentage float between 0 and 1.0"""
-        if not isinstance(quantity, (int, float)) or not 0 <= quantity <= 100:
-            return 1.0
-        if quantity > 1:
-            return round(quantity / 100, 2)
-        return float(quantity)

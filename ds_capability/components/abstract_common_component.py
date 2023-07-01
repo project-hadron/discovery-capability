@@ -1,8 +1,8 @@
 from abc import abstractmethod
-# import pandas as pd
+import pandas as pd
 import pyarrow as pa
-from aistac.components.abstract_component import AbstractComponent
-from aistac.components.aistac_commons import DataAnalytics
+from ds_core.components.abstract_component import AbstractComponent
+from ds_core.components.core_commons import DataAnalytics
 
 from ds_capability.components.commons import Commons
 

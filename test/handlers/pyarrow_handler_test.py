@@ -80,7 +80,7 @@ class PyarrowHandlerTest(unittest.TestCase):
     def tbl(size=10, extended=False):
         sb = SyntheticBuilder.from_memory()
         tr = Transition.from_memory()
-        df = sb.tools.model_synthetic_data_types(size, extended=extended)
+        df = sb.tools.get_synthetic_data_types(size, extended=extended)
         df = tr.tools.auto_transition(df, inc_category=True)
         return pa.Table.from_pandas(df, preserve_index=False)
 

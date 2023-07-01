@@ -1,10 +1,10 @@
 from ds_capability.components.commons import Commons
-from aistac.properties.abstract_properties import AbstractPropertyManager
+from ds_core.properties.abstract_properties import AbstractPropertyManager
 
 __author__ = 'Darryl Oatridge'
 
 
-class TransitionPropertyManager(AbstractPropertyManager):
+class FeatureSelectPropertyManager(AbstractPropertyManager):
 
     def __init__(self, task_name: str, creator: str):
         # set additional keys

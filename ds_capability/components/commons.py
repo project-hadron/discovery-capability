@@ -1,9 +1,9 @@
 from typing import Any
 import pandas as pd
-from aistac.components.aistac_commons import AistacCommons
+from ds_core.components.core_commons import CoreCommons
 
 
-class Commons(AistacCommons):
+class Commons(CoreCommons):
 
     @staticmethod
     def date2value(dates: Any, day_first: bool = True, year_first: bool = False) -> list:

@@ -1,10 +1,10 @@
-from aistac.properties.abstract_properties import AbstractPropertyManager
+from ds_core.properties.abstract_properties import AbstractPropertyManager
 from ds_capability.components.commons import Commons
 
 __author__ = 'Darryl Oatridge'
 
 
-class SyntheticPropertyManager(AbstractPropertyManager):
+class FeatureBuildPropertyManager(AbstractPropertyManager):
     """property manager for the Data Builder"""
 
     def __init__(self, task_name: str, creator: str):

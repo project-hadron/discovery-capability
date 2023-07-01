@@ -5,8 +5,8 @@ import pyarrow.feather as feather
 from pyarrow import csv
 from pyarrow import json
 
-from aistac.handlers.abstract_handlers import AbstractSourceHandler, AbstractPersistHandler
-from aistac.handlers.abstract_handlers import ConnectorContract, HandlerFactory
+from ds_core.handlers.abstract_handlers import AbstractSourceHandler, AbstractPersistHandler
+from ds_core.handlers.abstract_handlers import ConnectorContract, HandlerFactory
 
 __author__ = 'Darryl Oatridge'
 
