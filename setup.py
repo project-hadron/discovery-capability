@@ -23,11 +23,11 @@ def find_version(*file_paths):
 
 
 setup(
-    name='discovery-transition-two',
+    name='discovery-capability',
     version=find_version('ds_capability', '__init__.py'),
     description='Data Science to production accelerator',
     long_description=read('README.rst'),
-    url='https://github.com/gigas64/discovery-transition-ds',
+    url='https://github.com/gigas64/discovery-capability',
     author='Gigas64',
     author_email='gigas64@opengrass.net',
     classifiers=[
@@ -52,7 +52,7 @@ setup(
     },
     python_requires='>=3.7',
     install_requires=[
-        'aistac-foundation',
+        'discovery-core',
         'pandas>=2',
         'numpy',
         'matplotlib',

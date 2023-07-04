@@ -1,45 +1,24 @@
 import inspect
+from typing import Any
 import string
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
-from typing import Any
 
-from scipy.stats import stats
+from scipy import stats
 
 from ds_capability.components.commons import Commons
-from ds_capability.intent.abstract_feature_build_intent import AbstractFeatureBuildIntentModel
-from ds_capability.intent.common_intent import CommonsIntentModel
-from ds_capability.managers.feature_build_property_manager import FeatureBuildPropertyManager
+from ds_capability.intent.feature_build_correlate_intent import FeatureBuildCorrelateIntent
 from ds_capability.sample.sample_data import Sample
 
 
-class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentModel):
+# noinspection PyArgumentList
+class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
 
-    """Synthetic data is representative data that, depending on its application, holds statistical and
+    """Feature data is representative data that, depending on its application, holds statistical and
     distributive characteristics of its real world counterpart. This component provides a set of actions
     that focuses on building a synthetic data through knowledge and statistical analysis"""
-    
-    def __init__(self, property_manager: FeatureBuildPropertyManager, default_save_intent: bool=None,
-                 default_intent_level: [str, int, float]=None, order_next_available: bool=None,
-                 default_replace_intent: bool=None):
-        """initialisation of the Intent class.
-
-        :param property_manager: the property manager class that references the intent contract.
-        :param default_save_intent: (optional) The default action for saving intent in the property manager
-        :param default_intent_level: (optional) the default level intent should be saved at
-        :param order_next_available: (optional) if the default behaviour for the order should be next available order
-        :param default_replace_intent: (optional) the default replace existing intent behaviour
-        """
-        default_save_intent = default_save_intent if isinstance(default_save_intent, bool) else True
-        default_replace_intent = default_replace_intent if isinstance(default_replace_intent, bool) else True
-        default_intent_level = default_intent_level if isinstance(default_intent_level, (str, int, float)) else 'A'
-        default_intent_order = -1 if isinstance(order_next_available, bool) and order_next_available else 0
-        super().__init__(property_manager=property_manager, default_save_intent=default_save_intent,
-                         default_intent_level=default_intent_level, default_intent_order=default_intent_order,
-                         default_replace_intent=default_replace_intent)
-        self.label_gen = Commons.label_gen()
 
     def get_number(self, start: [int, float, str]=None, stop: [int, float, str]=None, relative_freq: list=None,
                    precision: int=None, ordered: str=None, at_most: int=None, size: int=None, quantity: float=None,
@@ -92,7 +71,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
             raise ValueError("The number range must be a positive difference, where to_value <= from_value")
         at_most = 0 if not isinstance(at_most, int) else at_most
         #        size = size if isinstance(size, int) else 1
-        _seed = self._seed() if seed is None else seed
+        seed = self._seed() if seed is None else seed
         precision = 3 if not isinstance(precision, int) else precision
         if precision == 0:
             start = int(round(start, 0))
@@ -102,12 +81,12 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
             precision = 0
         # build the distribution sizes
         if isinstance(relative_freq, list) and len(relative_freq) > 1 and sum(relative_freq) > 1:
-            freq_dist_size = self._freq_dist_size(relative_freq=relative_freq, size=size, seed=_seed)
+            freq_dist_size = self._freq_dist_size(relative_freq=relative_freq, size=size, seed=seed)
         else:
             freq_dist_size = [size]
         # generate the numbers
         rtn_list = []
-        generator = np.random.default_rng(seed=_seed)
+        generator = np.random.default_rng(seed=seed)
         d_type = int if is_int else float
         bins = np.linspace(start, stop, len(freq_dist_size) + 1, dtype=d_type)
         for idx in np.arange(1, len(bins)):
@@ -151,7 +130,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
 
     def get_category(self, selection: list, size: int, relative_freq: list=None, quantity: float=None, seed: int=None,
                      save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Array:
+                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ returns a category from a list. Of particular not is the at_least parameter that allows you to
         control the number of times a selection can be chosen.
 
@@ -196,7 +175,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
 
     def get_boolean(self, size: int, probability: float=None, quantity: float=None, seed: int=None,
                     save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                    replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Array:
+                    replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """A boolean discrete random distribution
 
         :param size: the size of the sample
@@ -224,17 +203,17 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
         # remove intent params
         prob = probability if isinstance(probability, int) and 0 < probability < 1 else 0.5
         seed = self._seed(seed=seed)
-        rtn_list = self.get_category(selection=[True,False], relative_freq=[prob, 1-prob], size=size, seed=seed,
-                                     save_intent=False)
+        rtn_list = list(stats.bernoulli.rvs(p=probability, size=size, random_state=seed))
+        rtn_list = list(map(bool, rtn_list))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.BooleanArray.from_pandas(rtn_list)], names=[column_name])
+        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_datetime(self, start: Any, until: Any,  relative_freq: list=None, at_most: int=None, ordered: str=None,
                      date_format: str=None,  as_num: bool=None, ignore_time: bool=None, ignore_seconds: bool=None,
                      size: int=None, quantity: float=None, seed: int=None, day_first: bool=None, year_first: bool=None,
                      save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Array:
+                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ returns a random date between two date and/or times. weighted patterns can be applied to the overall date
         range. if a signed 'int' type is passed to the start and/or until dates, the inferred date will be the current
         date time with the integer being the offset from the current date time in 'days'.
@@ -292,7 +271,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
         ignore_seconds = ignore_seconds if isinstance(ignore_seconds, bool) else False
         ignore_time = ignore_time if isinstance(ignore_time, bool) else False
         size = 1 if size is None else size
-        _seed = self._seed() if seed is None else seed
+        seed = self._seed() if seed is None else seed
         # start = start.to_pydatetime() if isinstance(start, pd.Timestamp) else start
         # until = until.to_pydatetime() if isinstance(until, pd.Timestamp) else until
         if isinstance(start, int):
@@ -312,8 +291,9 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
             _dt_start = Commons.date2value(start, day_first=day_first, year_first=year_first)[0]
             _dt_until = Commons.date2value(until, day_first=day_first, year_first=year_first)[0]
             precision = 15
-            rtn_list = self.get_number(start=_dt_start, stop=_dt_until, relative_freq=relative_freq, at_most=at_most,
+            rtn_tbl = self.get_number(start=_dt_start, stop=_dt_until, relative_freq=relative_freq, at_most=at_most,
                                        ordered=ordered, precision=precision, size=size, seed=seed, save_intent=False)
+            rtn_list = rtn_tbl.columns.pop(0).to_pylist()
             rtn_list = pd.Series(Commons.value2date(rtn_list, dt_tz=dt_tz))
         if ignore_time:
             rtn_list = pd.Series(pd.DatetimeIndex(rtn_list).normalize())
@@ -329,7 +309,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
 
     def get_intervals(self, intervals: list, relative_freq: list=None, precision: int=None, size: int=None,
                       quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
-                      intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Array:
+                      intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ returns a number based on a list selection of tuple(lower, upper) interval
 
        :param intervals: a list of unique tuple pairs representing the interval lower and upper boundaries
@@ -360,11 +340,12 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         precision = precision if isinstance(precision, (float, int)) else 3
-        _seed = self._seed() if seed is None else seed
+        seed = self._seed() if seed is None else seed
         if not all(isinstance(value, tuple) for value in intervals):
             raise ValueError("The intervals list must be a list of tuples")
-        interval_list = self.get_category(selection=intervals, relative_freq=relative_freq, size=size, seed=_seed,
+        interval_tbl = self.get_category(selection=intervals, relative_freq=relative_freq, size=size, seed=seed,
                                           save_intent=False)
+        interval_list = interval_tbl.columns.pop(0).to_pylist()
         interval_counts = pd.Series(interval_list, dtype='object').value_counts()
         rtn_list = []
         for index in interval_counts.index:
@@ -396,15 +377,16 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
             # correct adjustments
             if lower >= upper:
                 upper = lower + margin
-            rtn_list += self.get_number(lower, upper, precision=precision, size=size, seed=_seed, save_intent=False)
-        np.random.default_rng(seed=_seed).shuffle(rtn_list)
+            rtn_tbl = self.get_number(lower, upper, precision=precision, size=size, seed=seed, save_intent=False)
+            rtn_list += rtn_tbl.columns.pop(0).to_pylist()
+        np.random.default_rng(seed=seed).shuffle(rtn_list)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
         return pa.table([pa.StringArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_dist_normal(self, mean: float, std: float, precision: int=None, size: int=None, quantity: float=None,
                         seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                        replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Array:
+                        replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """A normal (Gaussian) continuous random distribution.
 
         :param mean: The mean (“centre”) of the distribution.
@@ -434,9 +416,9 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
         # remove intent params
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
-        _seed = self._seed() if seed is None else seed
+        seed = self._seed() if seed is None else seed
         precision = precision if isinstance(precision, int) else 3
-        generator = np.random.default_rng(seed=_seed)
+        generator = np.random.default_rng(seed=seed)
         rtn_list = list(generator.normal(loc=mean, scale=std, size=size))
         rtn_list = list(np.around(rtn_list, precision))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
@@ -445,7 +427,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
 
     def get_dist_choice(self, number: [int, str, float], size: int=None, quantity: float=None, seed: int=None,
                         save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                        replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Array:
+                        replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """Creates a list of latent values of 0 or 1 where 1 is randomly selected both upon the number given. The
         ``number`` parameter can be a direct reference to the canonical column header or to an environment variable.
         If the environment variable is used ``number`` should be set to ``"${<<YOUR_ENVIRON>>}"`` where
@@ -477,14 +459,15 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
         # remove intent params
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
-        _seed = self._seed() if seed is None else seed
+        seed = self._seed() if seed is None else seed
         number = self._extract_value(number)
         number = int(number * size) if isinstance(number, float) and 0 <= number <= 1 else int(number)
         number = number if 0 <= number < size else size
         if isinstance(number, int) and 0 <= number <= size:
             rtn_list = pd.Series(data=[0] * size)
-            choice_idx = self.get_number(stop=size, size=number, at_most=1, precision=0, ordered='asc', seed=_seed,
+            choice_tbl = self.get_number(stop=size, size=number, at_most=1, precision=0, ordered='asc', seed=seed,
                                          save_intent=False)
+            choice_idx = choice_tbl.columns.pop(0).to_pylist()
             rtn_list.iloc[choice_idx] = [1] * number
             return rtn_list.reset_index(drop=True).to_list()
         rtn_list = pd.Series(data=[0] * size).to_list()
@@ -494,7 +477,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
 
     def get_dist_bernoulli(self, probability: float, size: int=None, quantity: float=None, seed: int=None,
                            save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                           replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Array:
+                           replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """A Bernoulli discrete random distribution using scipy
 
         :param probability: the probability occurrence
@@ -522,9 +505,9 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
         # remove intent params
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
-        _seed = self._seed() if seed is None else seed
+        seed = self._seed() if seed is None else seed
         probability = self._extract_value(probability)
-        rtn_list = list(stats.bernoulli.rvs(p=probability, size=size, random_state=_seed))
+        rtn_list = list(stats.bernoulli.rvs(p=probability, size=size, random_state=seed))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
         return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
@@ -532,7 +515,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
     def get_dist_bounded_normal(self, mean: float, std: float, lower: float, upper: float, precision: int=None,
                                 size: int=None, quantity: float=None, seed: int=None, save_intent: bool=None,
                                 column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                                remove_duplicates: bool=None) -> pa.Array:
+                                remove_duplicates: bool=None) -> pa.Table:
         """A bounded normal continuous random distribution.
 
         :param mean: the mean of the distribution
@@ -575,7 +558,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
     def get_distribution(self, distribution: str, is_stats: bool=None, precision: int=None, size: int=None,
                          quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
                          intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None,
-                         **kwargs) -> pa.Array:
+                         **kwargs) -> pa.Table:
         """returns a number based the distribution type.
 
         :param distribution: The string name of the distribution function from numpy random Generator class
@@ -606,13 +589,13 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
         # remove intent params
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
-        _seed = self._seed() if seed is None else seed
+        seed = self._seed() if seed is None else seed
         precision = 3 if precision is None else precision
         is_stats = is_stats if isinstance(is_stats, bool) else False
         if is_stats:
             rtn_list = eval(f"stats.{distribution}.rvs(size=size, random_state=_seed, **kwargs)", globals(), locals())
         else:
-            generator = np.random.default_rng(seed=_seed)
+            generator = np.random.default_rng(seed=seed)
             rtn_list = eval(f"generator.{distribution}(size=size, **kwargs)", globals(), locals())
         rtn_list = list(np.around(rtn_list, precision))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
@@ -622,7 +605,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
     def get_string_pattern(self, pattern: str, choices: dict=None, as_binary: bool=None, quantity: [float, int]=None,
                            size: int=None, choice_only: bool=None, seed: int=None, save_intent: bool=None,
                            column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                           remove_duplicates: bool=None) -> pa.Array:
+                           remove_duplicates: bool=None) -> pa.Table:
         """ Returns a random string based on the pattern given. The pattern is made up from the choices passed but
         by default is as follows:
                 - c = random char [a-z][A-Z]
@@ -709,7 +692,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
 
     def get_sample(self, sample_name: str, sample_size: int=None, shuffle: bool=None, size: int=None,
                    quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
-                   intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Array:
+                   intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ returns a sample set based on sector and name
         To see the sample sets available use the Sample class __dir__() method:
 
@@ -743,10 +726,10 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
         size = 1 if size is None else size
         sample_size = sample_name if isinstance(sample_size, int) else size
         quantity = self._quantity(quantity)
-        _seed = self._seed(seed=seed)
+        seed = self._seed(seed=seed)
         shuffle = shuffle if isinstance(shuffle, bool) else True
-        selection = eval(f"Sample.{sample_name}(size={size}, shuffle={shuffle}, seed={_seed})")
-        rtn_list = self._set_quantity(selection, quantity=quantity, seed=_seed)
+        selection = eval(f"Sample.{sample_name}(size={size}, shuffle={shuffle}, seed={seed})")
+        rtn_list = self._set_quantity(selection, quantity=quantity, seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
         return pa.table([pa.Array.from_pandas(rtn_list)], names=[column_name])
 
@@ -783,30 +766,43 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
         # Code block for intent
         other = self._get_canonical(other)
         rtn_tbl = None
+        gen = np.random.default_rng(seed)
         for c in other.column_names:
             column = other.column(c).combine_chunks()
             if pa.types.is_dictionary(column.type):
                 selection = column.dictionary.to_pylist()
                 frequency = column.value_counts().field(1).to_pylist()
-                result = self.get_category(selection=selection, relative_freq=frequency, size=size, column_name=c, save_intent=False)
+                result = self.get_category(selection=selection, relative_freq=frequency, size=size, column_name=c,
+                                           save_intent=False)
             elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
+                s_values = column.to_pandas()
                 precision = 0 if pa.types.is_integer(column.type) else 5
-                std = pc.round(pc.multiply(pc.stddev(column), 0.6), 5).as_py()
-                rtn_col = self.correlate_number(column, jitter=std, precision=precision, column_name='tmp_num', save_intent=False)
-                while rtn_col.num_rows < size:
-                    _ = self.correlate_number(column, jitter=std, precision=precision, column_name='tmp_num', save_intent=False)
-                    rtn_col = pa.concat_tables([rtn_col, _])
-                result = rtn_col.slice(0, size).column('num')
+                jitter = pc.round(pc.multiply(pc.stddev(column), 0.1), 5).as_py()
+                result = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
+                while result.size < size:
+                    _ = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
+                    result = pd.concat([result, _], axis=0)
+                result = result.iloc[:size].astype(column.type.to_pandas_dtype()).sample(frac=1).reset_index(drop=True)
+                result = pa.table([pa.array(result)], names=[c])
             elif pa.types.is_boolean(column.type):
                 frequency = dict(zip(column.value_counts().field(0).to_pylist(),
                                      column.value_counts().field(1).to_pylist())).get(True)
-                result = self.get_boolean(size=size, probability=frequency, column_name=c, save_intent=False)
+                prob = frequency/size
+                prob = prob if 0 < prob < 1 else 0.5
+                _ = gen.choice([True, False], size=size, p=[prob, 1 - prob])
+                result = pa.table([pa.BinaryArray.from_pandas(_)], names=[c])
+            elif pa.types.is_string(column.type):
+                # for the moment do nothing with strings
+                result = column.to_pandas()
+                while result.size < size:
+                    result = pd.concat([result, result], axis=0)
+                result = result.iloc[:size].sample(frac=1).reset_index(drop=True)
+                result = pa.table([pa.array(result, pa.string())], names=[c])
             else:
-                continue
-            if isinstance(rtn_tbl, pa.Table):
-                rtn_tbl = rtn_tbl.append_column(c, result)
-            else:
-                rtn_tbl = pa.table([result], names=[c])
+                # return nulls for other types
+                _ = pd.Series([np.nan] * size)
+                result = pa.table([pa.Array.from_pandas(_), ], names=[c])
+            rtn_tbl = Commons.append_table(rtn_tbl, result)
         return rtn_tbl
 
     def get_synthetic_data_types(self, size: int, inc_nulls: bool=None, p_nulls: float=None, seed: int=None,
@@ -844,10 +840,11 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
                               relative_freq=[1, 99, 10, 40], column_name='cat',  save_intent=False)
         canonical = _
         # num
-        _ = self.get_dist_normal(mean=4, std=1, size=size, seed=seed, column_name='num', save_intent=False)
+        _ = self.get_dist_normal(mean=0, std=1, size=size, seed=seed, column_name='num', save_intent=False)
         canonical = Commons.append_table(canonical, _)
         # int
-        _ = self.get_number(start=-1000, stop=1000, size=size, seed=seed, column_name='int', save_intent=False)
+        _ = self.get_number(start=size, stop=size * 10, at_most=1, size=size, seed=seed, column_name='int',
+                            save_intent=False)
         canonical = Commons.append_table(canonical, _)
         # bool
         _ = self.get_boolean(size=size, probability=0.7, seed=seed, column_name='bool', save_intent=False)
@@ -859,7 +856,6 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
         # string
         _ = self.get_sample(sample_name='us_street_names', size=size, seed=seed, column_name='string',  save_intent=False)
         canonical = Commons.append_table(canonical, _)
-
         # binary
         _ = self.get_string_pattern(pattern='cccccccc', as_binary=True, size=size, seed=seed, column_name='binary', save_intent=False)
         canonical = Commons.append_table(canonical, _)
@@ -886,7 +882,7 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
                                   column_name='date_null', seed=seed, save_intent=False)
             canonical = Commons.append_table(canonical, _)
             # string_null
-            _ = self.get_sample(sample_name='us_street_names', size=size, quantity=1 - p_nulls,
+            _ = self.get_sample(sample_name='us_cities', size=size, quantity=1 - p_nulls,
                                 column_name='string_null', seed=seed, save_intent=False)
             canonical = Commons.append_table(canonical, _)
 
@@ -920,136 +916,20 @@ class FeatureBuildIntentModel(AbstractFeatureBuildIntentModel, CommonsIntentMode
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
-        _seed = self._seed(seed=seed)
+        seed = self._seed(seed=seed)
         num_columns = num_columns if isinstance(num_columns, int) else 1
         name_prefix = name_prefix if isinstance(name_prefix, str) else ''
         label_gen = Commons.label_gen()
-        tbl = None
-        generator = np.random.default_rng(seed=_seed)
+        rtn_tbl = None
+        generator = np.random.default_rng(seed=seed)
         for _ in range(num_columns):
-            _seed = self._seed(seed=_seed, increment=True)
+            seed = self._seed(seed=seed, increment=True)
             a = generator.choice(range(1, 6))
             b = generator.choice(range(1, 6))
-            arr = self.get_distribution(distribution='beta', a=a, b=b, precision=6, size=size, seed=_seed,
-                                                      save_intent=False)
-            if isinstance(tbl, pa.Table):
-                tbl = tbl.append_column(name_prefix + next(label_gen), arr)
-            else:
-                tbl = pa.table([arr], names=[name_prefix + next(label_gen)])
-        return tbl
-
-    def correlate_number(self, canonical: pa.Array, choice: [int, float, str]=None, choice_header: str=None,
-                         precision: int=None, jitter: [int, float, str]=None, offset: [int, float, str]=None,
-                         code_str: Any=None, lower: [int, float]=None, upper: [int, float]=None, keep_zero: bool=None,
-                         seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                         replace_intent: bool=None, remove_duplicates: bool=None) -> list:
-        """ correlate a list of continuous values adjusting those values, or a subset of those values, with a
-        normalised jitter (std from the value) along with a value offset. ``choice``, ``jitter`` and ``offset``
-        can accept environment variable string names starting with ``${`` and ending with ``}``.
-
-        If the choice is an int, it represents the number of rows to choose. If the choice is a float it must be
-        between 1 and 0 and represent a percentage of rows to choose.
-
-        :param canonical:
-        :param choice: (optional) The number of values to choose to apply the change to. Can be an environment variable.
-        :param choice_header: (optional) those not chosen are given the values of the given header
-        :param precision: (optional) to what precision the return values should be
-        :param offset: (optional) a fixed value to offset or if str an operation to perform using @ as the header value.
-        :param code_str: (optional) passing a str lambda function. e.g. 'lambda x: (x - 3) / 2''
-        :param jitter: (optional) a perturbation of the value where the jitter is a random normally distributed std
-        :param precision: (optional) how many decimal places. default to 3
-        :param seed: (optional) the random seed. defaults to current datetime
-        :param keep_zero: (optional) if True then zeros passed remain zero despite a change, Default is False
-        :param lower: a minimum value not to go below
-        :param upper: a max value not to go above
-        :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
-        :param intent_order: (optional) the order in which each intent should run.
-                    - If None: default's to -1
-                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
-                    - if int: added to the level specified, overwriting any that already exist
-
-        :param replace_intent: (optional) if the intent method exists at the level, or default level
-                    - True - replaces the current intent method with the new
-                    - False - leaves it untouched, disregarding the new intent
-
-        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: an equal length list of correlated values
-        """
-        # intent persist options
-        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
-                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
-        # remove intent params
-        s_values = canonical.to_pandas()
-        s_others = s_values.copy()
-        other_size = s_others.size
-        seed = self._seed() if seed is None else seed
-        offset = self._extract_value(offset)
-        keep_zero = keep_zero if isinstance(keep_zero, bool) else False
-        precision = precision if isinstance(precision, int) else 3
-        lower = lower if isinstance(lower, (int, float)) else float('-inf')
-        upper = upper if isinstance(upper, (int, float)) else float('inf')
-        # mark the zeros and nulls
-        null_idx = s_values[s_values.isna()].index
-        zero_idx = s_values.where(s_values == 0).dropna().index if keep_zero else []
-        # choose the items to jitter
-        if isinstance(choice, (str, int, float)):
-            size = s_values.size
-            choice = self._extract_value(choice)
-            choice = int(choice * size) if isinstance(choice, float) and 0 <= choice <= 1 else int(choice)
-            choice = choice if 0 <= choice < size else size
-            gen = np.random.default_rng(seed=seed)
-            choice_idx = gen.choice(s_values.index, size=choice, replace=False)
-            choice_idx = [choice_idx] if isinstance(choice_idx, int) else choice_idx
-            s_values = s_values.iloc[choice_idx]
-        if isinstance(jitter, (str, int, float)) and s_values.size > 0:
-            jitter = self._extract_value(jitter)
-            size = s_values.size
-            gen = np.random.default_rng(seed)
-            results = gen.normal(loc=0, scale=jitter, size=size)
-            s_values = s_values.add(results)
-        # set code_str
-        if isinstance(code_str, str) and s_values.size > 0:
-            if code_str.startswith('lambda'):
-                s_values = s_values.transform(eval(code_str))
-            else:
-                code_str = code_str.replace("@", 'x')
-                s_values = s_values.transform(lambda x: eval(code_str))
-        # set offset for all values
-        if isinstance(offset, (int, float)) and offset != 0 and s_values.size > 0:
-            s_values = s_values.add(offset)
-        # set the changed values
-        if other_size == s_values.size:
-            s_others = s_values
-        else:
-            s_others.iloc[s_values.index] = s_values
-        # max and min caps
-        s_others = pd.Series([upper if x > upper else x for x in s_others])
-        s_others = pd.Series([lower if x < lower else x for x in s_others])
-        if isinstance(keep_zero, bool) and keep_zero:
-            if other_size == zero_idx.size:
-                s_others = 0 * zero_idx.size
-            else:
-                s_others.iloc[zero_idx] = 0
-        if other_size == null_idx.size:
-            s_others = np.nan * null_idx.size
-        else:
-            s_others.iloc[null_idx] = np.nan
-        s_others = s_others.round(precision)
-        if precision == 0 and not s_others.isnull().any():
-            s_others = s_others.astype(int)
-        rtn_list = s_others.to_list()
-        rtn_arr = pa.NumericArray.from_pandas(rtn_list)
-        if rtn_arr.type.equals('double'):
-            try:
-                rtn_arr = pa.array(rtn_arr, pa.int64())
-            except pa.lib.ArrowInvalid:
-                pass
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([rtn_arr], names=[column_name])
-
-
+            _ = self.get_distribution(distribution='beta', a=a, b=b, precision=6, size=size, seed=seed,
+                                      column_name=f"{name_prefix}{next(label_gen)}", save_intent=False)
+            rtn_tbl = Commons.append_table(rtn_tbl, _)
+        return rtn_tbl
 
     @property
     def sample_lists(self) -> list:

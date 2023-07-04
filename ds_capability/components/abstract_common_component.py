@@ -11,7 +11,7 @@ __author__ = 'Darryl Oatridge'
 
 class AbstractCommonComponent(AbstractComponent):
 
-    DEFAULT_MODULE = 'ds_capability.handlers.pyarrow_handlers'
+    DEFAULT_MODULE = 'ds_core.handlers.pyarrow_handlers'
     DEFAULT_SOURCE_HANDLER = 'PyarrowSourceHandler'
     DEFAULT_PERSIST_HANDLER = 'PyarrowPersistHandler'
 

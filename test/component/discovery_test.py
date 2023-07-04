@@ -6,8 +6,8 @@ from pprint import pprint
 import pyarrow as pa
 import pyarrow.compute as pc
 import pandas as pd
-from ds_capability import SyntheticBuilder
-from ds_capability.intent.synthetic_intent import SyntheticIntentModel
+from ds_capability import FeatureBuild
+from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
 from aistac.properties.property_manager import PropertyManager
 
 from ds_capability.components.discovery import DataDiscovery
@@ -57,8 +57,8 @@ class SyntheticTest(unittest.TestCase):
             pass
 
     def test_for_smoke(self):
-        sb = SyntheticBuilder.from_memory()
-        tools: SyntheticIntentModel = sb.tools
+        sb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = sb.tools
         tbl = tools.get_synthetic_data_types(1_000)
         result = DataDiscovery.data_dictionary(tbl)
         pprint(result)

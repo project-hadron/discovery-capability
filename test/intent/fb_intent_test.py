@@ -4,8 +4,8 @@ from pathlib import Path
 import shutil
 import pandas as pd
 import pyarrow as pa
-from ds_capability import SyntheticBuilder
-from ds_capability.intent.synthetic_intent import SyntheticIntentModel
+from ds_capability import FeatureBuild
+from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
 from aistac.properties.property_manager import PropertyManager
 
 # Pandas setup
@@ -53,8 +53,8 @@ class SyntheticTest(unittest.TestCase):
             pass
 
     def test_for_smoke(self):
-        sb = SyntheticBuilder.from_memory()
-        tools: SyntheticIntentModel = sb.tools
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = fb.tools
         tbl = tools.get_synthetic_data_types(100)
         self.assertEqual((100, 7), tbl.shape)
         tbl = tools.get_synthetic_data_types(100, inc_nulls=True, p_nulls=0.03)
@@ -62,35 +62,31 @@ class SyntheticTest(unittest.TestCase):
         self.assertEqual(3, tbl.column('int_null').null_count)
 
     def test_run_component_pipeline(self):
-        sb = SyntheticBuilder.from_env('test', has_contract=False)
-        tools: SyntheticIntentModel = sb.tools
+        fb = FeatureBuild.from_env('test', has_contract=False)
+        tools: FeatureBuildIntentModel = fb.tools
         # reload the properties
-        sb = SyntheticBuilder.from_env('test')
+        fb = FeatureBuild.from_env('test')
         tbl = tools.get_synthetic_data_types(10, column_name='d_types')
-        result = sb.tools.run_intent_pipeline(size=20)
-        print(result.shape)
+        result = fb.tools.run_intent_pipeline(size=20)
+        print(result)
 
-
-
-    def test_model_analysis(self):
-        sb = SyntheticBuilder.from_memory()
-        tools: SyntheticIntentModel = sb.tools
-        sb.add_connector_uri('sample', './working/data.sample.parquet')
-        tbl = tools.get_synthetic_data_types(10)
-        sb.save_canonical('sample', tbl)
-        result = tools.get_analysis(20, 'sample')
+    def test_get_analysis(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = fb.tools
+        fb.add_connector_uri('sample', './working/data.sample.parquet')
+        tbl = tools.get_synthetic_data_types(10, inc_nulls=False)
+        fb.save_canonical('sample', tbl)
+        result = tools.get_analysis(5, 'sample')
         print(result.schema)
 
     def test_model_noise(self):
-        sb = SyntheticBuilder.from_memory()
-        tools: SyntheticIntentModel = sb.tools
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = fb.tools
         tbl = tools.get_noise(10, num_columns=3)
         self.assertEqual((10, 3), tbl.shape)
         self.assertEqual(['A', 'B', 'C'], tbl.column_names)
         tbl = tools.get_noise(10, num_columns=3, name_prefix='P_')
         self.assertEqual(['P_A', 'P_B', 'P_C'], tbl.column_names)
-
-
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:

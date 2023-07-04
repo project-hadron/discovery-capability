@@ -1,6 +1,6 @@
 setuptools
 # Hadron foundation
-aistac-foundation
+discovery-core
 # Data Science packages
 pyarrow>=12.0
 pandas>=2.0
@@ -18,5 +18,4 @@ botocore
 fsspec
 s3fs
 # others
-
 
