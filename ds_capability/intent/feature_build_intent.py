@@ -765,6 +765,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
         other = self._get_canonical(other)
+        if other is None or other.num_rows == 0:
+            return None
         rtn_tbl = None
         gen = np.random.default_rng(seed)
         for c in other.column_names:
@@ -772,10 +774,12 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             if pa.types.is_dictionary(column.type):
                 selection = column.dictionary.to_pylist()
                 frequency = column.value_counts().field(1).to_pylist()
+                nulls = round(column.null_count/column.length(), 3)
                 result = self.get_category(selection=selection, relative_freq=frequency, size=size, column_name=c,
-                                           save_intent=False)
+                                           quantity=1-nulls, save_intent=False)
             elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
-                s_values = column.to_pandas()
+                nulls = round(column.null_count/column.length(), 3)
+                s_values = column.to_pandas().dropna()
                 precision = 0 if pa.types.is_integer(column.type) else 5
                 jitter = pc.round(pc.multiply(pc.stddev(column), 0.1), 5).as_py()
                 result = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
@@ -783,6 +787,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                     _ = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
                     result = pd.concat([result, _], axis=0)
                 result = result.iloc[:size].astype(column.type.to_pandas_dtype()).sample(frac=1).reset_index(drop=True)
+                result = self._set_quantity(result, quantity=self._quantity(1-nulls), seed=seed)
                 result = pa.table([pa.array(result)], names=[c])
             elif pa.types.is_boolean(column.type):
                 frequency = dict(zip(column.value_counts().field(0).to_pylist(),
@@ -800,8 +805,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                 result = pa.table([pa.array(result, pa.string())], names=[c])
             else:
                 # return nulls for other types
-                _ = pd.Series([np.nan] * size)
-                result = pa.table([pa.Array.from_pandas(_), ], names=[c])
+                result = pa.table([pa.Array.from_pandas(pd.Series([np.nan] * size)), ], names=[c])
             rtn_tbl = Commons.append_table(rtn_tbl, result)
         return rtn_tbl
 
@@ -884,6 +888,9 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             # string_null
             _ = self.get_sample(sample_name='us_cities', size=size, quantity=1 - p_nulls,
                                 column_name='string_null', seed=seed, save_intent=False)
+            canonical = Commons.append_table(canonical, _)
+            # nulls
+            _ = pa.table([pa.Array.from_pandas(pd.Series([np.nan] * size)), ], names=['nulls'])
             canonical = Commons.append_table(canonical, _)
 
         return canonical
