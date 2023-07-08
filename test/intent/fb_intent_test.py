@@ -74,9 +74,9 @@ class SyntheticTest(unittest.TestCase):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
         fb.add_connector_uri('sample', './working/data.sample.parquet')
-        tbl = tools.get_synthetic_data_types(10, inc_nulls=False)
+        tbl = tools.get_synthetic_data_types(10, inc_nulls=True, p_nulls=0.4)
         fb.save_canonical('sample', tbl)
-        result = tools.get_analysis(5, 'sample')
+        result = tools.get_analysis(10, 'sample')
         print(result.schema)
 
     def test_model_noise(self):

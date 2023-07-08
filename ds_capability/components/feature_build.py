@@ -78,20 +78,25 @@ class FeatureBuild(AbstractCommonComponent):
         return self._intent_model
 
     def run_component_pipeline(self, canonical: Any=None, intent_levels: [str, int, list]=None, run_book: str=None,
-                               use_default: bool=None, seed: int=None, **kwargs):
+                               use_default: bool=None, seed: int=None, reset_changed: bool=None, has_changed: bool=None,
+                               **kwargs):
         """runs the synthetic component pipeline. By passing an int value as the canonical will generate a synthetic
         file of that size
 
-        :param canonical: an optional canonical to start the pipeline or a size of the synthetic build
-        :param intent_levels: a single or list of intent levels to run
-        :param run_book: a saved runbook to run
-        :param use_default: if the default runbook should be used if it exists
-        :param seed: a seed value for this run
+        :param canonical: (optional) to start the pipeline or a size of the synthetic build
+        :param intent_levels: (optional) a single or list of intent levels to run
+        :param run_book: (optional) a saved runbook to run
+        :param use_default: (optional) if the default runbook should be used if it exists
+        :param seed: (optional) a seed value for this run
+        :param reset_changed: (optional) resets the has_changed boolean to True
+        :param has_changed: (optional) tests if the underline canonical has changed since last load else error returned
         :param kwargs: any additional kwargs
         """
+        use_default = use_default if isinstance(use_default, bool) else True
         if 'size' in kwargs.keys() and canonical is None:
             canonical = kwargs.pop('size')
-        use_default = use_default if isinstance(use_default, bool) else True
+        if canonical is None:
+            canonical = self.load_source_canonical(reset_changed=reset_changed, has_changed=has_changed)
         if not isinstance(run_book, str) and use_default:
             if self.pm.has_run_book(book_name=self.pm.PRIMARY_RUN_BOOK):
                 run_book = self.pm.PRIMARY_RUN_BOOK

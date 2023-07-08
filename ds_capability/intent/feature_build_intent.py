@@ -733,9 +733,9 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
         return pa.table([pa.Array.from_pandas(rtn_list)], names=[column_name])
 
-    def get_analysis(self, size: int, other: [str, pa.Table], category_limit: int=None,
-                     seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+    def get_analysis(self, size: int, other: [str, pa.Table], category_limit: int=None, date_jitter: int=None,
+                     date_units: str=None, date_ordered: bool=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
+                     intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ builds a set of columns based on another (see analyse_association)
         if a reference DataFrame is passed then as the analysis is run if the column already exists the row
         value will be taken as the reference to the sub category and not the random value. This allows already
@@ -744,7 +744,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param size: The number of rows
         :param other: a direct or generated pd.DataFrame. see context notes below
         :param category_limit: (optional) a global cap on categories captured. zero value returns no limits
-        :param seed: seed: (optional) a seed value for the random function: default to None
+        :param date_jitter: (optional) The size of the jitter. Default to 2
+        :param date_units: (optional) The date units. Options ['W', 'D', 'h', 'm', 's', 'milli', 'micro']. Default 'D'
+        :param date_ordered: (optional) if the dates are shuffled or in order
+        :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param column_name: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run. In
@@ -767,45 +770,72 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         other = self._get_canonical(other)
         if other is None or other.num_rows == 0:
             return None
+        date_jitter = date_jitter if isinstance(date_jitter, int) else 2
+        units_allowed = ['W', 'D', 'h', 'm', 's', 'milli', 'micro']
+        date_units = date_units if isinstance(date_units, str) and date_units in units_allowed else 'D'
+        date_ordered = date_ordered if isinstance(date_ordered, bool) else False
+        seed = self._seed(seed=seed)
         rtn_tbl = None
         gen = np.random.default_rng(seed)
         for c in other.column_names:
             column = other.column(c).combine_chunks()
+            nulls = round(column.null_count / other.num_rows, 5)
+            column = pc.drop_null(column)
             if pa.types.is_dictionary(column.type):
                 selection = column.dictionary.to_pylist()
                 frequency = column.value_counts().field(1).to_pylist()
-                nulls = round(column.null_count/column.length(), 3)
                 result = self.get_category(selection=selection, relative_freq=frequency, size=size, column_name=c,
                                            quantity=1-nulls, save_intent=False)
             elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
-                nulls = round(column.null_count/column.length(), 3)
-                s_values = column.to_pandas().dropna()
+                s_values = column.to_pandas()
                 precision = 0 if pa.types.is_integer(column.type) else 5
                 jitter = pc.round(pc.multiply(pc.stddev(column), 0.1), 5).as_py()
                 result = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
                 while result.size < size:
                     _ = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
                     result = pd.concat([result, _], axis=0)
-                result = result.iloc[:size].astype(column.type.to_pandas_dtype()).sample(frac=1).reset_index(drop=True)
+                result = result.sample(frac=1).iloc[:size].astype(column.type.to_pandas_dtype()).reset_index(drop=True)
                 result = self._set_quantity(result, quantity=self._quantity(1-nulls), seed=seed)
-                result = pa.table([pa.array(result)], names=[c])
+                result = pa.table([pa.Array.from_pandas(result)], names=[c])
             elif pa.types.is_boolean(column.type):
                 frequency = dict(zip(column.value_counts().field(0).to_pylist(),
                                      column.value_counts().field(1).to_pylist())).get(True)
                 prob = frequency/size
                 prob = prob if 0 < prob < 1 else 0.5
-                _ = gen.choice([True, False], size=size, p=[prob, 1 - prob])
-                result = pa.table([pa.BinaryArray.from_pandas(_)], names=[c])
+                _ = gen.choice([True, False,], size=size, p=[prob, 1 - prob])
+                result = self._set_quantity(_, quantity=self._quantity(1 - nulls), seed=seed)
+                result = pa.table([pa.BinaryArray.from_pandas(result)], names=[c])
             elif pa.types.is_string(column.type):
                 # for the moment do nothing with strings
                 result = column.to_pandas()
                 while result.size < size:
                     result = pd.concat([result, result], axis=0)
-                result = result.iloc[:size].sample(frac=1).reset_index(drop=True)
-                result = pa.table([pa.array(result, pa.string())], names=[c])
+                result = result.sample(frac=1).iloc[:size].reset_index(drop=True)
+                result = pd.Series(self._set_quantity(result, quantity=self._quantity(1-nulls), seed=seed))
+                arr = pa.StringArray.from_pandas(result)
+                result = pa.table([arr], names=[c])
+            elif pa.types.is_date(column.type) or pa.types.is_timestamp(column.type):
+                s_values = column.to_pandas()
+                # set jitters to time deltas
+                jitter = pd.Timedelta(value=date_jitter, unit=date_units) if isinstance(date_jitter, int) else pd.Timedelta(value=0)
+                jitter = int(jitter.to_timedelta64().astype(int) / 10 ** 3)
+                _ = gen.normal(loc=0, scale=jitter, size=s_values.size)
+                _ = pd.Series(pd.to_timedelta(_, unit='micro'), index=s_values.index)
+                result = s_values.add(_)
+                while result.size < size:
+                    _ = gen.normal(loc=0, scale=jitter, size=s_values.size)
+                    _ = pd.Series(pd.to_timedelta(_, unit='micro'), index=s_values.index)
+                    result = pd.concat([result, s_values.add(_)], axis=0)
+                result = result.iloc[:size].astype(column.type.to_pandas_dtype())
+                if date_ordered:
+                    result = result.sample(frac=1).reset_index(drop=True)
+                else:
+                    result = result.sort_values(ascending=False).reset_index(drop=True)
+                result = pd.Series(self._set_quantity(result, quantity=self._quantity(1-nulls), seed=seed))
+                result = pa.table([pa.TimestampArray.from_pandas(result)], names=[c])
             else:
                 # return nulls for other types
-                result = pa.table([pa.Array.from_pandas(pd.Series([np.nan] * size)), ], names=[c])
+                result = pa.table([pa.nulls(size)], names=[c])
             rtn_tbl = Commons.append_table(rtn_tbl, result)
         return rtn_tbl
 
@@ -890,7 +920,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                                 column_name='string_null', seed=seed, save_intent=False)
             canonical = Commons.append_table(canonical, _)
             # nulls
-            _ = pa.table([pa.Array.from_pandas(pd.Series([np.nan] * size)), ], names=['nulls'])
+            _ = pa.table([pa.nulls(size)], names=['nulls'])
             canonical = Commons.append_table(canonical, _)
 
         return canonical

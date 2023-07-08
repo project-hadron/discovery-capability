@@ -100,10 +100,10 @@ class AbstractFeatureBuildIntentModel(AbstractIntentModel):
                                 elif str(method).startswith('model_'):
                                     result = eval(f"self.{method}(canonical=canonical, save_intent=False, **params)",
                                                   globals(), locals())
-                                if isinstance(rtn_tbl, pa.Table):
-                                    rtn_tbl = Commons.append_table(rtn_tbl, result)
-                                else:
-                                    rtn_tbl = result
+                                # if the return table is not the same assume this is a model change
+                                if isinstance(rtn_tbl, pa.Table) and rtn_tbl.num_rows != result.num_rows:
+                                    rtn_tbl = None
+                                rtn_tbl = Commons.append_table(rtn_tbl, result)
                         except ValueError as ve:
                             raise ValueError(f"intent '{column}', order '{order}', method '{method}' failed with: {ve}")
                         except TypeError as te:

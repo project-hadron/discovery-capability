@@ -32,11 +32,11 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                          default_replace_intent=default_replace_intent)
         self.label_gen = Commons.label_gen()
 
-    def model_difference(self, canonical: Any, other: Any, on_key: [str, list], drop_zero_sum: bool=None,
+    def model_difference(self, canonical: pa.Table, other: [str, pa.Table], on_key: [str, list], drop_zero_sum: bool=None,
                          summary_connector: bool=None, flagged_connector: str=None, detail_connector: str=None,
                          unmatched_connector: str=None, seed: int=None, save_intent: bool=None,
                          column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                         remove_duplicates: bool=None, **kwargs):
+                         remove_duplicates: bool=None, **kwargs) -> pa.Table:
         """returns the difference between two canonicals, joined on a common and unique key.
         The ``on_key`` parameter can be a direct reference to the canonical column header or to an environment
         variable. If the environment variable is used ``on_key`` should be set to ``"${<<YOUR_ENVIRON>>}"`` where
@@ -109,11 +109,19 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
         detail_connector = self._extract_value(detail_connector)
         unmatched_connector = self._extract_value(unmatched_connector)
         on_key = Commons.list_formatter(self._extract_value(on_key))
-        # remove not matching columns
         left_diff = Commons.list_diff(canonical.column_names, other.column_names, symmetric=False)
         right_diff = Commons.list_diff(other.column_names, canonical.column_names, symmetric=False)
-        _canonical = canonical.to_pandas().drop(left_diff, axis=1)
-        _other = other.to_pandas().drop(right_diff, axis=1)
+
+
+
+
+        df_canonical = canonical.to_pandas()
+        df_other = other.to_pandas()
+        # remove not matching columns
+        left_diff = Commons.list_diff(df_canonical.columns.to_list(), df_other.columns.to_list(), symmetric=False)
+        right_diff = Commons.list_diff(df_other.columns.to_list(), df_canonical.columns.to_list(), symmetric=False)
+        _canonical = df_canonical.drop(left_diff, axis=1)
+        _other = df_other.drop(right_diff, axis=1)
         # sort
         _canonical.sort_values(on_key, inplace=True)
         _other.sort_values(on_key, inplace=True)
@@ -122,14 +130,14 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
         # unmatched report
         if isinstance(unmatched_connector, str):
             if self._pm.has_connector(unmatched_connector):
-                left_merge = pd.merge(canonical, other, on=on_key, how='left', suffixes=('', '_y'), indicator=True)
+                left_merge = pd.merge(df_canonical, df_other, on=on_key, how='left', suffixes=('', '_y'), indicator=True)
                 left_merge = left_merge[left_merge['_merge'] == 'left_only']
                 left_merge = left_merge[left_merge.columns[~left_merge.columns.str.endswith('_y')]]
-                right_merge = pd.merge(canonical, other, on=on_key, how='right', suffixes=('_y', ''), indicator=True)
+                right_merge = pd.merge(df_canonical, df_other, on=on_key, how='right', suffixes=('_y', ''), indicator=True)
                 right_merge = right_merge[right_merge['_merge'] == 'right_only']
                 right_merge = right_merge[right_merge.columns[~right_merge.columns.str.endswith('_y')]]
                 unmatched = pd.concat([left_merge, right_merge], axis=0, ignore_index=True)
-                unmatched = unmatched.set_index(on_key, drop=True).reset_index()
+                unmatched = unmatched.set_index(on_key, drop=True).reset_index(drop=True)
                 unmatched.insert(0, 'found_in', unmatched.pop('_merge'))
                 handler = self._pm.get_connector_handler(unmatched_connector)
                 handler.persist_canonical(pa.Table.from_pandas(unmatched), **kwargs)
@@ -173,10 +181,10 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                 summary = diff.drop(on_key, axis=1).sum().reset_index()
                 summary.columns = ['Attribute', 'Summary']
                 summary = summary.sort_values(['Attribute'])
-                indicator = pd.merge(canonical[on_key], other[on_key], on=on_key, how='outer', indicator=True)
+                indicator = pd.merge(df_canonical[on_key], df_other[on_key], on=on_key, how='outer', indicator=True)
                 count = indicator['_merge'].value_counts().to_frame().reset_index().replace('both', 'matching')
                 count.columns = ['Attribute', 'Summary']
-                summary = pd.concat([count, summary], axis=0)
+                summary = pd.concat([count, summary], axis=0).reset_index(drop=True)
                 handler = self._pm.get_connector_handler(summary_connector)
                 handler.persist_canonical(pa.Table.from_pandas(summary), **kwargs)
             else:
