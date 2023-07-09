@@ -778,9 +778,13 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         rtn_tbl = None
         gen = np.random.default_rng(seed)
         for c in other.column_names:
-            column = other.column(c).combine_chunks()
+            column = other.column(c)
+            if column.drop_null().length() == 0:
+                result = pa.table([pa.nulls(size)], names=[c])
+                rtn_tbl = Commons.table_append(rtn_tbl, result)
+                continue
             nulls = round(column.null_count / other.num_rows, 5)
-            column = pc.drop_null(column)
+            column = column.combine_chunks().drop_null()
             if pa.types.is_dictionary(column.type):
                 selection = column.dictionary.to_pylist()
                 frequency = column.value_counts().field(1).to_pylist()

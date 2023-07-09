@@ -44,6 +44,10 @@ class SyntheticTest(unittest.TestCase):
             os.makedirs(os.environ['HADRON_DEFAULT_PATH'])
         except OSError:
             pass
+        try:
+            shutil.copytree('../_test_data', os.path.join(os.environ['PWD'], 'working/source'))
+        except OSError:
+            pass
         PropertyManager._remove_all()
 
     def tearDown(self):
@@ -55,29 +59,23 @@ class SyntheticTest(unittest.TestCase):
     def test_for_smoke(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
-        tbl = tools.get_synthetic_data_types(100)
-        self.assertEqual((100, 7), tbl.shape)
-        tbl = tools.get_synthetic_data_types(100, inc_nulls=True, p_nulls=0.03)
+        tbl = tools.get_synthetic_data_types(100, inc_nulls=True)
+        fb.add_connector_uri('sample', './working/source/data_type.parquet')
+        fb.save_canonical('sample', tbl)
         self.assertEqual((100, 14), tbl.shape)
-        self.assertEqual(3, tbl.column('int_null').null_count)
+        result = tools.get_analysis(1000, 'sample')
+        self.assertEqual((1000, 14), result.shape)
 
-    def test_run_component_pipeline(self):
-        fb = FeatureBuild.from_env('test', has_contract=False)
-        tools: FeatureBuildIntentModel = fb.tools
-        # reload the properties
-        fb = FeatureBuild.from_env('test')
-        tbl = tools.get_synthetic_data_types(10, column_name='d_types')
-        result = fb.tools.run_intent_pipeline(size=20)
-        print(result)
-
-    def test_model_noise(self):
+    def test_flattened_sample(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
-        tbl = tools.get_noise(10, num_columns=3)
-        self.assertEqual((10, 3), tbl.shape)
-        self.assertEqual(['A', 'B', 'C'], tbl.column_names)
-        tbl = tools.get_noise(10, num_columns=3, name_prefix='P_')
-        self.assertEqual(['P_A', 'P_B', 'P_C'], tbl.column_names)
+        fb.add_connector_uri('sample', './working/source/complex_flatten_records.parquet')
+        tbl = fb.load_canonical('sample')
+        self.assertEqual((4, 20), tbl.shape)
+        result = tools.get_analysis(6, 'sample')
+        self.assertEqual((6, 20), result.shape)
+        print(result.schema)
+
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:
