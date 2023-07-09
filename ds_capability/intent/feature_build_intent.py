@@ -923,9 +923,19 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             _ = self.get_sample(sample_name='us_cities', size=size, quantity=1 - p_nulls,
                                 column_name='string_null', seed=seed, save_intent=False)
             canonical = Commons.table_append(canonical, _)
+            # nulls_str
+            _ = pa.table([pa.array(pa.nulls(size), pa.string())], names=['nulls_str'])
+            canonical = Commons.table_append(canonical, _)
+            # nulls_int
+            _ = pa.table([pa.array(pa.nulls(size), pa.int64())], names=['nulls_int'])
+            canonical = Commons.table_append(canonical, _)
+            # nulls_date
+            _ = pa.table([pa.array(pa.nulls(size), pa.timestamp('ns'))], names=['nulls_date'])
+            canonical = Commons.table_append(canonical, _)
             # nulls
             _ = pa.table([pa.nulls(size)], names=['nulls'])
             canonical = Commons.table_append(canonical, _)
+
 
         return canonical
 

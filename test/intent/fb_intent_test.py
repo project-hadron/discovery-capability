@@ -58,8 +58,9 @@ class SyntheticTest(unittest.TestCase):
         tbl = tools.get_synthetic_data_types(100)
         self.assertEqual((100, 7), tbl.shape)
         tbl = tools.get_synthetic_data_types(100, inc_nulls=True, p_nulls=0.03)
-        self.assertEqual((100, 14), tbl.shape)
+        self.assertEqual((100, 17), tbl.shape)
         self.assertEqual(3, tbl.column('int_null').null_count)
+        print(tbl.schema)
 
     def test_run_component_pipeline(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
