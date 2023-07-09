@@ -13,7 +13,7 @@ from ds_capability.intent.feature_build_correlate_intent import FeatureBuildCorr
 from ds_capability.sample.sample_data import Sample
 
 
-# noinspection PyArgumentList
+# noinspection PyArgumentList,PyUnresolvedReferences
 class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
 
     """Feature data is representative data that, depending on its application, holds statistical and
@@ -836,7 +836,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             else:
                 # return nulls for other types
                 result = pa.table([pa.nulls(size)], names=[c])
-            rtn_tbl = Commons.append_table(rtn_tbl, result)
+            rtn_tbl = Commons.table_append(rtn_tbl, result)
         return rtn_tbl
 
     def get_synthetic_data_types(self, size: int, inc_nulls: bool=None, p_nulls: float=None, seed: int=None,
@@ -875,53 +875,53 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         canonical = _
         # num
         _ = self.get_dist_normal(mean=0, std=1, size=size, seed=seed, column_name='num', save_intent=False)
-        canonical = Commons.append_table(canonical, _)
+        canonical = Commons.table_append(canonical, _)
         # int
         _ = self.get_number(start=size, stop=size * 10, at_most=1, size=size, seed=seed, column_name='int',
                             save_intent=False)
-        canonical = Commons.append_table(canonical, _)
+        canonical = Commons.table_append(canonical, _)
         # bool
         _ = self.get_boolean(size=size, probability=0.7, seed=seed, column_name='bool', save_intent=False)
-        canonical = Commons.append_table(canonical, _)
+        canonical = Commons.table_append(canonical, _)
         # date
         _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, seed=seed,
                               column_name='date', save_intent=False)
-        canonical = Commons.append_table(canonical, _)
+        canonical = Commons.table_append(canonical, _)
         # string
         _ = self.get_sample(sample_name='us_street_names', size=size, seed=seed, column_name='string',  save_intent=False)
-        canonical = Commons.append_table(canonical, _)
+        canonical = Commons.table_append(canonical, _)
         # binary
         _ = self.get_string_pattern(pattern='cccccccc', as_binary=True, size=size, seed=seed, column_name='binary', save_intent=False)
-        canonical = Commons.append_table(canonical, _)
+        canonical = Commons.table_append(canonical, _)
 
         if isinstance(inc_nulls, bool) and inc_nulls:
             # cat_null
             _ = self.get_category(selection=['M', 'F', 'U'], relative_freq=[9,8,4], quantity=1 - p_nulls,
                                   column_name='cat_null', size=size, seed=seed, save_intent=False)
-            canonical = Commons.append_table(canonical, _)
+            canonical = Commons.table_append(canonical, _)
             # num_null
             _ = self.get_number(start=-1.0, stop=1.0, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21], size=size,
                                 quantity=1 - p_nulls, column_name='num_null', seed=seed, save_intent=False)
-            canonical = Commons.append_table(canonical, _)
+            canonical = Commons.table_append(canonical, _)
             # int_null
             _ = self.get_number(start=-1000, stop=1000, size=size, quantity=1 - p_nulls, column_name='int_null',
                                 seed=seed, save_intent=False)
-            canonical = Commons.append_table(canonical, _)
+            canonical = Commons.table_append(canonical, _)
             # bool_null
             _ = self.get_boolean(size=size, probability=0.4, seed=seed, quantity=1 - p_nulls,
                                  column_name='bool_null', save_intent=False)
-            canonical = Commons.append_table(canonical, _)
+            canonical = Commons.table_append(canonical, _)
             # date_null
             _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, quantity=1 - p_nulls,
                                   column_name='date_null', seed=seed, save_intent=False)
-            canonical = Commons.append_table(canonical, _)
+            canonical = Commons.table_append(canonical, _)
             # string_null
             _ = self.get_sample(sample_name='us_cities', size=size, quantity=1 - p_nulls,
                                 column_name='string_null', seed=seed, save_intent=False)
-            canonical = Commons.append_table(canonical, _)
+            canonical = Commons.table_append(canonical, _)
             # nulls
             _ = pa.table([pa.nulls(size)], names=['nulls'])
-            canonical = Commons.append_table(canonical, _)
+            canonical = Commons.table_append(canonical, _)
 
         return canonical
 
@@ -965,7 +965,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             b = generator.choice(range(1, 6))
             _ = self.get_distribution(distribution='beta', a=a, b=b, precision=6, size=size, seed=seed,
                                       column_name=f"{name_prefix}{next(label_gen)}", save_intent=False)
-            rtn_tbl = Commons.append_table(rtn_tbl, _)
+            rtn_tbl = Commons.table_append(rtn_tbl, _)
         return rtn_tbl
 
     @property

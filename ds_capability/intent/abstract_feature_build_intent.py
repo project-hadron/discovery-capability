@@ -103,7 +103,7 @@ class AbstractFeatureBuildIntentModel(AbstractIntentModel):
                                 # if the return table is not the same assume this is a model change
                                 if isinstance(rtn_tbl, pa.Table) and rtn_tbl.num_rows != result.num_rows:
                                     rtn_tbl = None
-                                rtn_tbl = Commons.append_table(rtn_tbl, result)
+                                rtn_tbl = Commons.table_append(rtn_tbl, result)
                         except ValueError as ve:
                             raise ValueError(f"intent '{column}', order '{order}', method '{method}' failed with: {ve}")
                         except TypeError as te:
