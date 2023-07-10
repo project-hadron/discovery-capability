@@ -62,9 +62,9 @@ class SyntheticTest(unittest.TestCase):
         tbl = tools.get_synthetic_data_types(100, inc_nulls=True)
         fb.add_connector_uri('sample', './working/source/data_type.parquet')
         fb.save_canonical('sample', tbl)
-        self.assertEqual((100, 14), tbl.shape)
+        self.assertEqual((100, 17), tbl.shape)
         result = tools.get_analysis(1000, 'sample')
-        self.assertEqual((1000, 14), result.shape)
+        self.assertEqual((1000, 17), result.shape)
 
     def test_flattened_sample(self):
         fb = FeatureBuild.from_memory()
@@ -74,8 +74,6 @@ class SyntheticTest(unittest.TestCase):
         self.assertEqual((4, 20), tbl.shape)
         result = tools.get_analysis(6, 'sample')
         self.assertEqual((6, 20), result.shape)
-        print(result.schema)
-
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:

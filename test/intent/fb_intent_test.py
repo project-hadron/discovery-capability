@@ -60,16 +60,15 @@ class SyntheticTest(unittest.TestCase):
         tbl = tools.get_synthetic_data_types(100, inc_nulls=True, p_nulls=0.03)
         self.assertEqual((100, 17), tbl.shape)
         self.assertEqual(3, tbl.column('int_null').null_count)
-        print(tbl.schema)
 
     def test_run_component_pipeline(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
         tools: FeatureBuildIntentModel = fb.tools
         # reload the properties
         fb = FeatureBuild.from_env('test')
-        tbl = tools.get_synthetic_data_types(10, column_name='d_types')
+        _ = tools.get_synthetic_data_types(10, inc_nulls=True, column_name='d_types')
         result = fb.tools.run_intent_pipeline(size=20)
-        print(result)
+        self.assertEqual((20, 17), result.shape)
 
     def test_model_noise(self):
         fb = FeatureBuild.from_memory()
