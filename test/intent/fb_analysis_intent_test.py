@@ -66,6 +66,13 @@ class SyntheticTest(unittest.TestCase):
         result = tools.get_analysis(1000, 'sample')
         self.assertEqual((1000, 17), result.shape)
 
+    def test_direct_other(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = fb.tools
+        tbl = tools.get_synthetic_data_types(10, inc_nulls=True)
+        result = tools.get_analysis(100, tbl)
+        self.assertEqual((100, 17), result.shape)
+
     def test_flattened_sample(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools

@@ -734,8 +734,9 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         return pa.table([pa.Array.from_pandas(rtn_list)], names=[column_name])
 
     def get_analysis(self, size: int, other: [str, pa.Table], category_limit: int=None, date_jitter: int=None,
-                     date_units: str=None, date_ordered: bool=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
-                     intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+                     date_units: str=None, date_ordered: bool=None, seed: int=None, save_intent: bool=None,
+                     column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                     remove_duplicates: bool=None) -> pa.Table:
         """ builds a set of columns based on another (see analyse_association)
         if a reference DataFrame is passed then as the analysis is run if the column already exists the row
         value will be taken as the reference to the sub category and not the random value. This allows already

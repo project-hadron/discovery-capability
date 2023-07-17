@@ -146,6 +146,8 @@ class AbstractFeatureBuildIntentModel(AbstractIntentModel):
         exclude = []
         if 'canonical' in params.keys() and not isinstance(params.get('canonical'), (str, dict, list)):
             exclude.append('canonical')
+        if 'other' in params.keys() and not isinstance(params.get('other'), (str, dict, list)):
+            exclude.append('other')
         return super()._intent_builder(method=method, params=params, exclude=exclude)
 
     def _set_intend_signature(self, intent_params: dict, column_name: [int, str] = None, intent_order: int = None,
