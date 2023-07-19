@@ -3,7 +3,6 @@ import pyarrow.compute as pc
 
 class DataDiscovery(object):
 
-
     @staticmethod
     def data_dictionary(canonical: pa.Table, stylise: bool=None):
         """ returns a DataFrame of a data dictionary showing 'Attribute', 'Type', '% Nulls', 'Count',
@@ -36,7 +35,7 @@ class DataDiscovery(object):
             line.append(pc.count(col.unique()).as_py())
             # observations
             if pa.types.is_dictionary(col.type):
-                pass
+                vc = col.value_counts()
 
 
             record.append(line)
