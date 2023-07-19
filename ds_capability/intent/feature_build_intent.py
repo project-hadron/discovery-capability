@@ -805,6 +805,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             elif pa.types.is_boolean(column.type):
                 frequency = dict(zip(column.value_counts().field(0).to_pylist(),
                                      column.value_counts().field(1).to_pylist())).get(True)
+                if frequency is None:
+                    frequency = 0
                 prob = frequency/size
                 prob = prob if 0 < prob < 1 else 0.5
                 _ = gen.choice([True, False,], size=size, p=[prob, 1 - prob])

@@ -5,6 +5,7 @@ import shutil
 import pandas as pd
 import pyarrow as pa
 from ds_capability import FeatureBuild
+from ds_capability.components.commons import Commons
 from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
 from aistac.properties.property_manager import PropertyManager
 
@@ -81,6 +82,52 @@ class SyntheticTest(unittest.TestCase):
         self.assertEqual((4, 20), tbl.shape)
         result = tools.get_analysis(6, 'sample')
         self.assertEqual((6, 20), result.shape)
+
+    def test_complex_nested(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = fb.tools
+        document = [
+            {"_id": "I35138",
+             "contactMedium": [
+                {"medium": {"number": "50070028", "type": "mobile"}, "preferred": True},
+                {"medium": {"emailAddress": "mail@stc.com.kw", "type": "emailAddress"}, "preferred": True}],
+             "gender": "M", "familyName": "Fouad", "givenName": "Fouad", "middleName": "Fouad"},
+            {"_id": "I35145",
+             "contactMedium": [
+                {"medium": {"emailAddress": "panneer.rajadurai.c@solutions.com.kw", "type": "EmailAddress"}, "preferred": True},
+                {"medium": {"number": "51658317", "type": "mobile"}, "preferred": True},
+                {"medium": {"number": "51658317", "type": "whatsapp"}, "preferred": False},
+                {"medium": {"number": "51658317", "type": "telegram"}, "preferred": False},
+                {"medium": {"type": "telephone"}, "role": "AlternateNumber"}],
+             "gender": "M", "familyName": "Jay", "givenName": "Bhuvana", "middleName": ""},
+            {"_id": "I35146",
+             "contactMedium": [
+                {"medium": {"emailAddress": "bhuvana.stc21@gmail.com", "type": "EmailAddress"}, "preferred": True},
+                {"medium": {"type": "mobile"}, "preferred": False},
+                {"medium": {"type": "whatsapp"}, "preferred": False},
+                {"medium": {"type": "telegram"}, "preferred": False}],
+             "gender": "F", "familyName": "CORP", "givenName": "TECNOTREE", "middleName": "LTD"},
+            {"_id": "I35178",
+             "contactMedium": [
+                {"medium": {"emailAddress": "m.m.alkhoduri@outlook.com", "type": "emailAddress"}, "preferred": True},
+                {"medium": {"number": "55850055", "type": "mobile"}, "preferred": True},
+                {"medium": {"number": "55850055", "type": "whatsapp"}, "preferred": False},
+                {"medium": {"number": "55850055", "type": "telegram"}, "preferred": False}],
+             "gender": "M", "familyName": "", "givenName": "MohammadalKoduri", "middleName": ""},
+            {"_id": "I35179",
+             "contactMedium": [
+                {"medium": {"emailAddress": "ahb@bremenintl.com", "type": "emailAddress"}, "preferred": True},
+                {"medium": {"number": "51500014", "type": "mobile"}, "preferred": True},
+                {"medium": {"number": "51500014", "type": "whatsapp"}, "preferred": False},
+                {"medium": {"number": "51500014", "type": "telegram"}, "preferred": False}],
+             "gender": "M", "familyName": "", "givenName": "AhmedBakhiet", "middleName": ""},
+            {"_id": "I35181",
+             "contactMedium": [],
+             "gender": "M", "familyName": "test", "givenName": "test", "nationality": "", "middleName": ""}
+        ]
+        tbl = pa.Table.from_pylist(document)
+        tbl = Commons.table_flatten(tbl)
+        result = tools.get_analysis(10, tbl)
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:
