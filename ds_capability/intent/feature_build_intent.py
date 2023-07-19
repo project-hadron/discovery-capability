@@ -780,7 +780,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         gen = np.random.default_rng(seed)
         for c in other.column_names:
             column = other.column(c)
-            if len(column.drop_null()) == 0:
+            if (pa.types.is_boolean(column.type) and pc.all(column).as_py() == False) or len(column.drop_null()) == 0:
                 result = pa.table([pa.nulls(size)], names=[c])
                 rtn_tbl = Commons.table_append(rtn_tbl, result)
                 continue
