@@ -1,15 +1,13 @@
 import inspect
-from typing import Any
-import numpy as np
 import pandas as pd
 import pyarrow as pa
-import pyarrow.compute as pc
 from ds_capability.intent.abstract_feature_build_intent import AbstractFeatureBuildIntentModel
 from ds_capability.intent.common_intent import CommonsIntentModel
 from ds_capability.components.commons import Commons
 from ds_capability.managers.feature_build_property_manager import FeatureBuildPropertyManager
 
 
+# noinspection PyArgumentList
 class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
 
     def __init__(self, property_manager: FeatureBuildPropertyManager, default_save_intent: bool=None,
@@ -32,6 +30,63 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                          default_replace_intent=default_replace_intent)
         self.label_gen = Commons.label_gen()
 
+    def model_sample_link(self, canonical: pa.Table, other: [str, pa.Table], headers: list, replace: bool=None,
+                          rename_map: [dict, list]=None, multi_map: dict=None, relative_freq: list=None, seed: int=None,
+                          save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                          replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ Takes a target dataset and samples from that target to the size of the canonical
+
+        :param canonical: a pa.Table as the reference table
+        :param other: a direct pa.Table or reference to a connector.
+        :param headers: the headers to be selected from the other table
+        :param rename_map: (optional) a direct (list) or named (dict) mapping to the headers names.
+        :param multi_map: (optional) multiple columns from a single e.g. {new_name: name} where name is copied new_name
+        :param replace: (optional) assuming other is bigger than canonical, selects without replacement when True
+        :param relative_freq: (optional) a weighting pattern of the selected data
+        :param seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pa.Table
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # intent action
+        canonical = self._get_canonical(canonical)
+        other = self._get_canonical(other)
+        headers = Commons.list_formatter(headers)
+        replace = replace if isinstance(replace, bool) else True
+        seed = self._seed() if seed is None else seed
+        # build the distribution sizes
+        if isinstance(relative_freq, list) and len(relative_freq) > 1:
+            relative_freq = self._freq_dist_size(relative_freq=relative_freq, size=other.shape[0], seed=seed)
+        else:
+            relative_freq = None
+        other = Commons.filter_columns(other, headers=headers).to_pandas()
+        other = other.sample(n=canonical.shape[0], weights=relative_freq, random_state=seed, ignore_index=True,
+                             replace=replace)
+        if isinstance(rename_map, list) and len(rename_map) == len(headers):
+            other.columns = rename_map
+        elif isinstance(rename_map, dict):
+            other.rename(mapper=rename_map, axis='columns', inplace=True)
+        if isinstance(multi_map, dict):
+            for k, v in multi_map.items():
+                if v in other.columns:
+                    other[k] = other[v]
+        other = pa.Table.from_pandas(other)
+        return Commons.table_append(canonical, other)
+
     def model_difference(self, canonical: pa.Table, other: [str, pa.Table], on_key: [str, list], drop_zero_sum: bool=None,
                          summary_connector: bool=None, flagged_connector: str=None, detail_connector: str=None,
                          unmatched_connector: str=None, seed: int=None, save_intent: bool=None,
@@ -53,8 +108,8 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
         If the ``unmatched connector`` parameter is used, the on_key's that don't match between left and right are
         reported
 
-        :param canonical: a direct or generated pd.DataFrame. see context notes below
-        :param other: a direct or generated pd.DataFrame. to concatenate
+        :param canonical: a pa.Table as the reference table
+        :param other: a direct pa.Table or reference to a connector.
         :param on_key: The name of the key that uniquely joins the canonical to others
         :param drop_zero_sum: (optional) drops rows and columns which has a total sum of zero differences
         :param summary_connector: (optional) a connector name where the summary report is sent
@@ -75,31 +130,12 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
         :return: a pd.DataFrame
-
-        The other is a pd.DataFrame, a pd.Series or list, a connector contract str reference or a set of
-        parameter instructions on how to generate a pd.Dataframe. the description of each is:
-
-        - pd.Dataframe -> a deep copy of the pd.DataFrame
-        - pd.Series or list -> creates a pd.DataFrameof one column with the 'header' name or 'default' if not given
-        - str -> instantiates a connector handler with the connector_name and loads the DataFrame from the connection
-        - dict -> use canonical2dict(...) to help construct a dict with a 'method' to build a pd.DataFrame
-            methods:
-                - model_*(...) -> one of the SyntheticBuilder model methods and parameters
-                - @empty -> generates an empty pd.DataFrame where size and headers can be passed
-                    :size sets the index size of the dataframe
-                    :headers any initial headers for the dataframe
-                - @generate -> generate a synthetic file from a remote Domain Contract
-                    :task_name the name of the SyntheticBuilder task to run
-                    :repo_uri the location of the Domain Product
-                    :size (optional) a size to generate
-                    :seed (optional) if a seed should be applied
-                    :run_book (optional) if specific intent should be run only
-
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # intent action
         canonical = self._get_canonical(canonical)
         other = self._get_canonical(other)
         seed = seed if isinstance(seed, int) else self._seed()

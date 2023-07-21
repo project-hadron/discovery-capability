@@ -57,28 +57,21 @@ class FeatureBuilderTest(unittest.TestCase):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
         tbl = tools.get_synthetic_data_types(100)
-        self.assertEqual((100, 7), tbl.shape)
-        tbl = tools.get_synthetic_data_types(100, inc_nulls=True, prob_nulls=0.03)
-        self.assertEqual((100, 17), tbl.shape)
-        self.assertEqual(3, tbl.column('int_null').null_count)
+        self.assertEqual(100, tbl.num_rows)
 
-    def test_run_component_pipeline(self):
-        fb = FeatureBuild.from_env('test', has_contract=False)
-        tools: FeatureBuildIntentModel = fb.tools
-        # reload the properties
-        fb = FeatureBuild.from_env('test')
-        _ = tools.get_synthetic_data_types(10, inc_nulls=True, column_name='d_types')
-        result = fb.tools.run_intent_pipeline(size=20)
-        self.assertEqual((20, 17), result.shape)
-
-    def test_model_noise(self):
+    def test_model_sample_link(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
-        tbl = tools.get_noise(10, num_columns=3)
-        self.assertEqual((10, 3), tbl.shape)
-        self.assertEqual(['A', 'B', 'C'], tbl.column_names)
-        tbl = tools.get_noise(10, num_columns=3, name_prefix='P_')
-        self.assertEqual(['P_A', 'P_B', 'P_C'], tbl.column_names)
+        canonical = tools.get_synthetic_data_types(10, category_encode=False)
+        other = tools.get_synthetic_data_types(5, category_encode=False)
+        result = tools.model_sample_link(canonical=canonical, other=other, headers=['int'], rename_map=['key'])
+        self.assertCountEqual(result.column_names, canonical.column_names+['key'])
+        result = tools.model_sample_link(canonical=canonical, other=other, headers=['int', 'num'], rename_map={'int': 'key', 'num': 'prob'})
+        self.assertCountEqual(result.column_names, canonical.column_names + ['key', 'prob'])
+        result = tools.model_sample_link(canonical=canonical, other=other, headers=['int'], rename_map=['key1'], multi_map={'key2': 'key1'})
+        self.assertCountEqual(result.column_names, canonical.column_names + ['key1', 'key2'])
+        self.assertTrue(result.column('key1').equals(result.column('key2')))
+
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:

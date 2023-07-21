@@ -57,6 +57,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
         start = self._extract_value(start)
         stop = self._extract_value(stop)
         if not isinstance(size, int):
@@ -128,15 +130,15 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
         return pa.table([rtn_arr], names=[column_name])
 
-    def get_category(self, selection: list, size: int, relative_freq: list=None, quantity: float=None, seed: int=None,
-                     save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
-        """ returns a category from a list. Of particular not is the at_least parameter that allows you to
-        control the number of times a selection can be chosen.
+    def get_category(self, selection: list, size: int, relative_freq: list=None, encode: bool=None,
+                     quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
+                     intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ returns a categorical as a string.
 
         :param selection: a list of items to select from
         :param size: size of the return
         :param relative_freq: a weighting pattern that does not have to add to 1
+        :param encode: if the categorical should be returned encoded as a dictionary type or string type (default)
         :param quantity: a number between 0 and 1 representing the percentage quantity of the data
         :param seed: a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
@@ -158,8 +160,11 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
         if len(selection) < 1:
             return [None] * size
+        encode = encode if isinstance(encode, bool) else False
         seed = self._seed() if seed is None else seed
         relative_freq = relative_freq if isinstance(relative_freq, list) else [1]*len(selection)
         select_index = self._freq_dist_size(relative_freq=relative_freq, size=size, dist_length=len(selection),
@@ -171,7 +176,9 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         gen.shuffle(rtn_list)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.DictionaryArray.from_pandas(rtn_list).dictionary_encode()], names=[column_name])
+        if encode:
+            return pa.table([pa.DictionaryArray.from_pandas(rtn_list).dictionary_encode()], names=[column_name])
+        return pa.table([pa.DictionaryArray.from_pandas(rtn_list)], names=[column_name])
 
     def get_boolean(self, size: int, probability: float=None, quantity: float=None, seed: int=None,
                     save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
@@ -201,6 +208,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
         prob = probability if isinstance(probability, int) and 0 < probability < 1 else 0.5
         seed = self._seed(seed=seed)
         rtn_list = list(stats.bernoulli.rvs(p=probability, size=size, random_state=seed))
@@ -254,9 +263,6 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
         :return: a date or size of dates in the format given.
          """
-        # pre check
-        if start is None or until is None:
-            raise ValueError("The start or until parameters cannot be of NoneType")
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
@@ -270,7 +276,6 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         as_num = as_num if isinstance(as_num, bool) else False
         ignore_seconds = ignore_seconds if isinstance(ignore_seconds, bool) else False
         ignore_time = ignore_time if isinstance(ignore_time, bool) else False
-        size = 1 if size is None else size
         seed = self._seed() if seed is None else seed
         # start = start.to_pydatetime() if isinstance(start, pd.Timestamp) else start
         # until = until.to_pydatetime() if isinstance(until, pd.Timestamp) else until
@@ -650,10 +655,11 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
         choice_only = False if choice_only is None or not isinstance(choice_only, bool) else choice_only
         as_binary = as_binary if isinstance(as_binary, bool) else False
         quantity = self._quantity(quantity)
-        size = size if isinstance(size, int) and size > 0 else 1
         seed = self._seed(seed=seed)
         if choices is None or not isinstance(choices, dict):
             choices = {'c': list(string.ascii_letters),
@@ -723,7 +729,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
-        size = 1 if size is None else size
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
         sample_size = sample_name if isinstance(sample_size, int) else size
         quantity = self._quantity(quantity)
         seed = self._seed(seed=seed)
@@ -771,6 +778,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         other = self._get_canonical(other)
         if other is None or other.num_rows == 0:
             return None
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
         date_jitter = date_jitter if isinstance(date_jitter, int) else 2
         units_allowed = ['W', 'D', 'h', 'm', 's', 'milli', 'micro']
         date_units = date_units if isinstance(date_units, str) and date_units in units_allowed else 'D'
@@ -846,15 +855,17 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             rtn_tbl = Commons.table_append(rtn_tbl, result)
         return rtn_tbl
 
-    def get_synthetic_data_types(self, size: int, inc_nulls: bool=None, p_nulls: float=None, seed: int=None,
-                                 save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                                 replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+    def get_synthetic_data_types(self, size: int, inc_nulls: bool=None, prob_nulls: float=None, seed: int=None,
+                                 category_encode: bool=None, save_intent: bool=None, column_name: [int, str]=None,
+                                 intent_order: int=None, replace_intent: bool=None,
+                                 remove_duplicates: bool=None) -> pa.Table:
         """ A dataset with example data types
 
-        :param size:
+        :param size: The size of the sample
         :param inc_nulls: include values with nulls
-        :param p_nulls: a value between 0 an 1 of the percentage of nulls in the *_nulls column. Default is 0.02
-        :param seed: a seed value for the random function: default to None
+        :param prob_nulls: (optional) a value between 0 an 1 of the percentage of nulls. Default 0.02
+        :param category_encode: (optional) if the categorical should be encoded to DictionaryArray
+        :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param column_name: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
@@ -874,11 +885,15 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed(seed=seed)
-        p_nulls = p_nulls if isinstance(p_nulls, float) and 0 < p_nulls < 1 else 0.02
+        prob_nulls = prob_nulls if isinstance(prob_nulls, float) and 0 < prob_nulls < 1 else 0.02
+        category_encode = category_encode if isinstance(category_encode, bool) else True
         # cat
         _ = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE'], size=size, seed=seed,
-                              relative_freq=[1, 99, 10, 40], column_name='cat',  save_intent=False)
+                              relative_freq=[1, 99, 10, 40], encode=category_encode, column_name='cat',
+                              save_intent=False)
         canonical = _
         # num
         _ = self.get_dist_normal(mean=0, std=1, size=size, seed=seed, column_name='num', save_intent=False)
@@ -903,27 +918,27 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
 
         if isinstance(inc_nulls, bool) and inc_nulls:
             # cat_null
-            _ = self.get_category(selection=['M', 'F', 'U'], relative_freq=[9,8,4], quantity=1 - p_nulls,
+            _ = self.get_category(selection=['M', 'F', 'U'], relative_freq=[9,8,4], quantity=1 - prob_nulls,
                                   column_name='cat_null', size=size, seed=seed, save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # num_null
             _ = self.get_number(start=-1.0, stop=1.0, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21], size=size,
-                                quantity=1 - p_nulls, column_name='num_null', seed=seed, save_intent=False)
+                                quantity=1 - prob_nulls, column_name='num_null', seed=seed, save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # int_null
-            _ = self.get_number(start=-1000, stop=1000, size=size, quantity=1 - p_nulls, column_name='int_null',
+            _ = self.get_number(start=-1000, stop=1000, size=size, quantity=1 - prob_nulls, column_name='int_null',
                                 seed=seed, save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # bool_null
-            _ = self.get_boolean(size=size, probability=0.4, seed=seed, quantity=1 - p_nulls,
+            _ = self.get_boolean(size=size, probability=0.4, seed=seed, quantity=1 - prob_nulls,
                                  column_name='bool_null', save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # date_null
-            _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, quantity=1 - p_nulls,
+            _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, quantity=1 - prob_nulls,
                                   column_name='date_null', seed=seed, save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # string_null
-            _ = self.get_sample(sample_name='us_cities', size=size, quantity=1 - p_nulls,
+            _ = self.get_sample(sample_name='us_cities', size=size, quantity=1 - prob_nulls,
                                 column_name='string_null', seed=seed, save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # nulls_int
@@ -970,6 +985,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed(seed=seed)
         num_columns = num_columns if isinstance(num_columns, int) else 1
         name_prefix = name_prefix if isinstance(name_prefix, str) else ''
