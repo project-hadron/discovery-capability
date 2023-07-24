@@ -8,6 +8,8 @@ from ds_capability.components.commons import Commons
 
 __author__ = 'Darryl Oatridge'
 
+from ds_capability.components.discovery import DataDiscovery
+
 
 class AbstractCommonComponent(AbstractComponent):
 
@@ -88,21 +90,15 @@ class AbstractCommonComponent(AbstractComponent):
         return
 
     @staticmethod
-    def canonical_report(canonical, stylise: bool=True, inc_next_dom: bool=False, report_header: str=None,
-                         condition: str=None):
+    def canonical_report(canonical: pa.Table, stylise: bool=False, display_width: int=None):
         """The Canonical Report is a data dictionary of the canonical providing a reference view of the dataset's
         attribute properties
 
         :param canonical: the DataFrame to view
         :param stylise: if True present the report stylised.
-        :param inc_next_dom: (optional) if to include the next dominate element column
-        :param report_header: (optional) filter on a header where the condition is true. Condition must exist
-        :param condition: (optional) the condition to apply to the header. Header must exist. examples:
-                ' > 0.95', ".str.contains('shed')"
-        :return:
+        :param display_width: (optional) the width of the observational display
         """
-        return DataDiscovery.data_dictionary(df=canonical, stylise=stylise, inc_next_dom=inc_next_dom,
-                                             report_header=report_header, condition=condition)
+        return DataDiscovery.data_dictionary(canonical=canonical, stylise=stylise, display_width=display_width)
 
     def report_canonical_schema(self, schema: [str, dict]=None, roots: [str, list]=None,
                                 sections: [str, list]=None, elements: [str, list]=None, stylise: bool=True):
