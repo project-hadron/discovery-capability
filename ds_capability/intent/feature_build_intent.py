@@ -891,8 +891,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         prob_nulls = prob_nulls if isinstance(prob_nulls, float) and 0 < prob_nulls < 1 else 0.02
         category_encode = category_encode if isinstance(category_encode, bool) else True
         # cat
-        _ = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE'], size=size, seed=seed,
-                              relative_freq=[1, 99, 10, 40], encode=category_encode, column_name='cat',
+        _ = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE', 'ARCHIVE'], size=size, seed=seed,
+                              relative_freq=[1, 70, 20, 30, 10], encode=category_encode, column_name='cat',
                               save_intent=False)
         canonical = _
         # num

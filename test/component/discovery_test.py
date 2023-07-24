@@ -19,7 +19,7 @@ pd.set_option('display.max_columns', 99)
 pd.set_option('expand_frame_repr', True)
 
 
-class SyntheticTest(unittest.TestCase):
+class DiscoveryTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -60,7 +60,7 @@ class SyntheticTest(unittest.TestCase):
         sb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = sb.tools
         tbl = tools.get_synthetic_data_types(1_000)
-        result = DataDiscovery.data_dictionary(tbl)
+        result = DataDiscovery.data_dictionary(tbl, stylise=True)
         pprint(result)
 
     def test_raise(self):
