@@ -18,8 +18,7 @@ class DataDiscovery(object):
         display_width = display_width if isinstance(display_width, int) else 80
         stylise = stylise if isinstance(stylise, bool) else False
         record = []
-        labels = [f'Attributes ({len(canonical.columns)})', 'DataType', 'Nulls', 'Dominate', 'Valid', 'Unique',
-                  'Observations']
+        labels = [f'Attributes', 'DataType', 'Nulls', 'Dominate', 'Valid', 'Unique', 'Observations']
         for c in canonical.column_names:
             column = canonical.column(c).combine_chunks()
             line = [c,
@@ -52,13 +51,13 @@ class DataDiscovery(object):
             style = [{'selector': 'th', 'props': [('font-size', "120%"), ("text-align", "center")]},
                      {'selector': '.row_heading, .blank', 'props': [('display', 'none;')]}]
             df_style = df.style.set_table_styles(style)
-            _ = df_style.applymap(DataDiscovery._highlight_null_dom, subset=['%_Null', '%_Dom'])
-            _ = df_style.applymap(lambda x: 'color: white' if x > 0.98 else 'color: black', subset=['%_Null', '%_Dom'])
-            _ = df_style.applymap(DataDiscovery._dtype_color, subset=['dType'])
+            _ = df_style.applymap(DataDiscovery._highlight_null_dom, subset=['Nulls', 'Dominate'])
+            _ = df_style.applymap(lambda x: 'color: white' if x > 0.98 else 'color: black', subset=['Nulls', 'Dominate'])
+            _ = df_style.applymap(DataDiscovery._dtype_color, subset=['DataType'])
             _ = df_style.applymap(DataDiscovery._color_unique, subset=['Unique'])
             _ = df_style.applymap(lambda x: 'color: white' if x < 2 else 'color: black', subset=['Unique'])
             _ = df_style.format({'Nulls': "{:.1%}", 'Dominate': '{:.1%}'})
-            _ = df_style.set_caption('Dominate: The % most dominant element ')
+            _ = df_style.set_caption(f"dataset has {canonical.num_columns} columns")
             _ = df_style.set_properties(subset=[f'Attributes ({len(df.columns)})'],  **{'font-weight': 'bold',
                                                                                         'font-size': "120%"})
             return df_style
