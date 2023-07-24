@@ -58,8 +58,7 @@ class DataDiscovery(object):
             _ = df_style.applymap(lambda x: 'color: white' if x < 2 else 'color: black', subset=['Unique'])
             _ = df_style.format({'Nulls': "{:.1%}", 'Dominate': '{:.1%}'})
             _ = df_style.set_caption(f"dataset has {canonical.num_columns} columns")
-            _ = df_style.set_properties(subset=[f'Attributes ({len(df.columns)})'],  **{'font-weight': 'bold',
-                                                                                        'font-size': "120%"})
+            _ = df_style.set_properties(subset=['Attributes'],  **{'font-weight': 'bold', 'font-size': "120%"})
             return df_style
         return pa.Table.from_pandas(df)
 
