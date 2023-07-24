@@ -25,12 +25,12 @@ class DataDiscovery(object):
                     # data type
                     'Category' if pc.starts_with(str(column.type), 'dict').as_py() else str(column.type),
                     # null percentage
-                    round(column.null_count / canonical.num_rows * 100, 1)
+                    round(column.null_count / canonical.num_rows, 3)
                     ]
             # dominant percentage
             arr_vc = column.value_counts()
             value = arr_vc.filter(pc.equal(arr_vc.field(1), pc.max(arr_vc.field(1)))).field(1)[0].as_py()
-            line.append(round(value / canonical.num_rows * 100, 1))
+            line.append(round(value / canonical.num_rows, 3))
             # valid
             line.append(pc.sum(column.is_valid()).as_py())
             # unique
