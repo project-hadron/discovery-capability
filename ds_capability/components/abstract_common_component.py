@@ -98,7 +98,7 @@ class AbstractCommonComponent(AbstractComponent):
         :param stylise: if True present the report stylised.
         :param display_width: (optional) the width of the observational display
         """
-        stylise = stylise if isinstance(stylise, bool) else False
+        stylise = stylise if isinstance(stylise, bool) else True
         return DataDiscovery.data_dictionary(canonical=canonical, stylise=stylise, display_width=display_width)
 
     def report_canonical_schema(self, schema: [str, dict]=None, roots: [str, list]=None,
