@@ -917,27 +917,34 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         canonical = Commons.table_append(canonical, _)
 
         if isinstance(inc_nulls, bool) and inc_nulls:
+            gen = np.random.default_rng()
             # cat_null
+            prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             _ = self.get_category(selection=['M', 'F', 'U'], relative_freq=[9,8,4], quantity=1 - prob_nulls,
                                   column_name='cat_null', size=size, seed=seed, save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # num_null
+            prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             _ = self.get_number(start=-1.0, stop=1.0, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21], size=size,
                                 quantity=1 - prob_nulls, column_name='num_null', seed=seed, save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # int_null
+            prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             _ = self.get_number(start=-1000, stop=1000, size=size, quantity=1 - prob_nulls, column_name='int_null',
                                 seed=seed, save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # bool_null
+            prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             _ = self.get_boolean(size=size, probability=0.4, seed=seed, quantity=1 - prob_nulls,
                                  column_name='bool_null', save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # date_null
+            prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, quantity=1 - prob_nulls,
                                   column_name='date_null', seed=seed, save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # string_null
+            prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             _ = self.get_sample(sample_name='us_cities', size=size, quantity=1 - prob_nulls,
                                 column_name='string_null', seed=seed, save_intent=False)
             canonical = Commons.table_append(canonical, _)

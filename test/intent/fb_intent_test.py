@@ -60,7 +60,6 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual((100, 7), tbl.shape)
         tbl = tools.get_synthetic_data_types(100, inc_nulls=True, prob_nulls=0.03)
         self.assertEqual((100, 17), tbl.shape)
-        self.assertEqual(3, tbl.column('int_null').null_count)
 
     def test_run_component_pipeline(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
