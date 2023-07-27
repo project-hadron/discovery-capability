@@ -70,14 +70,14 @@ class DiscoveryTest(unittest.TestCase):
     def test_data_dictionary(self):
         sb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = sb.tools
-        tbl = tools.get_synthetic_data_types(1000)
+        tbl = tools.get_synthetic_data_types(1000, inc_nulls=True)
         result = DataDiscovery.data_dictionary(tbl)
         print(result.column_names)
 
     def test_data_quality(self):
         sb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = sb.tools
-        tbl = tools.get_synthetic_data_types(1000)
+        tbl = tools.get_synthetic_data_types(1000, inc_nulls=True)
         result = DataDiscovery.data_quality(tbl)
         print(result.column_names)
         # c = result.column('summary').combine_chunks()

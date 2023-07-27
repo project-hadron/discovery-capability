@@ -44,7 +44,7 @@ class DataDiscovery(object):
                 _nest_columns += 1
                 continue
             if not pa.types.is_dictionary(c.type):
-                if c.null_count/pc.count(c).as_py() > nulls_threshold:
+                if pc.count(c).as_py() == 0 or c.null_count/pc.count(c).as_py() > nulls_threshold:
                     _null_columns += 1
                 elif pc.count_distinct(c.drop_null()).as_py() == pc.count(c).as_py():
                     _key_columns += 1
