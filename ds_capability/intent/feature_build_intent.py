@@ -960,7 +960,25 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             # nulls
             _ = pa.table([pa.nulls(size)], names=['nulls'])
             canonical = Commons.table_append(canonical, _)
-
+            # list array
+            _ = pa.array(list(zip(canonical.column('num').to_pylist(), canonical.column('num_null').to_pylist())))
+            _ = pa.table([_], names=['nest_list'])
+            canonical = Commons.table_append(canonical, _)
+            # struct array
+            shuffle_int = pa.Array.from_pandas(canonical.column('int').to_pandas().sample(frac=1))
+            shuffle_num = pa.Array.from_pandas(canonical.column('num').to_pandas().sample(frac=1))
+            n_tbl = pa.table([canonical.column('int')], names=['_id'])
+            n_tbl = Commons.table_append(n_tbl, pa.table([canonical.column('string')], names=['doc_name']))
+            n_tbl = Commons.table_append(n_tbl, pa.table([canonical.column('date')], names=['date.prod']))
+            n_tbl = Commons.table_append(n_tbl, pa.table([canonical.column('date_null')], names=['date.last']))
+            n_tbl = Commons.table_append(n_tbl, pa.table([shuffle_int], names=['metrics.nest_list_0._id']))
+            n_tbl = Commons.table_append(n_tbl, pa.table([shuffle_num], names=['metrics.nest_list_0.value']))
+            n_tbl = Commons.table_append(n_tbl,
+                                         pa.table([canonical.column('int_null')], names=['metrics.nest_list_1._id']))
+            n_tbl = Commons.table_append(n_tbl,
+                                         pa.table([canonical.column('num_null')], names=['metrics.nest_list_1.value']))
+            _ = Commons.table_nest(n_tbl)
+            canonical = Commons.table_append(canonical, pa.table([pa.array(_)], names=['nest_struct']))
 
         return canonical
 

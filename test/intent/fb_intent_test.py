@@ -59,7 +59,7 @@ class FeatureBuilderTest(unittest.TestCase):
         tbl = tools.get_synthetic_data_types(100)
         self.assertEqual((100, 7), tbl.shape)
         tbl = tools.get_synthetic_data_types(100, inc_nulls=True, prob_nulls=0.03)
-        self.assertEqual((100, 17), tbl.shape)
+        self.assertEqual((100, 19), tbl.shape)
 
     def test_run_component_pipeline(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
@@ -68,7 +68,7 @@ class FeatureBuilderTest(unittest.TestCase):
         fb = FeatureBuild.from_env('test')
         _ = tools.get_synthetic_data_types(10, inc_nulls=True, column_name='d_types')
         result = fb.tools.run_intent_pipeline(size=20)
-        self.assertEqual((20, 17), result.shape)
+        self.assertEqual((20, 19), result.shape)
 
     def test_model_noise(self):
         fb = FeatureBuild.from_memory()

@@ -121,11 +121,11 @@ class DataDiscovery(object):
         for c in canonical.column_names:
             column = canonical.column(c).combine_chunks()
             if pa.types.is_nested(column.type):
-                record.append([c,'Nested','','','','',''])
+                record.append([c,'nested',0,0,0,0,''])
                 continue
             # data type
             line = [c,
-                    'Category' if pc.starts_with(str(column.type), 'dict').as_py() else str(column.type),
+                    'category' if pc.starts_with(str(column.type), 'dict').as_py() else str(column.type),
                     # null percentage
                     round(column.null_count / canonical.num_rows, 3)]
             # dominant percentage
