@@ -48,6 +48,10 @@ class DiscoveryTest(unittest.TestCase):
             os.makedirs(os.environ['HADRON_DEFAULT_PATH'])
         except OSError:
             pass
+        try:
+            shutil.copytree('../_test_data', os.path.join(os.environ['PWD'], 'working/source'))
+        except OSError:
+            pass
         PropertyManager._remove_all()
 
     def tearDown(self):
@@ -59,9 +63,29 @@ class DiscoveryTest(unittest.TestCase):
     def test_for_smoke(self):
         sb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = sb.tools
-        tbl = tools.get_synthetic_data_types(1_000)
-        result = DataDiscovery.data_dictionary(tbl, stylise=True)
-        pprint(result)
+        tbl = tools.get_synthetic_data_types(1_000, inc_nulls=True)
+        self.assertEqual(1_000, tbl.num_rows)
+        self.assertEqual(17, tbl.num_columns)
+
+    def test_data_dictionary(self):
+        sb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = sb.tools
+        tbl = tools.get_synthetic_data_types(1000)
+        result = DataDiscovery.data_dictionary(tbl)
+        print(result.column_names)
+
+    def test_data_quality(self):
+        sb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = sb.tools
+        tbl = tools.get_synthetic_data_types(1000)
+        result = DataDiscovery.data_quality(tbl)
+        print(result.column_names)
+        # c = result.column('summary').combine_chunks()
+        # print(c)
+        result = DataDiscovery.data_quality(tbl, stylise=True)
+        pprint(result.to_string())
+
+
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:

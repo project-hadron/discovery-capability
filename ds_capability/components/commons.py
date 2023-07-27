@@ -54,8 +54,6 @@ class Commons(CoreCommons):
                     canonical[header].iloc[idx] = ''
                 else:
                     prev = canonical[header].iloc[idx]
-            # index = canonical[canonical[header].duplicated()].index.to_list()
-            # canonical.loc[index, header] = ''
         canonical = canonical.reset_index(drop=True)
         df_style = canonical.style.set_table_styles(style)
         _ = df_style.set_properties(**{'text-align': 'left'})
