@@ -71,8 +71,8 @@ class DiscoveryTest(unittest.TestCase):
         sb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = sb.tools
         tbl = tools.get_synthetic_data_types(1000, inc_nulls=True)
-        result = DataDiscovery.data_dictionary(tbl)
-        print(result.column_names)
+        result = DataDiscovery.data_dictionary(tbl, stylise=True)
+        pprint(result.to_string())
 
     def test_data_quality(self):
         sb = FeatureBuild.from_memory()

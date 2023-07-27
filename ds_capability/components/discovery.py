@@ -111,7 +111,7 @@ class DataDiscovery(object):
         :param stylise: if the output is stylised for jupyter display
         :return: a pa.Table or stylised pandas
         """
-        display_width = display_width if isinstance(display_width, int) else 80
+        display_width = display_width if isinstance(display_width, int) else 50
         stylise = stylise if isinstance(stylise, bool) else False
         record = []
         labels = [f'Attributes', 'DataType', 'Nulls', 'Dominate', 'Valid', 'Unique', 'Observations']
@@ -121,7 +121,10 @@ class DataDiscovery(object):
         for c in canonical.column_names:
             column = canonical.column(c).combine_chunks()
             if pa.types.is_nested(column.type):
-                record.append([c,'nested',0,0,0,0,''])
+                s = str(column.slice(0,20).to_pylist())
+                if len(s) > display_width:
+                    s = s[:display_width] + "..."
+                record.append([c,'nested',0,0,1,1,s])
                 continue
             # data type
             line = [c,

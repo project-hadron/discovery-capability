@@ -912,9 +912,6 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         # string
         _ = self.get_sample(sample_name='us_street_names', size=size, seed=seed, column_name='string',  save_intent=False)
         canonical = Commons.table_append(canonical, _)
-        # binary
-        _ = self.get_string_pattern(pattern='cccccccc', as_binary=True, size=size, seed=seed, column_name='binary', save_intent=False)
-        canonical = Commons.table_append(canonical, _)
 
         if isinstance(inc_nulls, bool) and inc_nulls:
             gen = np.random.default_rng()
@@ -959,6 +956,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             canonical = Commons.table_append(canonical, _)
             # nulls
             _ = pa.table([pa.nulls(size)], names=['nulls'])
+            canonical = Commons.table_append(canonical, _)
+            # binary
+            _ = self.get_string_pattern(pattern='cccccccc', as_binary=True, size=size, seed=seed, column_name='binary',
+                                        save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # list array
             _ = pa.array(list(zip(canonical.column('num').to_pylist(), canonical.column('num_null').to_pylist())))
