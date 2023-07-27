@@ -94,12 +94,27 @@ class AbstractCommonComponent(AbstractComponent):
         """The Canonical Report is a data dictionary of the canonical providing a reference view of the dataset's
         attribute properties
 
-        :param canonical: the DataFrame to view
-        :param stylise: if True present the report stylised.
+        :param canonical: the table to view
+        :param stylise: (optional) if True present the report stylised.
         :param display_width: (optional) the width of the observational display
         """
         stylise = stylise if isinstance(stylise, bool) else True
         return DataDiscovery.data_dictionary(canonical=canonical, stylise=stylise, display_width=display_width)
+
+    @staticmethod
+    def quality_report(canonical: pa.Table, nulls_threshold: float=None, dom_threshold: float=None,
+                     cat_threshold: int=None, stylise: bool=None):
+        """ Analyses a dataset, passed as a DataFrame and returns a quality summary
+
+        :param canonical: The table to view.
+        :param cat_threshold: (optional) The threshold for the max number of unique categories. Default is 60
+        :param dom_threshold: (optional) The threshold limit of a dominant value. Default 0.98
+        :param nulls_threshold: (optional) The threshold limit of a nulls value. Default 0.9
+        :param stylise: (optional) if the output is stylised
+        """
+        stylise = stylise if isinstance(stylise, bool) else True
+        return DataDiscovery.data_quality(canonical=canonical, nulls_threshold=nulls_threshold,
+                                          dom_threshold=dom_threshold, cat_threshold=cat_threshold, stylise=stylise)
 
     def report_canonical_schema(self, schema: [str, dict]=None, roots: [str, list]=None,
                                 sections: [str, list]=None, elements: [str, list]=None, stylise: bool=True):
