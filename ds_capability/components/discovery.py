@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import pyarrow as pa
 import pyarrow.compute as pc
 from ds_capability.components.commons import Commons
@@ -29,6 +30,7 @@ class DataDiscovery(object):
         # dictionary
         _null_columns = 0
         _dom_columns = 0
+        _sparce_columns = 0
         _date_columns = 0
         _bool_columns = 0
         _cat_columns = 0
@@ -50,8 +52,10 @@ class DataDiscovery(object):
                     _key_columns += 1
                 elif 1-(pc.count_distinct(c.drop_null()).as_py()/pc.count(c).as_py()) > dom_threshold:
                     _dom_columns += 1
-                elif pc.count_distinct(c.drop_null()).as_py() == pc.count(c).as_py():
-                    _key_columns += 1
+                elif (pa.types.is_integer(c.type) or pa.types.is_floating(c.type)) \
+                          and pc.greater(pc.divide(pc.count(c.filter(pc.equal(c,0))),
+                                                   pc.count(c).cast(pa.float64())),0.66).as_py():
+                    _sparce_columns += 1
             if pa.types.is_dictionary(c.type):
                 _cat_columns += 1
             elif pa.types.is_string(c.type):
@@ -88,8 +92,9 @@ class DataDiscovery(object):
                           'bool': _bool_columns,'string': _str_columns,
                           'nested': _nest_columns, 'others': _other_columns},
             'usability': {'mostly_null': _null_columns,
-                        'predominance': _dom_columns,
-                        'candidate_keys': _key_columns}
+                          'predominance': _dom_columns,
+                          'sparse': _sparce_columns,
+                          'candidate_keys': _key_columns}
         }
         # convert to multi-index DataFrame
         result = pd.DataFrame.from_dict(report, orient="index").stack().to_frame()
@@ -165,6 +170,156 @@ class DataDiscovery(object):
             _ = df_style.set_properties(subset=['Attributes'],  **{'font-weight': 'bold', 'font-size': "120%"})
             return df_style
         return pa.Table.from_pandas(df)
+
+
+    @staticmethod
+    def data_schema(canonical: pa.Table, table_cast: bool = None, stylise: bool = None):
+        """ The data dictionary for a given canonical
+
+        :param canonical: The canonical to interpret
+        :param table_cast: (optional) attempt to cast columns to the content
+        :param stylise: (optional) if the output is stylised for jupyter display
+        :return: a pa.Table or stylised pandas
+        """
+        stylise = stylise if isinstance(stylise, bool) else False
+        if isinstance(table_cast, bool) and table_cast:
+            canonical = Commons.table_cast(canonical)
+        record = []
+        for n in canonical.column_names:
+            c = canonical.column(n).combine_chunks()
+            if pa.types.is_nested(c.type) or pa.types.is_binary(c.type) or pc.equal(c.null_count, canonical.num_rows).as_py():
+                continue
+            if pa.types.is_dictionary(c.type):
+                vc = c.drop_null().value_counts()
+                t = pa.table([vc.field(1), vc.field(0).dictionary], names=['v','n']).sort_by([("v", "descending")])
+                record.append([n, 'categories', t.column('n').to_pylist()])
+                _ = pc.round(pc.divide_checked(t.column('v').cast(pa.float64()), pc.sum(t.column('v'))),3).to_pylist()
+                record.append([n, 'frequency', _])
+                record.append([n, 'type', 'category'])
+                record.append([n, 'measure', 'discrete'])
+                record.append([n, 'nulls', c.null_count])
+            elif pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
+                precision = Commons.column_precision(c)
+                intervals = DataDiscovery.to_discrete_intervals(column=c, granularity=5, categories=['A','B','C','D','E'])
+                vc = intervals.dictionary_encode().drop_null().value_counts()
+                t = pa.table([vc.field(1), vc.field(0).dictionary], names=['v','n']).sort_by([("n", "ascending")])
+                record.append([n, 'intervals', "['lower','low','mid','high','higher']"])
+                _ = pc.round(pc.divide_checked(t.column('v').cast(pa.float64()), pc.sum(t.column('v'))),3).to_pylist()
+                record.append([n, 'frequency', _])
+                record.append([n, 'type', c.type])
+                record.append([n, 'measure', 'temporal' if pa.types.is_temporal(c.type) else 'continuous'])
+                record.append([n, 'nulls', c.null_count])
+                record.append([n, 'valid', pc.count(c.filter(c.is_valid())).as_py()])
+                record.append([n, 'mean', pc.round(pc.mean(c),precision).as_py()])
+                record.append([n, 'std', pc.round(pc.sqrt(pc.variance(c)),precision).as_py()])
+                record.append([n, 'max', pc.round(pc.max(c),precision).as_py()])
+                record.append([n, '75%', pc.round(pc.quantile(c,0.75),precision).to_pylist()[0]])
+                record.append([n, '50%', pc.round(pc.quantile(c,0.5),precision).to_pylist()[0]])
+                record.append([n, '25%', pc.round(pc.quantile(c,0.25),precision).to_pylist()[0]])
+                record.append([n, 'min', pc.round(pc.min(c),precision).as_py()])
+            elif pa.types.is_boolean(c.type):
+                vc = c.drop_null().value_counts()
+                t = pa.table([vc.field(1), vc.field(0)], names=['v', 'n']).sort_by([("n", "ascending")])
+                record.append([n, 'boolean', t.column('n').to_pylist()])
+                _ = pc.round(pc.divide_checked(t.column('v').cast(pa.float64()), pc.sum(t.column('v'))),3).to_pylist()
+                record.append([n, 'frequency', _])
+                record.append([n, 'type', c.type])
+                record.append([n, 'measure', 'binary'])
+                record.append([n, 'nulls', c.null_count])
+                record.append([n, 'valid', pc.count(c.filter(c.is_valid())).as_py()])
+            elif pa.types.is_timestamp(c.type) or pa.types.is_time(c.type):
+                _ = pa.array(Commons.date2value(c.to_pylist()))
+                intervals = DataDiscovery.to_discrete_intervals(column=_, granularity=5, categories=['A','B','C','D','E'])
+                vc = intervals.dictionary_encode().drop_null().value_counts()
+                t = pa.table([vc.field(1), vc.field(0).dictionary], names=['v','n']).sort_by([("n", "ascending")])
+                record.append([n, 'intervals', "['older','old','mid','new','newer']"])
+                _ = pc.round(pc.divide_checked(t.column('v').cast(pa.float64()), pc.sum(t.column('v'))),3).to_pylist()
+                record.append([n, 'frequency', _])
+                record.append([n, 'type', c.type])
+                record.append([n, 'measure', 'temporal' if pa.types.is_temporal(c.type) else 'continuous'])
+                record.append([n, 'nulls', c.null_count])
+                record.append([n, 'valid', pc.count(c.filter(c.is_valid())).as_py()])
+                record.append([n, 'oldest', pc.min(c).as_py()])
+                record.append([n, 'newest', pc.max(c).as_py()])
+            elif pa.types.is_string(c.type):
+                record.append([n, 'type', c.type])
+                record.append([n, 'nulls', c.null_count])
+                record.append([n, 'valid', pc.count(c.filter(c.is_valid())).as_py()])
+        df = pd.DataFrame(record, columns=['attributes', 'elements', 'values'])
+        df['values'] = df['values'].astype(str)
+        if stylise:
+            return Commons.report(df, index_header='attributes', bold=['elements'])
+        return pa.Table.from_pandas(df)
+
+    @staticmethod
+    def to_discrete_intervals(column: pa.Array, granularity: [int, float, list]=None, lower: [int, float]=None,
+                              upper: [int, float]=None, categories: list=None, precision: int=None) -> pa.Array:
+        """ creates discrete intervals from continuous values """
+        # intend code block on the canonical
+        granularity = 5 if not isinstance(granularity, (int, float, list)) or granularity == 0 else granularity
+        precision = precision if isinstance(precision, int) else 5
+        # firstly get the granularity
+        lower = lower if isinstance(lower, (int, float)) else pc.min(column).as_py()
+        upper = upper if isinstance(upper, (int, float)) else pc.max(column).as_py()
+        s_values = column.to_pandas()
+        if lower >= upper:
+            upper = lower
+            granularity = [(lower, upper, 'both')]
+        if isinstance(granularity, (int, float)):
+            # if granularity float then convert frequency to intervals
+            if isinstance(granularity, float):
+                # make sure frequency goes beyond the upper
+                _end = upper + granularity - (upper % granularity)
+                periods = pd.interval_range(start=lower, end=_end, freq=granularity).drop_duplicates()
+                periods = periods.to_tuples().to_list()
+                granularity = []
+                while len(periods) > 0:
+                    period = periods.pop(0)
+                    if len(periods) == 0:
+                        granularity += [(period[0], period[1], 'both')]
+                    else:
+                        granularity += [(period[0], period[1], 'left')]
+            # if granularity int then convert periods to intervals
+            else:
+                periods = pd.interval_range(start=lower, end=upper, periods=granularity).drop_duplicates()
+                granularity = periods.to_tuples().to_list()
+        if isinstance(granularity, list):
+            if all(isinstance(value, tuple) for value in granularity):
+                if len(granularity[0]) == 2:
+                    granularity[0] = (granularity[0][0], granularity[0][1], 'both')
+                granularity = [(t[0], t[1], 'right') if len(t) == 2 else t for t in granularity]
+            elif all(isinstance(value, float) and 0 < value < 1 for value in granularity):
+                quantiles = list(set(granularity + [0, 1.0]))
+                boundaries = s_values.quantile(quantiles).values
+                boundaries.sort()
+                granularity = [(boundaries[0], boundaries[1], 'both')]
+                granularity += [(boundaries[i - 1], boundaries[i], 'right') for i in range(2, boundaries.size)]
+            else:
+                granularity = (lower, upper, 'both')
+        granularity = [(np.round(p[0], precision), np.round(p[1], precision), p[2]) for p in granularity]
+        # now create the categories
+        conditions = []
+        for interval in granularity:
+            lower, upper, closed = interval
+            if str.lower(closed) == 'neither':
+                conditions.append((s_values > lower) & (s_values < upper))
+            elif str.lower(closed) == 'right':
+                conditions.append((s_values > lower) & (s_values <= upper))
+            elif str.lower(closed) == 'both':
+                conditions.append((s_values >= lower) & (s_values <= upper))
+            else:
+                conditions.append((s_values >= lower) & (s_values < upper))
+        if isinstance(categories, list) and len(categories) == len(conditions):
+            choices = categories
+        else:
+            if s_values.dtype.name.startswith('int'):
+                choices = [f"{int(i[0])}->{int(i[1])}" for i in granularity]
+            else:
+                choices = [f"{i[0]}->{i[1]}" for i in granularity]
+        # noinspection PyTypeChecker
+        rtn_list = np.select(conditions, choices, default=None).tolist()
+        return pa.StringArray.from_pandas(rtn_list)
+
 
     @staticmethod
     def _dtype_color(dtype: str):

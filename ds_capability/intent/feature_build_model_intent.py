@@ -1,6 +1,9 @@
 import inspect
 import pandas as pd
 import pyarrow as pa
+from aistac.handlers.abstract_handlers import HandlerFactory
+
+from ds_capability.components.discovery import DataDiscovery
 from ds_capability.intent.abstract_feature_build_intent import AbstractFeatureBuildIntentModel
 from ds_capability.intent.common_intent import CommonsIntentModel
 from ds_capability.components.commons import Commons
@@ -129,7 +132,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: a pd.DataFrame
+        :return: a pa.Table
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
@@ -147,21 +150,16 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
         on_key = Commons.list_formatter(self._extract_value(on_key))
         left_diff = Commons.list_diff(canonical.column_names, other.column_names, symmetric=False)
         right_diff = Commons.list_diff(other.column_names, canonical.column_names, symmetric=False)
-
-
-
-
-        df_canonical = canonical.to_pandas()
-        df_other = other.to_pandas()
-        # remove not matching columns
-        left_diff = Commons.list_diff(df_canonical.columns.to_list(), df_other.columns.to_list(), symmetric=False)
-        right_diff = Commons.list_diff(df_other.columns.to_list(), df_canonical.columns.to_list(), symmetric=False)
-        _canonical = df_canonical.drop(left_diff, axis=1)
-        _other = df_other.drop(right_diff, axis=1)
+        # drop columns
+        tbl_canonical = canonical.drop_columns(left_diff)
+        tbl_other = other.drop_columns(right_diff)
+        # pandas
+        df_canonical = tbl_canonical.to_pandas()
+        df_other = tbl_other.to_pandas()
         # sort
-        _canonical.sort_values(on_key, inplace=True)
-        _other.sort_values(on_key, inplace=True)
-        _other = _other.loc[:, _canonical.columns.to_list()]
+        df_canonical.sort_values(on_key, inplace=True)
+        df_other.sort_values(on_key, inplace=True)
+        df_other = df_other.loc[:, df_canonical.columns.to_list()]
 
         # unmatched report
         if isinstance(unmatched_connector, str):
@@ -181,7 +179,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                 raise ValueError(f"The connector name {unmatched_connector} has been given but no Connect Contract added")
 
         # remove non-matching rows
-        df = pd.merge(_canonical, _other, on=on_key, how='inner', suffixes=('_x', '_y'))
+        df = pd.merge(df_canonical, df_other, on=on_key, how='inner', suffixes=('_x', '_y'))
         df_x = df.filter(regex='(_x$)', axis=1)
         df_y = df.filter(regex='(_y$)', axis=1)
         df_x.columns = df_x.columns.str.removesuffix('_x')
@@ -241,3 +239,74 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
             diff = diff.reset_index(drop=True)
 
         return pa.Table.from_pandas(diff)
+
+    def model_profiling(self, canonical: pa.Table, profiling: str, headers: [str, list]=None, drop: bool=None,
+                         dtype: [str, list]=None, exclude: bool=None, regex: [str, list]=None,
+                         re_ignore_case: bool=None, connector_name: str=None, seed: int=None, save_intent: bool=None,
+                         column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                         remove_duplicates: bool=None, **kwargs) -> pa.Table:
+        """ Data profiling provides, analyzing, and creating useful summaries of data. The process yields a high-level
+        overview which aids in the discovery of data quality issues, risks, and overall trends. It can be used to
+        identify any errors, anomalies, or patterns that may exist within the data. There are three types of data
+        profiling available 'dictionary', 'schema' or 'quality'
+
+        :param canonical: a direct or generated pd.DataFrame. see context notes below
+        :param profiling: The profiling name. Options are 'dictionary', 'schema' or 'quality'
+        :param headers: (optional) a filter of headers from the 'other' dataset
+        :param drop: (optional) to drop or not drop the headers if specified
+        :param dtype: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
+        :param exclude: (optional) to exclude or include the data types if specified
+        :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
+        :param re_ignore_case: (optional) true if the regex should ignore case. Default is False
+        :param connector_name::(optional) a connector name where the outcome is sent
+        :param seed:(optional) this is a placeholder, here for compatibility across methods
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pa.Table
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # intent action
+        canonical = self._get_canonical(canonical)
+        columns = Commons.filter_headers(canonical, headers=headers, drop=drop, dtype=dtype, exclude=exclude,
+                                        regex=regex, re_ignore_case=re_ignore_case)
+        _seed = self._seed() if seed is None else seed
+        if profiling == 'dictionary':
+            result =  DataDiscovery.data_dictionary(canonical=canonical, table_cast=True, stylise=False)
+        elif profiling == 'quality':
+            result =  DataDiscovery.data_quality(canonical=canonical, stylise=False)
+        # elif profiling == 'schema':
+        #     blob = DataDiscovery.analyse_association(df=canonical, columns_list=columns)
+        #     report = pd.DataFrame(columns=['root', 'section', 'element', 'value'])
+        #     root_list = DataAnalytics.get_tree_roots(analytics_blob=blob)
+        #     for root_items in root_list:
+        #         data_analysis = DataAnalytics.from_root(analytics_blob=blob, root=root_items)
+        #         for section in data_analysis.section_names:
+        #             for element, value in data_analysis.get(section).items():
+        #                 to_append = [root_items, section, element, value]
+        #                 a_series = pd.Series(to_append, index=report.columns)
+        #                 report = pd.concat([report, a_series.to_frame().transpose()], ignore_index=True)
+        #     result = report
+        else:
+            raise ValueError(f"The report name '{profiling}' is not recognised. Use 'dictionary', 'schema' or 'quality'")
+        if isinstance(connector_name, str):
+            if self._pm.has_connector(connector_name):
+                handler = self._pm.get_connector_handler(connector_name)
+                handler.persist_canonical(result, **kwargs)
+                return canonical
+            raise ValueError(f"The connector name {connector_name} has been given but no Connect Contract added")
+        # set the index
+        return result
+

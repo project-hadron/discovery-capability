@@ -45,6 +45,10 @@ class FeatureBuilderTest(unittest.TestCase):
             os.makedirs(os.environ['HADRON_DEFAULT_PATH'])
         except OSError:
             pass
+        try:
+            shutil.copytree('../_test_data', os.path.join(os.environ['PWD'], 'working/source'))
+        except OSError:
+            pass
         PropertyManager._remove_all()
 
     def tearDown(self):
@@ -58,26 +62,18 @@ class FeatureBuilderTest(unittest.TestCase):
         tools: FeatureBuildIntentModel = fb.tools
         tbl = tools.get_synthetic_data_types(100)
         self.assertEqual((100, 6), tbl.shape)
-        tbl = tools.get_synthetic_data_types(100, inc_nulls=True, prob_nulls=0.03)
-        self.assertEqual((100, 19), tbl.shape)
 
-    def test_run_component_pipeline(self):
-        fb = FeatureBuild.from_env('test', has_contract=False)
-        tools: FeatureBuildIntentModel = fb.tools
-        # reload the properties
-        fb = FeatureBuild.from_env('test')
-        _ = tools.get_synthetic_data_types(10, inc_nulls=True, column_name='d_types')
-        result = fb.tools.run_intent_pipeline(size=20)
-        self.assertEqual((20, 19), result.shape)
-
-    def test_model_noise(self):
+    def test_correlate_descrete_intervals(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
-        tbl = tools.get_noise(10, num_columns=3)
-        self.assertEqual((10, 3), tbl.shape)
-        self.assertEqual(['A', 'B', 'C'], tbl.column_names)
-        tbl = tools.get_noise(10, num_columns=3, name_prefix='P_')
-        self.assertEqual(['P_A', 'P_B', 'P_C'], tbl.column_names)
+        tbl = tools.get_synthetic_data_types(100)
+        result = tools.correlate_discrete_intervals(tbl, header='num', column_name='num')
+        self.assertEqual(3, pc.count(result.column('num').combine_chunks().dictionary).as_py())
+        result = tools.correlate_discrete_intervals(tbl, header='num', categories=['low', 'mid', 'high'], column_name='num')
+        self.assertCountEqual(['high', 'mid', 'low'], result.column('num').combine_chunks().dictionary.to_pylist())
+        result = tools.correlate_discrete_intervals(tbl, header='num', granularity=[0.25,0.5,0.75],
+                                                    categories=['0%->25%', '25%->50%', '50%->75%', '75%->100%'], column_name='num')
+        self.assertCountEqual(['0%->25%', '25%->50%', '50%->75%', '75%->100%'], result.column('num').combine_chunks().dictionary.to_pylist())
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:

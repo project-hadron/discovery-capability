@@ -4,17 +4,19 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
-from ds_capability.components.commons import Commons
+
+from ds_capability.components.discovery import DataDiscovery
 from ds_capability.intent.feature_build_model_intent import FeatureBuildModelIntent
 
 
+# noinspection PyArgumentList
 class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
 
-    def correlate_number(self, canonical: pa.Array, choice: [int, float, str]=None, choice_header: str=None,
+    def correlate_number(self, canonical: pa.Table, header: str, choice: [int, float, str]=None, choice_header: str=None,
                          precision: int=None, jitter: [int, float, str]=None, offset: [int, float, str]=None,
                          code_str: Any=None, lower: [int, float]=None, upper: [int, float]=None, keep_zero: bool=None,
                          seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                         replace_intent: bool=None, remove_duplicates: bool=None) -> list:
+                         replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ correlate a list of continuous values adjusting those values, or a subset of those values, with a
         normalised jitter (std from the value) along with a value offset. ``choice``, ``jitter`` and ``offset``
         can accept environment variable string names starting with ``${`` and ending with ``}``.
@@ -22,7 +24,8 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         If the choice is an int, it represents the number of rows to choose. If the choice is a float it must be
         between 1 and 0 and represent a percentage of rows to choose.
 
-        :param canonical:
+        :param canonical: a pa.Table as the reference table
+        :param header: the header in the Table to correlate
         :param choice: (optional) The number of values to choose to apply the change to. Can be an environment variable.
         :param choice_header: (optional) those not chosen are given the values of the given header
         :param precision: (optional) to what precision the return values should be
@@ -53,10 +56,13 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
                                    column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        s_values = canonical.to_pandas()
+        canonical = self._get_canonical(canonical)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        seed = seed if isinstance(seed, int) else self._seed()
+        s_values = canonical.column(header).to_pandas()
         s_others = s_values.copy()
         other_size = s_others.size
-        seed = self._seed() if seed is None else seed
         offset = self._extract_value(offset)
         keep_zero = keep_zero if isinstance(keep_zero, bool) else False
         precision = precision if isinstance(precision, int) else 3
@@ -120,4 +126,53 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
                 pass
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
         return pa.table([rtn_arr], names=[column_name])
+
+    def correlate_discrete_intervals(self, canonical: pa.Table, header: str, granularity: [int, float, list]=None,
+                                     lower: [int, float]=None, upper: [int, float]=None, categories: list=None,
+                                     precision: int=None, seed: int=None, save_intent: bool=None,
+                                     column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                                     remove_duplicates: bool=None) -> pa.Table:
+        """ converts continuous representation into discrete representation through interval categorisation
+
+        :param canonical: a pa.Table as the reference table
+        :param header: the header in the Table to correlate
+        :param granularity: (optional) the granularity of the analysis across the range. Default is 3
+                int passed - represents the number of periods
+                float passed - the length of each interval
+                list[tuple] - specific interval periods e.g []
+                list[float] - the percentile or quantities, All should fall between 0 and 1
+        :param lower: (optional) the lower limit of the number value. Default min()
+        :param upper: (optional) the upper limit of the number value. Default max()
+        :param precision: (optional) The precision of the range and boundary values. by default set to 5.
+        :param categories:(optional)  a set of labels the same length as the intervals to name the categories
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: an equal length list of correlated values
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        seed = seed if isinstance(seed, int) else self._seed()
+        rtn_arr = DataDiscovery.to_discrete_intervals(array=canonical.column(header), granularity=granularity,
+                                                      lower=lower, upper=upper, categories=categories,
+                                                      precision=precision)
+        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        return pa.table([rtn_arr.dictionary_encode()], names=[column_name])
+
 

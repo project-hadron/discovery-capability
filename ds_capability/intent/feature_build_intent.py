@@ -915,10 +915,11 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
 
         if isinstance(inc_nulls, bool) and inc_nulls:
             gen = np.random.default_rng()
-            # cat_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            _ = self.get_category(selection=['M', 'F', 'U'], relative_freq=[9,8,4], quantity=1 - prob_nulls,
-                                  column_name='cat_null', size=size, seed=seed, save_intent=False)
+            # cat_null
+            _ = self.get_category(selection=['High', 'Med', 'Low'], relative_freq=[9,8,4], quantity=1 - prob_nulls,
+                                  column_name='cat_null', size=size, encode=category_encode, seed=seed,
+                                  save_intent=False)
             canonical = Commons.table_append(canonical, _)
             # num_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls

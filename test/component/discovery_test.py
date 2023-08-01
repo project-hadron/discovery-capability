@@ -78,13 +78,15 @@ class DiscoveryTest(unittest.TestCase):
         sb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = sb.tools
         tbl = tools.get_synthetic_data_types(1000, inc_nulls=True)
-        result = DataDiscovery.data_quality(tbl)
-        print(result.column_names)
-        # c = result.column('summary').combine_chunks()
-        # print(c)
         result = DataDiscovery.data_quality(tbl, stylise=True)
         pprint(result.to_string())
 
+    def test_data_schema(self):
+        sb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = sb.tools
+        tbl = tools.get_synthetic_data_types(1000, inc_nulls=True)
+        result = DataDiscovery.data_schema(tbl, stylise=True)
+        pprint(result.to_string())
 
 
     def test_raise(self):
