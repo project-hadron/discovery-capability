@@ -238,11 +238,10 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
 
         return pa.Table.from_pandas(diff)
 
-    def model_profiling(self, canonical: pa.Table, profiling: str, headers: [str, list]=None, drop: bool=None,
-                        d_types: [str, list]=None, exclude: bool=None, regex: [str, list]=None,
-                        re_ignore_case: bool=None, connector_name: str=None, seed: int=None, save_intent: bool=None,
-                        column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                        remove_duplicates: bool=None, **kwargs) -> pa.Table:
+    def model_profiling(self, canonical: pa.Table, profiling: str, headers: [str, list]=None, d_types: [str, list]=None,
+                        regex: [str, list]=None, drop: bool=None, connector_name: str=None,  seed: int=None,
+                        save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                        replace_intent: bool=None, remove_duplicates: bool=None, **kwargs) -> pa.Table:
         """ Data profiling provides, analyzing, and creating useful summaries of data. The process yields a high-level
         overview which aids in the discovery of data quality issues, risks, and overall trends. It can be used to
         identify any errors, anomalies, or patterns that may exist within the data. There are three types of data
@@ -253,9 +252,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
         :param headers: (optional) a filter of headers from the 'other' dataset
         :param drop: (optional) to drop or not drop the headers if specified
         :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
-        :param exclude: (optional) to exclude or include the data types if specified
         :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
-        :param re_ignore_case: (optional) true if the regex should ignore case. Default is False
         :param connector_name::(optional) a connector name where the outcome is sent
         :param seed:(optional) this is a placeholder, here for compatibility across methods
         :param save_intent: (optional) if the intent contract should be saved to the property manager
@@ -278,8 +275,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # intent action
         canonical = self._get_canonical(canonical)
-        columns = Commons.filter_headers(canonical, headers=headers, drop=drop, d_types=d_types, exclude=exclude,
-                                         regex=regex, re_ignore_case=re_ignore_case)
+        columns = Commons.filter_headers(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         _seed = self._seed() if seed is None else seed
         if profiling == 'dictionary':
             result =  DataDiscovery.data_dictionary(canonical=canonical, table_cast=True, stylise=False)
