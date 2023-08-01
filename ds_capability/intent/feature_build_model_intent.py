@@ -1,8 +1,6 @@
 import inspect
 import pandas as pd
 import pyarrow as pa
-from aistac.handlers.abstract_handlers import HandlerFactory
-
 from ds_capability.components.discovery import DataDiscovery
 from ds_capability.intent.abstract_feature_build_intent import AbstractFeatureBuildIntentModel
 from ds_capability.intent.common_intent import CommonsIntentModel
@@ -241,10 +239,10 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
         return pa.Table.from_pandas(diff)
 
     def model_profiling(self, canonical: pa.Table, profiling: str, headers: [str, list]=None, drop: bool=None,
-                         dtype: [str, list]=None, exclude: bool=None, regex: [str, list]=None,
-                         re_ignore_case: bool=None, connector_name: str=None, seed: int=None, save_intent: bool=None,
-                         column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                         remove_duplicates: bool=None, **kwargs) -> pa.Table:
+                        d_type: [str, list]=None, exclude: bool=None, regex: [str, list]=None,
+                        re_ignore_case: bool=None, connector_name: str=None, seed: int=None, save_intent: bool=None,
+                        column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                        remove_duplicates: bool=None, **kwargs) -> pa.Table:
         """ Data profiling provides, analyzing, and creating useful summaries of data. The process yields a high-level
         overview which aids in the discovery of data quality issues, risks, and overall trends. It can be used to
         identify any errors, anomalies, or patterns that may exist within the data. There are three types of data
@@ -254,7 +252,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
         :param profiling: The profiling name. Options are 'dictionary', 'schema' or 'quality'
         :param headers: (optional) a filter of headers from the 'other' dataset
         :param drop: (optional) to drop or not drop the headers if specified
-        :param dtype: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
+        :param d_type: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
         :param exclude: (optional) to exclude or include the data types if specified
         :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
         :param re_ignore_case: (optional) true if the regex should ignore case. Default is False
@@ -280,25 +278,15 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # intent action
         canonical = self._get_canonical(canonical)
-        columns = Commons.filter_headers(canonical, headers=headers, drop=drop, dtype=dtype, exclude=exclude,
-                                        regex=regex, re_ignore_case=re_ignore_case)
+        columns = Commons.filter_headers(canonical, headers=headers, drop=drop, d_type=d_type, exclude=exclude,
+                                         regex=regex, re_ignore_case=re_ignore_case)
         _seed = self._seed() if seed is None else seed
         if profiling == 'dictionary':
             result =  DataDiscovery.data_dictionary(canonical=canonical, table_cast=True, stylise=False)
         elif profiling == 'quality':
             result =  DataDiscovery.data_quality(canonical=canonical, stylise=False)
-        # elif profiling == 'schema':
-        #     blob = DataDiscovery.analyse_association(df=canonical, columns_list=columns)
-        #     report = pd.DataFrame(columns=['root', 'section', 'element', 'value'])
-        #     root_list = DataAnalytics.get_tree_roots(analytics_blob=blob)
-        #     for root_items in root_list:
-        #         data_analysis = DataAnalytics.from_root(analytics_blob=blob, root=root_items)
-        #         for section in data_analysis.section_names:
-        #             for element, value in data_analysis.get(section).items():
-        #                 to_append = [root_items, section, element, value]
-        #                 a_series = pd.Series(to_append, index=report.columns)
-        #                 report = pd.concat([report, a_series.to_frame().transpose()], ignore_index=True)
-        #     result = report
+        elif profiling == 'schema':
+            result = DataDiscovery.data_schema(canonical=canonical, stylise=False)
         else:
             raise ValueError(f"The report name '{profiling}' is not recognised. Use 'dictionary', 'schema' or 'quality'")
         if isinstance(connector_name, str):
@@ -307,6 +295,5 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                 handler.persist_canonical(result, **kwargs)
                 return canonical
             raise ValueError(f"The connector name {connector_name} has been given but no Connect Contract added")
-        # set the index
         return result
 

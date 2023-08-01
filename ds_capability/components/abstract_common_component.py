@@ -90,16 +90,21 @@ class AbstractCommonComponent(AbstractComponent):
         return
 
     @staticmethod
-    def canonical_report(canonical: pa.Table, stylise: bool=None, display_width: int=None):
+    def canonical_report(canonical: pa.Table, headers: [str,list]=None, drop: bool=None, regex:[str,list]=None,
+                         stylise: bool=None, display_width: int=None):
         """The Canonical Report is a data dictionary of the canonical providing a reference view of the dataset's
         attribute properties
 
         :param canonical: the table to view
+        :param headers: (optional) specific headers to display
+        :param drop: if the headers are to be dropped and the remaining to display
+        :param regex: (optional) specify header regex to display
         :param stylise: (optional) if True present the report stylised.
         :param display_width: (optional) the width of the observational display
         """
         stylise = stylise if isinstance(stylise, bool) else True
-        return DataDiscovery.data_dictionary(canonical=canonical, stylise=stylise, display_width=display_width)
+        tbl = Commons.filter_columns(canonical, headers=headers, drop=drop, regex=regex)
+        return DataDiscovery.data_dictionary(canonical=tbl, stylise=stylise, display_width=display_width)
 
     @staticmethod
     def quality_report(canonical: pa.Table, nulls_threshold: float=None, dom_threshold: float=None,
@@ -115,48 +120,20 @@ class AbstractCommonComponent(AbstractComponent):
         stylise = stylise if isinstance(stylise, bool) else True
         return DataDiscovery.data_quality(canonical=canonical, nulls_threshold=nulls_threshold,
                                           dom_threshold=dom_threshold, cat_threshold=cat_threshold, stylise=stylise)
-
-    def report_canonical_schema(self, schema: [str, dict]=None, roots: [str, list]=None,
-                                sections: [str, list]=None, elements: [str, list]=None, stylise: bool=True):
+    @staticmethod
+    def schema_report(canonical: pa.Table, headers: [str,list]=None, drop: bool=None, regex:[str,list]=None,
+               stylise: bool=True):
         """ presents the current canonical schema
 
-        :param schema: (optional) the name of the schema
-        :param roots: (optional) one or more tree roots
-        :param sections: (optional) the section under the root
-        :param elements: (optional) the element in the section
-        :param stylise: if True present the report stylised.
-        :return: pd.DataFrame
+        :param canonical: The table to view.
+        :param headers: (optional) specific headers to display
+        :param drop: if the headers are to be dropped and the remaining to display
+        :param regex: (optional) specify header regex to display
+        :param stylise: (optional) if the output is stylised
         """
-        if not isinstance(schema, dict):
-            schema = schema if isinstance(schema, str) else self.REPORT_SCHEMA
-            if not self.pm.has_canonical_schema(name=schema):
-                raise ValueError(f"There is no Schema currently stored under the name '{schema}'")
-            schema = self.pm.get_canonical_schema(name=schema)
-        df = pd.DataFrame(columns=['root', 'section', 'element', 'value'])
-        root_list = DataAnalytics.get_tree_roots(analytics_blob=schema)
-        if isinstance(roots, (str, list)):
-            roots = Commons.list_formatter(roots)
-            for root in roots:
-                if root not in root_list:
-                    raise ValueError(f"The root '{root}' can not be found in the analytics tree roots")
-            root_list = roots
-        for root_items in root_list:
-            data_analysis = DataAnalytics.from_root(analytics_blob=schema, root=root_items)
-            for section in data_analysis.section_names:
-                if isinstance(sections, (str, list)):
-                    if section not in Commons.list_formatter(sections):
-                        continue
-                for element, value in data_analysis.get(section).items():
-                    if isinstance(elements, (str, list)):
-                        if element not in Commons.list_formatter(elements):
-                            continue
-                    to_append = [root_items, section, element, value]
-                    a_series = pd.Series(to_append, index=df.columns)
-                    # df = df.append(a_series, ignore_index=True)
-                    df = pd.concat([df, a_series.to_frame().transpose()], ignore_index=True)
-        if stylise:
-            return Commons.report(df, index_header=['root', 'section'], bold='element')
-        return df
+        stylise = stylise if isinstance(stylise, bool) else True
+        tbl = Commons.filter_columns(canonical, headers=headers, drop=drop, regex=regex)
+        return DataDiscovery.data_quality(canonical=tbl, stylise=stylise)
 
     def report_task(self, stylise: bool=True):
         """ generates a report on the source contract
