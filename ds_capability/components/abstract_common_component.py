@@ -2,7 +2,6 @@ from abc import abstractmethod
 import pandas as pd
 import pyarrow as pa
 from ds_core.components.abstract_component import AbstractComponent
-from ds_core.components.core_commons import DataAnalytics
 
 from ds_capability.components.commons import Commons
 
@@ -90,23 +89,6 @@ class AbstractCommonComponent(AbstractComponent):
         return
 
     @staticmethod
-    def canonical_report(canonical: pa.Table, headers: [str,list]=None, drop: bool=None, regex:[str,list]=None,
-                         stylise: bool=None, display_width: int=None):
-        """The Canonical Report is a data dictionary of the canonical providing a reference view of the dataset's
-        attribute properties
-
-        :param canonical: the table to view
-        :param headers: (optional) specific headers to display
-        :param drop: if the headers are to be dropped and the remaining to display
-        :param regex: (optional) specify header regex to display
-        :param stylise: (optional) if True present the report stylised.
-        :param display_width: (optional) the width of the observational display
-        """
-        stylise = stylise if isinstance(stylise, bool) else True
-        tbl = Commons.filter_columns(canonical, headers=headers, drop=drop, regex=regex)
-        return DataDiscovery.data_dictionary(canonical=tbl, stylise=stylise, display_width=display_width)
-
-    @staticmethod
     def quality_report(canonical: pa.Table, nulls_threshold: float=None, dom_threshold: float=None,
                      cat_threshold: int=None, stylise: bool=None):
         """ Analyses a dataset, passed as a DataFrame and returns a quality summary
@@ -121,19 +103,40 @@ class AbstractCommonComponent(AbstractComponent):
         return DataDiscovery.data_quality(canonical=canonical, nulls_threshold=nulls_threshold,
                                           dom_threshold=dom_threshold, cat_threshold=cat_threshold, stylise=stylise)
     @staticmethod
-    def schema_report(canonical: pa.Table, headers: [str,list]=None, drop: bool=None, regex:[str,list]=None,
-               stylise: bool=True):
-        """ presents the current canonical schema
+    def canonical_report(canonical: pa.Table, headers: [str,list]=None, regex:[str,list]=None, d_types:list=None,
+                         drop: bool=None, stylise: bool=None, display_width: int=None):
+        """The Canonical Report is a data dictionary of the canonical providing a reference view of the dataset's
+        attribute properties
 
-        :param canonical: The table to view.
+        :param canonical: the table to view
         :param headers: (optional) specific headers to display
-        :param drop: if the headers are to be dropped and the remaining to display
-        :param regex: (optional) specify header regex to display
-        :param stylise: (optional) if the output is stylised
+        :param regex: (optional) specify header regex to display. regex matching is done using the Google RE2 library.
+        :param d_types: (optional) a list of pyarrow DataType e.g [pa.string(), pa.bool_()]
+        :param drop: (optional) if the headers are to be dropped and the remaining to display
+        :param stylise: (optional) if True present the report stylised.
+        :param display_width: (optional) the width of the observational display
         """
         stylise = stylise if isinstance(stylise, bool) else True
-        tbl = Commons.filter_columns(canonical, headers=headers, drop=drop, regex=regex)
-        return DataDiscovery.data_quality(canonical=tbl, stylise=stylise)
+        tbl = Commons.filter_columns(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
+        return DataDiscovery.data_dictionary(canonical=tbl, stylise=stylise, display_width=display_width)
+
+    @staticmethod
+    def schema_report(canonical: pa.Table, headers: [str,list]=None, regex:[str,list]=None, d_types:list=None,
+                      drop: bool=None, stylise: bool=True, table_cast: bool=None):
+        """ presents the current canonical schema
+
+        :param canonical: the table to view
+        :param headers: (optional) specific headers to display
+        :param regex: (optional) specify header regex to display. regex matching is done using the Google RE2 library.
+        :param d_types: (optional) a list of pyarrow DataType e.g [pa.string(), pa.bool_()]
+        :param drop: (optional) if the headers are to be dropped and the remaining to display
+        :param stylise: (optional) if True present the report stylised.
+        :param table_cast: (optional) if the column should try to be cast to its type
+        """
+        stylise = stylise if isinstance(stylise, bool) else True
+        table_cast = table_cast if isinstance(table_cast,bool) else True
+        tbl = Commons.filter_columns(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
+        return DataDiscovery.data_schema(canonical=tbl, table_cast=table_cast, stylise=stylise)
 
     def report_task(self, stylise: bool=True):
         """ generates a report on the source contract

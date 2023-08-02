@@ -173,7 +173,7 @@ class DataDiscovery(object):
 
 
     @staticmethod
-    def data_schema(canonical: pa.Table, table_cast: bool = None, stylise: bool = None):
+    def data_schema(canonical: pa.Table, table_cast: bool=None, stylise: bool=None):
         """ The data dictionary for a given canonical
 
         :param canonical: The canonical to interpret
