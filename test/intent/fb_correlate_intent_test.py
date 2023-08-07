@@ -83,12 +83,22 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual(0, pc.count(pc.index_in(tbl.column('int').combine_chunks(), pa.array([0])).drop_null()).as_py())
         # check three zeros
         result = tools.correlate_on_condition(tbl, header='int', other='num',
-                                              condition=[(1, 'greater', 'or'), (-1, 'less', None)], values=0)
+                                              condition=[(1, 'greater', 'or'), (-1, 'less', None)], value=0, column_name='int')
         self.assertEqual(3, pc.count(pc.index_in(result.column('int').combine_chunks(), pa.array([0])).drop_null()).as_py())
         # check string
         result = tools.correlate_on_condition(tbl, header='cat', other='cat',
-                                              condition=[(pa.array(['INACTIVE', "SUSPENDED"]), 'is_in', None)], values='N/A')
-        print(result.column('cat').combine_chunks())
+                                              condition=[(pa.array(['INACTIVE', "SUSPENDED"]), 'is_in', None)], value='N/A', column_name='target')
+        self.assertEqual(4, pc.count(pc.index_in(result.column('target').combine_chunks(), pa.array(['N/A'])).drop_null()).as_py())
+        # check headers
+        result = tools.correlate_on_condition(tbl, header='int', other='num',
+                                              condition=[(1, 'greater', 'or'), (-1, 'less', None)],
+                                              value=0, default=1, column_name='target')
+        self.assertEqual(7, pc.sum(result.column('target')).as_py())
+        result = tools.correlate_on_condition(tbl, header='int', other='num',
+                                              condition=[(1, 'greater', 'or'), (-1, 'less', None)],
+                                              value=0, default="@num", column_name='target')
+        self.assertEqual(result.column('target').slice(2, 4), result.column('num').slice(2, 4))
+        self.assertEqual(3, pc.count(pc.index_in(result.column('target').combine_chunks(), pa.array([0])).drop_null()).as_py())
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:

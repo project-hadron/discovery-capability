@@ -177,9 +177,9 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         return pa.table([rtn_arr.dictionary_encode()], names=[column_name])
 
     def correlate_on_condition(self, canonical: pa.Table, header: str, other: str, condition: list,
-                               values: [int, float, str, pa.Array], seed: int=None, save_intent: bool=None,
-                               intent_order: int=None, column_name: [int, str]=None, replace_intent: bool=None,
-                               remove_duplicates: bool=None) -> pa.Table:
+                               value: [int, float, bool, str], default: [int, float, bool, str]=None, seed: int=None,
+                               save_intent: bool=None, intent_order: int=None, column_name: [int, str]=None,
+                               replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ correlates a named header to other header where the condition is met and replaces the header column
         value with a constant or value at the same index of an array. The condition is a list of triple tuples in
         the form: [(comparison, operation, logic)] where comparison is the thing to look for, the operation, what
@@ -197,7 +197,8 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         :param header: the header for the target values to change
         :param other: the other header to correlate
         :param condition: a tuple or tuples of
-        :param values: the value or array of values
+        :param value: a constant value. If the value is a string starting @ then a header values are taken
+        :param default: (optional) a default constant if not value. A string starting @ then a default name is taken
         :param seed: (optional) the random seed. defaults to current datetime
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param column_name: (optional) the column name that groups intent to create a column
@@ -241,9 +242,17 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
                 raise ValueError(f"The logic '{logic}' is not implemented")
             cond_list.append((c_bool, logic))
         # remove column
-        canonical = canonical.drop_columns(header)
+        if column_name == header:
+            canonical = canonical.drop_columns(header)
         final_cond = cond_list[0][0]
         for idx in range(len(cond_list) - 1):
             final_cond = eval(f"pc.{cond_list[idx][1]}(final_cond, cond_list[idx+1][0])", globals(), locals())
-        # replace and add it back to the original table
-        return Commons.table_append(canonical, pa.table([pc.if_else(final_cond, values, h_tbl)], names=[header]))
+        # check the value
+        if isinstance(value, str) and value.startswith('@'):
+            value = canonical.column(value[1:]).combine_chunks()
+        if isinstance(default, str) and default.startswith('@'):
+            default = canonical.column(default[1:]).combine_chunks()
+        elif default is None:
+            default = h_tbl
+            # replace and add it back to the original table
+        return Commons.table_append(canonical, pa.table([pc.if_else(final_cond, value, default)], names=[column_name]))
