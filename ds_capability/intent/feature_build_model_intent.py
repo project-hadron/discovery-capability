@@ -85,7 +85,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
             for k, v in multi_map.items():
                 if v in other.columns:
                     other[k] = other[v]
-        other = pa.Table.from_pandas(other)
+        other = pa.Table.from_pandas(other, columns=column_name)
         return Commons.table_append(canonical, other)
 
     def model_difference(self, canonical: pa.Table, other: [str, pa.Table], on_key: [str, list], drop_zero_sum: bool=None,
