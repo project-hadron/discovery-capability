@@ -5,6 +5,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 
+from ds_capability.components.commons import Commons
 from ds_capability.components.discovery import DataDiscovery
 from ds_capability.intent.feature_build_model_intent import FeatureBuildModelIntent
 
@@ -175,4 +176,74 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
         return pa.table([rtn_arr.dictionary_encode()], names=[column_name])
 
+    def correlate_on_condition(self, canonical: pa.Table, header: str, other: str, condition: list,
+                               values: [int, float, str, pa.Array], seed: int=None, save_intent: bool=None,
+                               intent_order: int=None, column_name: [int, str]=None, replace_intent: bool=None,
+                               remove_duplicates: bool=None) -> pa.Table:
+        """ correlates a named header to other header where the condition is met and replaces the header column
+        value with a constant or value at the same index of an array. The condition is a list of triple tuples in
+        the form: [(comparison, operation, logic)] where comparison is the thing to look for, the operation, what
+        to do with it and the logic if you are chaining tuples, the logic to join them. An example might be:
 
+                [(1, 'greater', 'or'), (-1, 'less', None)]
+                [(pa.array(['INACTIVE', 'PENDING']), 'is_in', None)]
+
+        The operator and logic are taken from pyarrow.compute and are:
+
+                operator => 'extract_regex','equal','greater','less','greater_equal','less_equal','not_equal','is_in'
+                logic => 'and','or','xor','and_not'
+
+        :param canonical: a pa.Table as the reference table
+        :param header: the header for the target values to change
+        :param other: the other header to correlate
+        :param condition: a tuple or tuples of
+        :param values: the value or array of values
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: an equal length list of correlated values
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        seed = seed if isinstance(seed, int) else self._seed()
+        h_tbl = canonical.column(header).combine_chunks()
+        o_tbl = canonical.column(other).combine_chunks()
+        if pa.types.is_dictionary(o_tbl.type):
+            o_tbl = o_tbl.dictionary_decode()
+        cond_list = []
+        for (comparison, op, logic) in condition:
+            if op not in ['extract_regex','equal','greater','less','greater_equal','less_equal','not_equal','is_in']:
+                raise ValueError(f"The operator '{op}' is not implemented")
+            c_bool = eval(f"pc.{op}({o_tbl}, comparison)", globals(), locals())
+            if op == 'extract_regex':
+                c_bool = c_bool.is_valid()
+            if logic not in ['and', 'or', 'xor', 'and_not', 'and_', 'or_']:
+                logic = 'and_'
+            if logic in ['and', 'or']:
+                logic = logic + '_'
+            if logic not in ['xor', 'and_not', 'and_', 'or_']:
+                raise ValueError(f"The logic '{logic}' is not implemented")
+            cond_list.append((c_bool, logic))
+        # remove column
+        canonical = canonical.drop_columns(header)
+        final_cond = cond_list[0][0]
+        for idx in range(len(cond_list) - 1):
+            final_cond = eval(f"pc.{cond_list[idx][1]}(final_cond, cond_list[idx+1][0])", globals(), locals())
+        # replace and add it back to the original table
+        return Commons.table_append(canonical, pa.table([pc.if_else(final_cond, values, h_tbl)], names=[header]))

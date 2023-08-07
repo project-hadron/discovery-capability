@@ -11,10 +11,6 @@ __author__ = 'Darryl Oatridge'
 
 class FeatureBuild(AbstractCommonComponent):
 
-    REPORT_DICTIONARY = 'dictionary'
-    REPORT_CATALOG = 'catalog'
-    REPORT_FIELDS = 'field_description'
-
     @classmethod
     def from_uri(cls, task_name: str, uri_pm_path: str, creator: str, uri_pm_repo: str=None, pm_file_type: str=None,
                  pm_module: str=None, pm_handler: str=None, pm_kwargs: dict=None, default_save=None,

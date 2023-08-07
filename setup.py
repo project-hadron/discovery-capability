@@ -63,7 +63,6 @@ setup(
         'botocore',
         'fsspec',
         's3fs',
-        'pyyaml',
     ],
     extras_require={},
     entry_points={},

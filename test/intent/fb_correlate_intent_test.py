@@ -63,7 +63,7 @@ class FeatureBuilderTest(unittest.TestCase):
         tbl = tools.get_synthetic_data_types(100)
         self.assertEqual((100, 6), tbl.shape)
 
-    def test_correlate_descrete_intervals(self):
+    def test_correlate_discrete_intervals(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
         tbl = tools.get_synthetic_data_types(100)
@@ -74,6 +74,21 @@ class FeatureBuilderTest(unittest.TestCase):
         result = tools.correlate_discrete_intervals(tbl, header='num', granularity=[0.25,0.5,0.75],
                                                     categories=['0%->25%', '25%->50%', '50%->75%', '75%->100%'], column_name='num')
         self.assertCountEqual(['0%->25%', '25%->50%', '50%->75%', '75%->100%'], result.column('num').combine_chunks().dictionary.to_pylist())
+
+    def test_correlate_on_condition(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = fb.tools
+        tbl = tools.get_synthetic_data_types(10, seed=101)
+        # check no zeros
+        self.assertEqual(0, pc.count(pc.index_in(tbl.column('int').combine_chunks(), pa.array([0])).drop_null()).as_py())
+        # check three zeros
+        result = tools.correlate_on_condition(tbl, header='int', other='num',
+                                              condition=[(1, 'greater', 'or'), (-1, 'less', None)], values=0)
+        self.assertEqual(3, pc.count(pc.index_in(result.column('int').combine_chunks(), pa.array([0])).drop_null()).as_py())
+        # check string
+        result = tools.correlate_on_condition(tbl, header='cat', other='cat',
+                                              condition=[(pa.array(['INACTIVE', "SUSPENDED"]), 'is_in', None)], values='N/A')
+        print(result.column('cat').combine_chunks())
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:
