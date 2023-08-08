@@ -78,27 +78,27 @@ class FeatureBuilderTest(unittest.TestCase):
     def test_correlate_on_condition(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
-        tbl = tools.get_synthetic_data_types(10, seed=101)
+        tbl = tools.get_synthetic_data_types(1000, seed=101)
         # check no zeros
         self.assertEqual(0, pc.count(pc.index_in(tbl.column('int').combine_chunks(), pa.array([0])).drop_null()).as_py())
         # check three zeros
         result = tools.correlate_on_condition(tbl, header='int', other='num',
                                               condition=[(1, 'greater', 'or'), (-1, 'less', None)], value=0, column_name='int')
-        self.assertEqual(3, pc.count(pc.index_in(result.column('int').combine_chunks(), pa.array([0])).drop_null()).as_py())
+        self.assertEqual(352, pc.count(pc.index_in(result.column('int').combine_chunks(), pa.array([0])).drop_null()).as_py())
         # check string
         result = tools.correlate_on_condition(tbl, header='cat', other='cat',
                                               condition=[(pa.array(['INACTIVE', "SUSPENDED"]), 'is_in', None)], value='N/A', column_name='target')
-        self.assertEqual(4, pc.count(pc.index_in(result.column('target').combine_chunks(), pa.array(['N/A'])).drop_null()).as_py())
+        self.assertEqual(228, pc.count(pc.index_in(result.column('target').combine_chunks(), pa.array(['N/A'])).drop_null()).as_py())
         # check headers
         result = tools.correlate_on_condition(tbl, header='int', other='num',
                                               condition=[(1, 'greater', 'or'), (-1, 'less', None)],
                                               value=0, default=1, column_name='target')
-        self.assertEqual(7, pc.sum(result.column('target')).as_py())
+        self.assertEqual(648, pc.sum(result.column('target')).as_py())
         result = tools.correlate_on_condition(tbl, header='int', other='num',
                                               condition=[(1, 'greater', 'or'), (-1, 'less', None)],
                                               value=0, default="@num", column_name='target')
         self.assertEqual(result.column('target').slice(2, 4), result.column('num').slice(2, 4))
-        self.assertEqual(3, pc.count(pc.index_in(result.column('target').combine_chunks(), pa.array([0])).drop_null()).as_py())
+        self.assertEqual(352, pc.count(pc.index_in(result.column('target').combine_chunks(), pa.array([0])).drop_null()).as_py())
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:

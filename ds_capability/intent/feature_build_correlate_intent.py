@@ -1,4 +1,5 @@
 import inspect
+from datetime import datetime, time
 from typing import Any
 import numpy as np
 import pandas as pd
@@ -177,9 +178,10 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         return pa.table([rtn_arr.dictionary_encode()], names=[column_name])
 
     def correlate_on_condition(self, canonical: pa.Table, header: str, other: str, condition: list,
-                               value: [int, float, bool, str], default: [int, float, bool, str]=None, seed: int=None,
-                               save_intent: bool=None, intent_order: int=None, column_name: [int, str]=None,
-                               replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+                               value: [int, float, bool, str], fill_null: [int, float,str]=None,
+                               default: [int, float, bool, str]=None, seed: int=None, save_intent: bool=None,
+                               intent_order: int=None, column_name: [int, str]=None, replace_intent: bool=None,
+                               remove_duplicates: bool=None) -> pa.Table:
         """ correlates a named header to other header where the condition is met and replaces the header column
         value with a constant or value at the same index of an array. The condition is a list of triple tuples in
         the form: [(comparison, operation, logic)] where comparison is the thing to look for, the operation, what
@@ -199,6 +201,7 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         :param condition: a tuple or tuples of
         :param value: a constant value. If the value is a string starting @ then a header values are taken
         :param default: (optional) a default constant if not value. A string starting @ then a default name is taken
+        :param fill_null: (optional) if nulls in the other they require a value representation.
         :param seed: (optional) the random seed. defaults to current datetime
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param column_name: (optional) the column name that groups intent to create a column
@@ -223,17 +226,33 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         if not isinstance(header, str) or header not in canonical.column_names:
             raise ValueError(f"The header '{header}' can't be found in the canonical headers")
         seed = seed if isinstance(seed, int) else self._seed()
-        h_tbl = canonical.column(header).combine_chunks()
-        o_tbl = canonical.column(other).combine_chunks()
-        if pa.types.is_dictionary(o_tbl.type):
-            o_tbl = o_tbl.dictionary_decode()
+        h_col = canonical.column(header).combine_chunks()
+        o_col = canonical.column(other).combine_chunks()
+        if pa.types.is_dictionary(o_col.type):
+            o_col = o_col.dictionary_decode()
+        if fill_null is not None:
+            o_col = o_col.fill_null(fill_null)
         cond_list = []
         for (comparison, op, logic) in condition:
-            if op not in ['extract_regex','equal','greater','less','greater_equal','less_equal','not_equal','is_in']:
-                raise ValueError(f"The operator '{op}' is not implemented")
-            c_bool = eval(f"pc.{op}({o_tbl}, comparison)", globals(), locals())
-            if op == 'extract_regex':
+            if op == 'greater':
+                c_bool = pc.greater(o_col, comparison)
+            elif op == 'less':
+                c_bool = pc.less(o_col, comparison)
+            elif op == 'greater_equal':
+                c_bool = pc.greater_equal(o_col, comparison)
+            elif op == 'less_equal':
+                c_bool = pc.less_equal(o_col, comparison)
+            elif op == 'extract_regex':
+                c_bool = pc.extract_regex(o_col, comparison)
                 c_bool = c_bool.is_valid()
+            elif op == 'equal':
+                c_bool = pc.equal(o_col, comparison)
+            elif op == 'not_equal':
+                c_bool = pc.not_qual(o_col, comparison)
+            elif op == 'is_in':
+                c_bool = pc.is_in(o_col, comparison)
+            else:
+                raise NotImplementedError(f"Currently the operation '{op} is not implemented")
             if logic not in ['and', 'or', 'xor', 'and_not', 'and_', 'or_']:
                 logic = 'and_'
             if logic in ['and', 'or']:
@@ -253,6 +272,6 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         if isinstance(default, str) and default.startswith('@'):
             default = canonical.column(default[1:]).combine_chunks()
         elif default is None:
-            default = h_tbl
+            default = h_col
             # replace and add it back to the original table
         return Commons.table_append(canonical, pa.table([pc.if_else(final_cond, value, default)], names=[column_name]))
