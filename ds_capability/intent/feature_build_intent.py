@@ -20,21 +20,22 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
     distributive characteristics of its real world counterpart. This component provides a set of actions
     that focuses on building a synthetic data through knowledge and statistical analysis"""
 
-    def get_number(self, start: [int, float, str]=None, stop: [int, float, str]=None, relative_freq: list=None,
-                   precision: int=None, ordered: str=None, at_most: int=None, size: int=None, quantity: float=None,
-                   seed: int=None, save_intent: bool=None, intent_order: int=None, column_name: [int, str]=None,
-                   replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+    def get_number(self, start: [int, float, str]=None, stop: [int, float, str]=None, canonical: pa.Table=None,
+                   relative_freq: list=None, precision: int=None, ordered: str=None, at_most: int=None, size: int=None,
+                   quantity: float=None, seed: int=None, save_intent: bool=None, intent_order: int=None,
+                   column_name: [int, str]=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ returns a number in the range from_value to to_value. if only to_value given from_value is zero
 
         :param start: optional (signed) integer or float to start from. See below for str
         :param stop: (signed) integer or float the number sequence goes to but not include. See below
-        :param relative_freq: a weighting pattern or probability that does not have to add to 1
-        :param precision: the precision of the returned number. if None then assumes int value else float
-        :param ordered: order the data ascending 'asc' or descending 'dec', values accepted 'asc' or 'des'
-        :param at_most: the most times a selection should be chosen
-        :param size: the size of the sample
-        :param quantity: a number between 0 and 1 representing data that isn't null
-        :param seed: a seed value for the random function: default to None
+        :param canonical: (optional) a pa.Table to append the result table to
+        :param relative_freq: (optional) a weighting pattern or probability that does not have to add to 1
+        :param precision: (optional) the precision of the returned number. if None then assumes int value else float
+        :param ordered: (optional) order the data ascending 'asc' or descending 'dec', values accepted 'asc' or 'des'
+        :param at_most:  (optional)the most times a selection should be chosen
+        :param size: (optional) the size of the sample
+        :param quantity: (optional) a number between 0 and 1 representing data that isn't null
+        :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param column_name: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
@@ -128,15 +129,16 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             except pa.lib.ArrowInvalid:
                 pass
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([rtn_arr], names=[column_name])
+        return Commons.table_append(canonical, pa.table([rtn_arr], names=[column_name]))
 
-    def get_category(self, selection: list, size: int, relative_freq: list=None, encode: bool=None,
+    def get_category(self, selection: list, size: int, canonical: pa.Table=None, relative_freq: list=None, encode: bool=None,
                      quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
                      intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ returns a categorical as a string.
 
         :param selection: a list of items to select from
         :param size: size of the return
+        :param canonical: (optional) a pa.Table to append the result table to
         :param relative_freq: a weighting pattern that does not have to add to 1
         :param encode: if the categorical should be returned encoded as a dictionary type or string type (default)
         :param quantity: a number between 0 and 1 representing the percentage quantity of the data
@@ -177,15 +179,16 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
         if encode:
-            return pa.table([pa.DictionaryArray.from_pandas(rtn_list).dictionary_encode()], names=[column_name])
-        return pa.table([pa.DictionaryArray.from_pandas(rtn_list)], names=[column_name])
+            return Commons.table_append(canonical, pa.table([pa.DictionaryArray.from_pandas(rtn_list).dictionary_encode()], names=[column_name]))
+        return Commons.table_append(canonical, pa.table([pa.DictionaryArray.from_pandas(rtn_list)], names=[column_name]))
 
-    def get_boolean(self, size: int, probability: float=None, quantity: float=None, seed: int=None,
-                    save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+    def get_boolean(self, size: int, canonical: pa.Table=None, probability: float=None, quantity: float=None,
+                    seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """A boolean discrete random distribution
 
         :param size: the size of the sample
+        :param canonical: (optional) a pa.Table to append the result table to
         :param probability: a float between 0 and 1 of the probability of success. Default = 0.5
         :param quantity: a number between 0 and 1 representing data that isn't null
         :param seed: a seed value for the random function: default to None
@@ -216,13 +219,14 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         rtn_list = list(map(bool, rtn_list))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
 
-    def get_datetime(self, start: Any, until: Any,  relative_freq: list=None, at_most: int=None, ordered: str=None,
-                     date_format: str=None,  as_num: bool=None, ignore_time: bool=None, ignore_seconds: bool=None,
-                     size: int=None, quantity: float=None, seed: int=None, day_first: bool=None, year_first: bool=None,
-                     save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+    def get_datetime(self, start: Any, until: Any, canonical: pa.Table=None, relative_freq: list=None,
+                     at_most: int=None, ordered: str=None, date_format: str=None,  as_num: bool=None,
+                     ignore_time: bool=None, ignore_seconds: bool=None, size: int=None, quantity: float=None,
+                     seed: int=None, day_first: bool=None, year_first: bool=None, save_intent: bool=None,
+                     column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                     remove_duplicates: bool=None) -> pa.Table:
         """ returns a random date between two date and/or times. weighted patterns can be applied to the overall date
         range. if a signed 'int' type is passed to the start and/or until dates, the inferred date will be the current
         date time with the integer being the offset from the current date time in 'days'.
@@ -231,6 +235,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
 
         :param start: the start boundary of the date range can be str, datetime, pd.datetime, pd.Timestamp or int
         :param until: up until boundary of the date range can be str, datetime, pd.datetime, pd.Timestamp or int
+        :param canonical: (optional) a pa.Table to append the result table to
         :param quantity: the quantity of values that are not null. Number between 0 and 1
         :param relative_freq: (optional) A pattern across the whole date range.
         :param at_most: the most times a selection should be chosen
@@ -310,14 +315,16 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             rtn_list = rtn_list.dt.strftime(date_format)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.TimestampArray.from_pandas(rtn_list)], names=[column_name])
+        return Commons.table_append(canonical, pa.table([pa.TimestampArray.from_pandas(rtn_list)], names=[column_name]))
 
-    def get_intervals(self, intervals: list, relative_freq: list=None, precision: int=None, size: int=None,
-                      quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
-                      intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+    def get_intervals(self, intervals: list, canonical: pa.Table=None, relative_freq: list=None, precision: int=None,
+                      size: int=None, quantity: float=None, seed: int=None, save_intent: bool=None,
+                      column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                      remove_duplicates: bool=None) -> pa.Table:
         """ returns a number based on a list selection of tuple(lower, upper) interval
 
-       :param intervals: a list of unique tuple pairs representing the interval lower and upper boundaries
+        :param intervals: a list of unique tuple pairs representing the interval lower and upper boundaries
+        :param canonical: (optional) a pa.Table to append the result table to
         :param relative_freq: a weighting pattern or probability that does not have to add to 1
         :param precision: the precision of the returned number. if None then assumes int value else float
         :param size: the size of the sample
@@ -387,15 +394,16 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         np.random.default_rng(seed=seed).shuffle(rtn_list)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.StringArray.from_pandas(rtn_list)], names=[column_name])
+        return Commons.table_append(canonical, pa.table([pa.StringArray.from_pandas(rtn_list)], names=[column_name]))
 
-    def get_dist_normal(self, mean: float, std: float, precision: int=None, size: int=None, quantity: float=None,
-                        seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                        replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+    def get_dist_normal(self, mean: float, std: float, canonical: pa.Table=None, precision: int=None, size: int=None,
+                        quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
+                        intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """A normal (Gaussian) continuous random distribution.
 
         :param mean: The mean (“centre”) of the distribution.
         :param std: The standard deviation (jitter or “width”) of the distribution. Must be >= 0
+        :param canonical: (optional) a pa.Table to append the result table to
         :param precision: The number of decimal points. The default is 3
         :param size: the size of the sample. if a tuple of intervals, size must match the tuple
         :param quantity: a number between 0 and 1 representing data that isn't null
@@ -428,10 +436,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         rtn_list = list(np.around(rtn_list, precision))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
 
-    def get_dist_choice(self, number: [int, str, float], size: int=None, quantity: float=None, seed: int=None,
-                        save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+    def get_dist_choice(self, number: [int, str, float], canonical: pa.Table=None, size: int=None, quantity: float=None,
+                        seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
                         replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """Creates a list of latent values of 0 or 1 where 1 is randomly selected both upon the number given. The
         ``number`` parameter can be a direct reference to the canonical column header or to an environment variable.
@@ -439,6 +447,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         <<YOUR_ENVIRON>> is the environment variable name
 
         :param number: The number of true (1) values to randomly chose from the canonical. see below
+        :param canonical: (optional) a pa.Table to append the result table to
         :param size: the size of the sample. if a tuple of intervals, size must match the tuple
         :param quantity: a number between 0 and 1 representing data that isn't null
         :param seed: a seed value for the random function: default to None
@@ -478,14 +487,15 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         rtn_list = pd.Series(data=[0] * size).to_list()
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
 
-    def get_dist_bernoulli(self, probability: float, size: int=None, quantity: float=None, seed: int=None,
-                           save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+    def get_dist_bernoulli(self, probability: float, canonical: pa.Table=None, size: int=None, quantity: float=None,
+                           seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
                            replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """A Bernoulli discrete random distribution using scipy
 
         :param probability: the probability occurrence
+        :param canonical: (optional) a pa.Table to append the result table to
         :param size: the size of the sample
         :param quantity: a number between 0 and 1 representing data that isn't null
         :param seed: a seed value for the random function: default to None
@@ -515,18 +525,19 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         rtn_list = list(stats.bernoulli.rvs(p=probability, size=size, random_state=seed))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
 
-    def get_dist_bounded_normal(self, mean: float, std: float, lower: float, upper: float, precision: int=None,
-                                size: int=None, quantity: float=None, seed: int=None, save_intent: bool=None,
-                                column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                                remove_duplicates: bool=None) -> pa.Table:
+    def get_dist_bounded_normal(self, mean: float, std: float, lower: float, upper: float, canonical: pa.Table=None,
+                                precision: int=None, size: int=None, quantity: float=None, seed: int=None,
+                                save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                                replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """A bounded normal continuous random distribution.
 
         :param mean: the mean of the distribution
         :param std: the standard deviation
         :param lower: the lower limit of the distribution
         :param upper: the upper limit of the distribution
+        :param canonical: (optional) a pa.Table to append the result table to
         :param precision: the precision of the returned number. if None then assumes int value else float
         :param size: the size of the sample
         :param quantity: a number between 0 and 1 representing data that isn't null
@@ -558,16 +569,17 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         rtn_list = rtn_list.rvs(size, random_state=seed).round(precision)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
 
-    def get_distribution(self, distribution: str, is_stats: bool=None, precision: int=None, size: int=None,
-                         quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
-                         intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None,
-                         **kwargs) -> pa.Table:
+    def get_distribution(self, distribution: str, canonical: pa.Table=None, is_stats: bool=None, precision: int=None,
+                         size: int=None, quantity: float=None, seed: int=None, save_intent: bool=None,
+                         column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                         remove_duplicates: bool=None, **kwargs) -> pa.Table:
         """returns a number based the distribution type.
 
         :param distribution: The string name of the distribution function from numpy random Generator class
         :param is_stats: (optional) if the generator is from the stats package and not numpy
+        :param canonical: (optional) a pa.Table to append the result table to
         :param precision: (optional) the precision of the returned number
         :param size: (optional) the size of the sample
         :param quantity: (optional) a number between 0 and 1 representing data that isn't null
@@ -605,12 +617,12 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         rtn_list = list(np.around(rtn_list, precision))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name])
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
 
-    def get_string_pattern(self, pattern: str, choices: dict=None, as_binary: bool=None, quantity: [float, int]=None,
-                           size: int=None, choice_only: bool=None, seed: int=None, save_intent: bool=None,
-                           column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                           remove_duplicates: bool=None) -> pa.Table:
+    def get_string_pattern(self, pattern: str, canonical: pa.Table=None, choices: dict=None, as_binary: bool=None,
+                           quantity: [float, int]=None, size: int=None, choice_only: bool=None, seed: int=None,
+                           save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                           replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ Returns a random string based on the pattern given. The pattern is made up from the choices passed but
         by default is as follows:
                 - c = random char [a-z][A-Z]
@@ -630,6 +642,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         to create your own choices pass a dictionary with a reference char key with a list of choices as a value
 
         :param pattern: the pattern to create the string from
+        :param canonical: (optional) a pa.Table to append the result table to
         :param choices: (optional) an optional dictionary of list of choices to replace the default.
         :param as_binary: (optional) if the return string is prefixed with a b
         :param quantity: (optional) a number between 0 and 1 representing the percentage quantity of the data
@@ -694,11 +707,12 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             rtn_list = rtn_list.str.encode(encoding='raw_unicode_escape')
         rtn_list = self._set_quantity(rtn_list.to_list(), quantity=self._quantity(quantity), seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.StringArray.from_pandas(rtn_list)], names=[column_name])
+        return Commons.table_append(canonical, pa.table([pa.StringArray.from_pandas(rtn_list)], names=[column_name]))
 
-    def get_sample(self, sample_name: str, sample_size: int=None, shuffle: bool=None, size: int=None,
-                   quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
-                   intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+    def get_sample(self, sample_name: str, canonical: pa.Table=None, sample_size: int=None, shuffle: bool=None,
+                   size: int=None, quantity: float=None, seed: int=None, save_intent: bool=None,
+                   column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                   remove_duplicates: bool=None) -> pa.Table:
         """ returns a sample set based on sector and name
         To see the sample sets available use the Sample class __dir__() method:
 
@@ -706,6 +720,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             > Sample().__dir__()
 
         :param sample_name: The name of the Sample method to be used.
+        :param canonical: (optional) a pa.Table to append the result table to
         :param sample_size: (optional) the size of the sample to take from the reference file
         :param shuffle: (optional) if the selection should be shuffled before selection. Default is true
         :param quantity: (optional) a number between 0 and 1 representing the percentage quantity of the data
@@ -738,12 +753,12 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         selection = eval(f"Sample.{sample_name}(size={size}, shuffle={shuffle}, seed={seed})")
         rtn_list = self._set_quantity(selection, quantity=quantity, seed=seed)
         column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([pa.Array.from_pandas(rtn_list)], names=[column_name])
+        return Commons.table_append(canonical, pa.table([pa.Array.from_pandas(rtn_list)], names=[column_name]))
 
-    def get_analysis(self, size: int, other: [str, pa.Table], category_limit: int=None, date_jitter: int=None,
-                     date_units: str=None, date_ordered: bool=None, seed: int=None, save_intent: bool=None,
-                     column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                     remove_duplicates: bool=None) -> pa.Table:
+    def get_analysis(self, size: int, other: [str, pa.Table], canonical: pa.Table=None, category_limit: int=None,
+                     date_jitter: int=None, date_units: str=None, date_ordered: bool=None, seed: int=None,
+                     save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ builds a set of columns based on another (see analyse_association)
         if a reference DataFrame is passed then as the analysis is run if the column already exists the row
         value will be taken as the reference to the sub category and not the random value. This allows already
@@ -751,6 +766,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
 
         :param size: The number of rows
         :param other: a direct or generated pd.DataFrame. see context notes below
+        :param canonical: (optional) a pa.Table to append the result table to
         :param category_limit: (optional) a global cap on categories captured. zero value returns no limits
         :param date_jitter: (optional) The size of the jitter. Default to 2
         :param date_units: (optional) The date units. Options ['W', 'D', 'h', 'm', 's', 'milli', 'micro']. Default 'D'
@@ -853,16 +869,17 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                 # return nulls for other types
                 result = pa.table([pa.nulls(size)], names=[c])
             rtn_tbl = Commons.table_append(rtn_tbl, result)
-        return rtn_tbl
+        return Commons.table_append(canonical, rtn_tbl)
 
-    def get_synthetic_data_types(self, size: int, inc_nulls: bool=None, prob_nulls: float=None, seed: int=None,
-                                 category_encode: bool=None, save_intent: bool=None, column_name: [int, str]=None,
-                                 intent_order: int=None, replace_intent: bool=None,
-                                 remove_duplicates: bool=None) -> pa.Table:
+    def get_synthetic_data_types(self, size: int, canonical: pa.Table=None, inc_nulls: bool=None,
+                                 prob_nulls: float=None, seed: int=None, category_encode: bool=None,
+                                 save_intent: bool=None, column_name: [int, str]=None,intent_order: int=None,
+                                 replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ A dataset with example data types
 
         :param size: The size of the sample
         :param inc_nulls: include values with nulls
+        :param canonical: (optional) a pa.Table to append the result table to
         :param prob_nulls: (optional) a value between 0 an 1 of the percentage of nulls. Default 0.02
         :param category_encode: (optional) if the categorical should be encoded to DictionaryArray
         :param seed: (optional) a seed value for the random function: default to None
@@ -888,64 +905,52 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed(seed=seed)
-        prob_nulls = prob_nulls if isinstance(prob_nulls, float) and 0 < prob_nulls < 1 else 0.02
+        prob_nulls = prob_nulls if isinstance(prob_nulls, float) and 0 < prob_nulls < 1 else 0.1
         category_encode = category_encode if isinstance(category_encode, bool) else True
         # cat
-        _ = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE', 'ARCHIVE'], size=size, seed=seed,
-                              relative_freq=[1, 70, 20, 30, 10], encode=category_encode, column_name='cat',
-                              save_intent=False)
-        canonical = _
+        canonical = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE', 'ARCHIVE'], canonical=canonical,
+                              size=size, seed=seed, relative_freq=[1, 70, 20, 30, 10], encode=category_encode,
+                              column_name='cat', save_intent=False)
         # num
-        _ = self.get_dist_normal(mean=0, std=1, size=size, seed=seed, column_name='num', save_intent=False)
-        canonical = Commons.table_append(canonical, _)
+        canonical = self.get_dist_normal(mean=0, std=1, canonical=canonical, size=size, seed=seed, column_name='num', save_intent=False)
         # int
-        _ = self.get_number(start=size, stop=size * 10, at_most=1, size=size, seed=seed, column_name='int',
+        canonical = self.get_number(start=size, stop=size * 10, at_most=1, canonical=canonical, size=size, seed=seed, column_name='int',
                             save_intent=False)
-        canonical = Commons.table_append(canonical, _)
         # bool
-        _ = self.get_boolean(size=size, probability=0.7, seed=seed, column_name='bool', save_intent=False)
-        canonical = Commons.table_append(canonical, _)
+        canonical = self.get_boolean(size=size, probability=0.7, canonical=canonical, seed=seed, column_name='bool', save_intent=False)
         # date
-        _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, seed=seed,
-                              column_name='date', save_intent=False)
-        canonical = Commons.table_append(canonical, _)
+        canonical = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, canonical=canonical, size=size,
+                              seed=seed, column_name='date', save_intent=False)
         # string
-        _ = self.get_sample(sample_name='us_street_names', size=size, seed=seed, column_name='string',  save_intent=False)
-        canonical = Commons.table_append(canonical, _)
+        canonical = self.get_sample(sample_name='us_street_names', canonical=canonical, size=size, seed=seed, column_name='string',  save_intent=False)
 
         if isinstance(inc_nulls, bool) and inc_nulls:
             gen = np.random.default_rng()
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             # cat_null
-            _ = self.get_category(selection=['High', 'Med', 'Low'], relative_freq=[9,8,4], quantity=1 - prob_nulls,
+            canonical = self.get_category(selection=['High', 'Med', 'Low'], canonical=canonical, relative_freq=[9,8,4], quantity=1 - prob_nulls,
                                   column_name='cat_null', size=size, encode=category_encode, seed=seed,
                                   save_intent=False)
-            canonical = Commons.table_append(canonical, _)
             # num_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            _ = self.get_number(start=-1.0, stop=1.0, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21], size=size,
+            canonical = self.get_number(start=-1.0, stop=1.0, canonical=canonical, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21], size=size,
                                 quantity=1 - prob_nulls, column_name='num_null', seed=seed, save_intent=False)
-            canonical = Commons.table_append(canonical, _)
             # int_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            _ = self.get_number(start=-1000, stop=1000, size=size, quantity=1 - prob_nulls, column_name='int_null',
+            canonical = self.get_number(start=-1000, stop=1000, canonical=canonical, size=size, quantity=1 - prob_nulls, column_name='int_null',
                                 seed=seed, save_intent=False)
-            canonical = Commons.table_append(canonical, _)
             # bool_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            _ = self.get_boolean(size=size, probability=0.4, seed=seed, quantity=1 - prob_nulls,
+            canonical = self.get_boolean(size=size, probability=0.4, canonical=canonical, seed=seed, quantity=1 - prob_nulls,
                                  column_name='bool_null', save_intent=False)
-            canonical = Commons.table_append(canonical, _)
             # date_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            _ = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, size=size, quantity=1 - prob_nulls,
+            canonical = self.get_datetime(start='2022-12-01', until='2023-03-31', canonical=canonical, ordered=True, size=size, quantity=1 - prob_nulls,
                                   column_name='date_null', seed=seed, save_intent=False)
-            canonical = Commons.table_append(canonical, _)
             # string_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            _ = self.get_sample(sample_name='us_cities', size=size, quantity=1 - prob_nulls,
+            canonical = self.get_sample(sample_name='us_cities', canonical=canonical, size=size, quantity=1 - prob_nulls,
                                 column_name='string_null', seed=seed, save_intent=False)
-            canonical = Commons.table_append(canonical, _)
             # nulls_int
             _ = pa.table([pa.array(pa.nulls(size), pa.int64())], names=['nulls_int'])
             canonical = Commons.table_append(canonical, _)
@@ -959,9 +964,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             _ = pa.table([pa.nulls(size)], names=['nulls'])
             canonical = Commons.table_append(canonical, _)
             # binary
-            _ = self.get_string_pattern(pattern='cccccccc', as_binary=True, size=size, seed=seed, column_name='binary',
+            canonical = self.get_string_pattern(pattern='cccccccc', canonical=canonical, as_binary=True, size=size, seed=seed, column_name='binary',
                                         save_intent=False)
-            canonical = Commons.table_append(canonical, _)
             # list array
             _ = pa.array(list(zip(canonical.column('num').to_pylist(), canonical.column('num_null').to_pylist())))
             _ = pa.table([_], names=['nest_list'])
@@ -984,13 +988,14 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
 
         return canonical
 
-    def get_noise(self, size: int, num_columns: int, seed: int = None, name_prefix: str=None,
-                  save_intent: bool = None, column_name: [int, str] = None, intent_order: int = None,
-                  replace_intent: bool = None, remove_duplicates: bool = None) -> pd.DataFrame:
+    def get_noise(self, size: int, num_columns: int, canonical: pa.Table=None, seed: int=None, name_prefix: str=None,
+                  save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                  replace_intent: bool=None, remove_duplicates: bool=None) -> pd.DataFrame:
         """ Generates multiple columns of noise in your dataset
 
         :param size: The number of rows
         :param num_columns: the number of columns of noise
+        :param canonical: (optional) a pa.Table to append the result table to
         :param name_prefix: a name the prefix the column names
         :param seed: seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
@@ -1027,7 +1032,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             _ = self.get_distribution(distribution='beta', a=a, b=b, precision=6, size=size, seed=seed,
                                       column_name=f"{name_prefix}{next(label_gen)}", save_intent=False)
             rtn_tbl = Commons.table_append(rtn_tbl, _)
-        return rtn_tbl
+        return Commons.table_append(canonical, rtn_tbl)
 
     @property
     def sample_lists(self) -> list:

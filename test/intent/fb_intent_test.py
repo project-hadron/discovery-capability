@@ -58,6 +58,7 @@ class FeatureBuilderTest(unittest.TestCase):
         tools: FeatureBuildIntentModel = fb.tools
         tbl = tools.get_synthetic_data_types(100)
         self.assertEqual((100, 6), tbl.shape)
+        self.assertCountEqual(['cat', 'num', 'int', 'bool', 'date', 'string'], tbl.column_names)
         tbl = tools.get_synthetic_data_types(100, inc_nulls=True, prob_nulls=0.03)
         self.assertEqual((100, 19), tbl.shape)
 
