@@ -275,3 +275,58 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
             default = h_col
             # replace and add it back to the original table
         return Commons.table_append(canonical, pa.table([pc.if_else(final_cond, value, default)], names=[column_name]))
+
+    def correlate_column_join(self, canonical: pa.Table, header: str, others: [str, list], drop_others: bool=None,
+                              sep: str=None, seed: int=None, save_intent: bool=None, intent_order: int=None,
+                              column_name: [int, str]=None, replace_intent: bool=None,
+                              remove_duplicates: bool=None) -> pa.Table:
+        """ creates a composite new column made up of other columns. The new column replaces the header column and the
+        others are dropped unless the appropriate parameters are set.
+
+        :param canonical: a pa.Table as the reference table
+        :param header: the header for the target values to change
+        :param others: the other headers to join
+        :param drop_others: drop the others header columns. Default to true
+        :param sep: a separator between each column value
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical ca
+        :return: an equal length list of correlated values
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        seed = seed if isinstance(seed, int) else self._seed()
+        drop_others = drop_others if isinstance(drop_others, bool) else True
+        sep = sep if isinstance(sep, str) else ''
+        others = Commons.list_formatter(others)
+        h_col = pc.cast(canonical.column(header).combine_chunks(), pa.string())
+        for n in others:
+            if n in canonical.column_names:
+                o_col = canonical.column(n).combine_chunks()
+                h_col = pc.binary_join_element_wise(h_col, pc.cast(o_col, pa.string()), sep)
+        if drop_others:
+            canonical = canonical.drop_columns(others)
+        if header == column_name:
+            canonical = canonical.drop_columns(header)
+        return Commons.table_append(canonical, pa.table([h_col], names=[column_name]))
+
+
+
+
+

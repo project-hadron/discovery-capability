@@ -100,6 +100,23 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual(result.column('target').slice(2, 4), result.column('num').slice(2, 4))
         self.assertEqual(352, pc.count(pc.index_in(result.column('target').combine_chunks(), pa.array([0])).drop_null()).as_py())
 
+    def test_correlate_column_join(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = fb.tools
+        tbl = tools.get_synthetic_data_types(10, seed=101)
+        result = tools.correlate_column_join(tbl, header='cat', others='string', sep=': ', column_name='compound')
+        self.assertCountEqual(['cat', 'num', 'int', 'bool', 'date', 'compound'], result.column_names)
+        self.assertEqual("PENDING: Smokeys Gate", result.column('compound').combine_chunks()[0].as_py())
+        result = tools.correlate_column_join(tbl, header='cat', others='string', sep=': ', column_name='cat')
+        self.assertCountEqual(['cat', 'num', 'int', 'bool', 'date'], result.column_names)
+        self.assertEqual("PENDING: Smokeys Gate", result.column('cat').combine_chunks()[0].as_py())
+        tbl = tools.get_synthetic_data_types(1000, inc_nulls=True, seed=101)
+        result = tools.correlate_column_join(tbl, header='cat', others=['cat_null', 'string_null'], sep='-', column_name='compound')
+        self.assertGreater(result.column('compound').combine_chunks().null_count, 0)
+
+
+
+
     def test_raise(self):
         with self.assertRaises(KeyError) as context:
             env = os.environ['NoEnvValueTest']
