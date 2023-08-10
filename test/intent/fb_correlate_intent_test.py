@@ -114,7 +114,18 @@ class FeatureBuilderTest(unittest.TestCase):
         result = tools.correlate_column_join(tbl, header='cat', others=['cat_null', 'string_null'], sep='-', column_name='compound')
         self.assertGreater(result.column('compound').combine_chunks().null_count, 0)
 
-
+    def test_correlate_column_join_constant(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntentModel = fb.tools
+        tbl = tools.get_synthetic_data_types(10, seed=101)
+        result = tools.correlate_column_join(tbl, header='PI', others='int', column_name='compound')
+        self.assertTrue(pc.all(pc.match_like(result.column('compound'),"PI__")).as_py())
+        self.assertEqual(['cat', 'num', 'bool', 'date', 'string', 'compound'], result.column_names)
+        result = tools.correlate_column_join(tbl, header='int', others=['-PI-', 'date'], column_name='int')
+        self.assertTrue(pc.all(pc.match_like(result.column('int'),"__-PI-20%")).as_py())
+        self.assertEqual(['cat', 'num', 'bool', 'string', 'int'], result.column_names)
+        result = tools.correlate_column_join(tbl, header='int', others=['-PI-', 'date'], drop_others=False, column_name='compound')
+        self.assertEqual(['cat', 'num', 'int', 'bool', 'date', 'string', 'compound'], result.column_names)
 
 
     def test_raise(self):

@@ -309,19 +309,22 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
-        if not isinstance(header, str) or header not in canonical.column_names:
-            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
         seed = seed if isinstance(seed, int) else self._seed()
         drop_others = drop_others if isinstance(drop_others, bool) else True
         sep = sep if isinstance(sep, str) else ''
         others = Commons.list_formatter(others)
-        h_col = pc.cast(canonical.column(header).combine_chunks(), pa.string())
+        if header in canonical.column_names:
+            h_col = pc.cast(canonical.column(header).combine_chunks(), pa.string())
+        else:
+            h_col = header
         for n in others:
             if n in canonical.column_names:
-                o_col = canonical.column(n).combine_chunks()
-                h_col = pc.binary_join_element_wise(h_col, pc.cast(o_col, pa.string()), sep)
-        if drop_others:
-            canonical = canonical.drop_columns(others)
+                o_col = pc.cast(canonical.column(n).combine_chunks(), pa.string())
+                if drop_others:
+                    canonical = canonical.drop_columns(n)
+            else:
+                o_col = n
+            h_col = pc.binary_join_element_wise(h_col, o_col, sep)
         if header == column_name:
             canonical = canonical.drop_columns(header)
         return Commons.table_append(canonical, pa.table([h_col], names=[column_name]))
