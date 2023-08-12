@@ -1,8 +1,8 @@
 # Developing Mongo Persist Handler
-from aistac.handlers.abstract_handlers import AbstractSourceHandler, AbstractPersistHandler
-from aistac.handlers.abstract_handlers import HandlerFactory, ConnectorContract
+import ast
 import pyarrow as pa
-
+from ds_core.handlers.abstract_handlers import AbstractSourceHandler, AbstractPersistHandler
+from ds_core.handlers.abstract_handlers import HandlerFactory, ConnectorContract
 from ds_capability.components.commons import Commons
 
 
@@ -19,7 +19,9 @@ class MongodbSourceHandler(AbstractSourceHandler):
         database = connector_contract.path[1:]
 
         self.collection_name = _kwargs.pop('collection', "hadron_default")
-        self._mongo_find = _kwargs.pop('find') if _kwargs.get('find') else {}
+        self._mongo_find = ast.literal_eval(_kwargs.pop('find')) if _kwargs.get('find') else {}
+        self._mongo_aggregate = ast.literal_eval(_kwargs.pop('aggregate')) if _kwargs.get('aggregate') else None
+        self._mongo_project = ast.literal_eval(_kwargs.pop('project')) if _kwargs.get('project') else None
         self._mongo_limit = _kwargs.pop('limit') if _kwargs.get('limit') else None
         self._mongo_skip = _kwargs.pop('skip') if _kwargs.get('skip') else None
 
@@ -42,7 +44,10 @@ class MongodbSourceHandler(AbstractSourceHandler):
         if not isinstance(self.connector_contract, ConnectorContract):
             raise ValueError("The PandasSource Connector Contract has not been set")
 
-        cursor = self._mongo_collection.find()
+        if self._mongo_aggregate is not None:
+            _ = list(self._mongo_collection.aggregate(self._mongo_aggregate))
+            return Commons.table_flatten(pa.Table.from_pylist(_))
+        cursor = self._mongo_collection.find(self._mongo_find, self._mongo_project)
         if self._mongo_limit is not None:
             cursor.limit(self._mongo_limit)
         if self._mongo_skip is not None:
@@ -93,5 +98,6 @@ class MongodbPersistHandler(MongodbSourceHandler, AbstractPersistHandler):
     def remove_canonical(self) -> bool:
         if not isinstance(self.connector_contract, ConnectorContract):
             return False
-        resp = self._mongo_database.drop_collection(self.collection_name)
-        return resp.acknowledged
+        if self.exists():
+            return self._mongo_database.drop_collection(self.collection_name).acknowledged
+        return False
