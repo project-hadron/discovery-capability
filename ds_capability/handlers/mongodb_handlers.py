@@ -13,24 +13,25 @@ class MongodbSourceHandler(AbstractSourceHandler):
         """ initialise the Handler passing the source_contract dictionary """
         # required module import
         self.mongo = HandlerFactory.get_module('pymongo')
+        self.pma = HandlerFactory.get_module('pymongoarrow')
         super().__init__(connector_contract)
 
         _kwargs = {**self.connector_contract.kwargs, **self.connector_contract.query}
-        database = connector_contract.path[1:]
-
-        self.collection_name = _kwargs.pop('collection', "hadron_default")
+        database = _kwargs.pop('database', "hadron_db")
+        self.collection_name = _kwargs.pop('collection', "records")
         self._mongo_find = ast.literal_eval(_kwargs.pop('find')) if _kwargs.get('find') else {}
         self._mongo_aggregate = ast.literal_eval(_kwargs.pop('aggregate')) if _kwargs.get('aggregate') else None
-        self._mongo_project = ast.literal_eval(_kwargs.pop('project')) if _kwargs.get('project') else None
-        self._mongo_limit = _kwargs.pop('limit') if _kwargs.get('limit') else None
-        self._mongo_skip = _kwargs.pop('skip') if _kwargs.get('skip') else None
+        self._mongo_project = ast.literal_eval(_kwargs.pop('project')) if _kwargs.get('project') else {}
+        self._mongo_project.update({"_id": 0})
+        self._mongo_limit = int(_kwargs.pop('limit')) if _kwargs.get('limit') else None
+        self._mongo_skip = int(_kwargs.pop('skip')) if _kwargs.get('skip') else None
 
         self._if_exists = _kwargs.pop('if_exists', 'replace')
         self._file_state = 0
         self._changed_flag = True
 
-        self._mongo_database = self.mongo.MongoClient(self.connector_contract.address)[database]
-        self._mongo_collection = self._mongo_database[self.collection_name]
+        self._mongo_document = self.mongo.MongoClient(self.connector_contract.address)[database]
+        self._mongo_collection = self._mongo_document[self.collection_name]
 
     def supported_types(self) -> list:
         """ The source types supported with this module"""
@@ -56,7 +57,7 @@ class MongodbSourceHandler(AbstractSourceHandler):
 
     def exists(self) -> bool:
         """ returns True if the collection exists """
-        return self.collection_name in self._mongo_database.list_collection_names()
+        return self.collection_name in self._mongo_document.list_collection_names()
 
     def has_changed(self) -> bool:
         """ returns the amount of documents in the collection
@@ -91,13 +92,12 @@ class MongodbPersistHandler(MongodbSourceHandler, AbstractPersistHandler):
         """  creates a backup of the canonical to an alternative table """
         if not isinstance(self.connector_contract, ConnectorContract):
             return False
-        _collection = self._mongo_database[collection_name]
-        resp = _collection.insert_many(Commons.table_nest(canonical))
+        _collection = self._mongo_document[collection_name]
+        tbl = Commons.table_nest(canonical)
+        resp = _collection.insert_many(tbl)
         return resp.acknowledged
 
     def remove_canonical(self) -> bool:
         if not isinstance(self.connector_contract, ConnectorContract):
             return False
-        if self.exists():
-            return self._mongo_database.drop_collection(self.collection_name).acknowledged
-        return False
+        return self._mongo_document.drop_collection(self.collection_name)
