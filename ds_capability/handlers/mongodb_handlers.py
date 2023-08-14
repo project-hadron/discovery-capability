@@ -94,6 +94,8 @@ class MongodbPersistHandler(MongodbSourceHandler, AbstractPersistHandler):
             return False
         _collection = self._mongo_document[collection_name]
         tbl = Commons.table_nest(canonical)
+        # remove anything there as this is replace
+        _collection.delete_many({})
         resp = _collection.insert_many(tbl)
         return resp.acknowledged
 
