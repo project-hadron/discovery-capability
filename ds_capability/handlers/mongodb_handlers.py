@@ -1,6 +1,9 @@
 # Developing Mongo Persist Handler
 import ast
 import pyarrow as pa
+import json
+
+from bson import ObjectId
 from ds_core.handlers.abstract_handlers import AbstractSourceHandler, AbstractPersistHandler
 from ds_core.handlers.abstract_handlers import HandlerFactory, ConnectorContract
 from ds_capability.components.commons import Commons
@@ -19,12 +22,14 @@ class MongodbSourceHandler(AbstractSourceHandler):
         _kwargs = {**self.connector_contract.kwargs, **self.connector_contract.query}
         database = _kwargs.pop('database', "hadron_db")
         self.collection_name = _kwargs.pop('collection', "records")
-        self._mongo_find = ast.literal_eval(_kwargs.pop('find')) if _kwargs.get('find') else {}
-        self._mongo_aggregate = ast.literal_eval(_kwargs.pop('aggregate')) if _kwargs.get('aggregate') else None
-        self._mongo_project = ast.literal_eval(_kwargs.pop('project')) if _kwargs.get('project') else {}
+        self._mongo_find = ast.literal_eval(_kwargs.pop('find').replace("'", '"')) if _kwargs.get('find') else {}
+        self._mongo_aggregate = ast.literal_eval(_kwargs.pop('aggregate').replace("'", '"')) if _kwargs.get('aggregate') else None
+        self._mongo_project = ast.literal_eval(_kwargs.pop('project').replace("'", '"')) if _kwargs.get('project') else {}
         self._mongo_project.update({"_id": 0})
-        self._mongo_limit = int(_kwargs.pop('limit')) if _kwargs.get('limit') else None
-        self._mongo_skip = int(_kwargs.pop('skip')) if _kwargs.get('skip') else None
+        self._mongo_limit = int(_kwargs.pop('limit').replace("'", '"')) if _kwargs.get('limit') else None
+        self._mongo_skip = int(_kwargs.pop('skip').replace("'", '"')) if _kwargs.get('skip') else None
+        self._mongo_sort = ast.literal_eval(_kwargs.pop('sort').replace("'", '"')) if _kwargs.get('sort') else None
+        self._decode = _kwargs.pop('decode') if _kwargs.get('decode') else False
 
         self._if_exists = _kwargs.pop('if_exists', 'replace')
         self._file_state = 0
@@ -45,15 +50,35 @@ class MongodbSourceHandler(AbstractSourceHandler):
         if not isinstance(self.connector_contract, ConnectorContract):
             raise ValueError("The PandasSource Connector Contract has not been set")
 
+        def traverse_it(it):
+            if isinstance(it, list):
+                for item in it:
+                    traverse_it(item)
+            elif isinstance(it, dict):
+                if '_id' in it.keys():
+                    if isinstance(it.get('_id'), ObjectId):
+                        it.update({'_id': str(it.get('_id'))})
+                for key in it.keys():
+                    traverse_it(it[key])
+
+        #    else: # returns top of the tree item
+
         if self._mongo_aggregate is not None:
-            _ = list(self._mongo_collection.aggregate(self._mongo_aggregate))
-            return Commons.table_flatten(pa.Table.from_pylist(_))
+            result = list(self._mongo_collection.aggregate(self._mongo_aggregate))
+            if isinstance(result[0].get('_id'), ObjectId) or self._decode:
+                traverse_it(result)
+            return Commons.table_flatten(pa.Table.from_pylist(result))
         cursor = self._mongo_collection.find(self._mongo_find, self._mongo_project)
         if self._mongo_limit is not None:
             cursor.limit(self._mongo_limit)
         if self._mongo_skip is not None:
             cursor.skip(self._mongo_skip)
-        return Commons.table_flatten(pa.Table.from_pylist(list(cursor)))
+        if self._mongo_sort is not None:
+            cursor.sort(self._mongo_sort)
+        result = list(cursor)
+        if isinstance(result[0].get('_id'), ObjectId) or self._decode:
+            traverse_it(result)
+        return Commons.table_flatten(pa.Table.from_pylist(result))
 
     def exists(self) -> bool:
         """ returns True if the collection exists """
@@ -94,7 +119,7 @@ class MongodbPersistHandler(MongodbSourceHandler, AbstractPersistHandler):
             return False
         _collection = self._mongo_document[collection_name]
         tbl = Commons.table_nest(canonical)
-        # remove anything there as this is replace
+        # remove anything there as this is replaced
         _collection.delete_many({})
         resp = _collection.insert_many(tbl)
         return resp.acknowledged

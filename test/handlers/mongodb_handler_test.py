@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import shutil
 import pyarrow as pa
+import pyarrow.compute as pc
 from ds_core.handlers.abstract_handlers import ConnectorContract
 from ds_core.properties.property_manager import PropertyManager
 from ds_capability import FeatureBuild
@@ -59,6 +60,16 @@ class MongodbHandlerTest(unittest.TestCase):
         self.assertEqual(['cat', 'num', 'int', 'bool', 'date', 'string'], result.column_names)
         fb.remove_canonical(fb.CONNECTOR_PERSIST)
 
+    def test_handler_sort(self):
+        fb = FeatureBuild.from_memory()
+        tbl = fb.tools.get_synthetic_data_types(size=10, seed=101)
+        uri = "mongodb://admin:admin@localhost:27017/?project={'cat':1, 'num':1, '_id':0}&sort=[('num', 1)]"
+        fb.set_persist_uri(uri=uri).save_persist_canonical(tbl)
+        result = fb.load_persist_canonical()
+        c = result.column('num').combine_chunks()
+        self.assertEqual(pc.min(c), c[0])
+        self.assertEqual(pc.max(c), c.slice(len(c)-1)[0])
+
     def test_handler_query(self):
         fb = FeatureBuild.from_memory()
         tbl = fb.tools.get_synthetic_data_types(size=1_000)
@@ -86,20 +97,59 @@ class MongodbHandlerTest(unittest.TestCase):
         fb.remove_canonical(fb.CONNECTOR_PERSIST)
 
     def test_handler_aggregate(self):
+        os.environ['HADRON_AGG'] = """
+        [
+            {"$match": { 
+                "cat": { "$eq": "ACTIVE" },
+            }},
+            {"$project": {
+                "_id":0,
+                "cat":1,  
+                "num":1, 
+                "int":1, 
+            }},
+            {'$limit':50}
+        ]
+        """
         fb = FeatureBuild.from_memory()
         tbl = fb.tools.get_synthetic_data_types(size=1_000)
-        uri = "mongodb://admin:admin@localhost:27017/?aggregate=[{'$count': 'count'}]"
+        uri = "mongodb://admin:admin@localhost:27017/?aggregate=${HADRON_AGG}"
         fb.set_persist_uri(uri=uri)
         fb.remove_canonical(fb.CONNECTOR_PERSIST)
         fb.save_persist_canonical(tbl)
         result = fb.load_persist_canonical()
-        self.assertEqual((1, 1), result.shape)
-        self.assertEqual([1000], result['count'].to_pylist())
-        fb.remove_canonical(fb.CONNECTOR_PERSIST)
+        self.assertEqual(['cat', 'num', 'int'], result.column_names)
+        self.assertEqual(['ACTIVE'], pc.unique(result.column('cat')).to_pylist())
+        self.assertEqual(50, result.num_rows)
 
     def test_connector_contract(self):
         os.environ['HADRON_ADDITION'] = 'myAddition'
-        uri = "mongodb://admin:admin@localhost:27017/?database=hadron_docs&collection=records&aggregate=[{'$match':{'cat':'ACTIVE'}}, '$count': 'count']"
+        os.environ['HADRON_AGG'] = """
+        [
+            {"$match": { 
+                "creditProfile": { "$ne": None },
+                #"creditProfile.creditScore": { "$ne": None }
+            }},
+            {"$project": {
+                "customerCategory":1,  
+                "customerSubCategory":1, 
+                "customerType":1, 
+                "riskCategory":1, 
+                "status": 1,
+                "creditProfile": 1, 
+                #"creditProfile.creditRiskRating": 1, 
+                #"creditProfile.creditScore": 1,
+                #"creditProfile.creditAgencyName": 1, 
+                #"creditProfile.creditAgencyType": 1,
+                #"creditProfile.validFor": 1,
+                "deniedList.isDenied": 1, 
+                "deniedList.validFor.startDateTime": 1,
+                "engagedParty": 1
+            }},
+            {'$limit':2000}
+        ]
+        """
+        uri = "mongodb://admin:admin@localhost:27017/?database=hadron_docs&collection=records&aggregate=${HADRON_AGG}"
         cc = ConnectorContract(uri=uri, module_name='', handler='', addition='${HADRON_ADDITION}')
         print(f"raw_uri = {cc.raw_uri}")
         print(f"uri = {cc.uri}")
