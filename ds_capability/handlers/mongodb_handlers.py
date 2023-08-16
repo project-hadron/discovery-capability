@@ -24,8 +24,7 @@ class MongodbSourceHandler(AbstractSourceHandler):
         self.collection_name = _kwargs.pop('collection', "records")
         self._mongo_find = ast.literal_eval(_kwargs.pop('find').replace("'", '"')) if _kwargs.get('find') else {}
         self._mongo_aggregate = ast.literal_eval(_kwargs.pop('aggregate').replace("'", '"')) if _kwargs.get('aggregate') else None
-        self._mongo_project = ast.literal_eval(_kwargs.pop('project').replace("'", '"')) if _kwargs.get('project') else {}
-        self._mongo_project.update({"_id": 0})
+        self._mongo_project = ast.literal_eval(_kwargs.pop('project').replace("'", '"')) if _kwargs.get('project') else None
         self._mongo_limit = int(_kwargs.pop('limit').replace("'", '"')) if _kwargs.get('limit') else None
         self._mongo_skip = int(_kwargs.pop('skip').replace("'", '"')) if _kwargs.get('skip') else None
         self._mongo_sort = ast.literal_eval(_kwargs.pop('sort').replace("'", '"')) if _kwargs.get('sort') else None

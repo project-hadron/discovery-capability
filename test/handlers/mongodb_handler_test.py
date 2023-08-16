@@ -1,5 +1,6 @@
 import unittest
 import os
+from datetime import datetime
 from pathlib import Path
 import shutil
 import pyarrow as pa
@@ -10,7 +11,6 @@ from ds_capability import FeatureBuild
 
 
 class MongodbHandlerTest(unittest.TestCase):
-
 
     @classmethod
     def setUpClass(cls):
@@ -50,14 +50,15 @@ class MongodbHandlerTest(unittest.TestCase):
     def test_handler_default(self):
         fb = FeatureBuild.from_memory()
         tbl = fb.tools.get_synthetic_data_types(size=1_000)
-        fb.set_persist_uri("mongodb://admin:admin@localhost:27017")
+        tbl = fb.tools.get_number(1_000_000, 10_000_000, canonical=tbl, at_most=1, size=tbl.num_rows, column_name='_id')
+        fb.set_persist_uri("mongodb://admin:admin@localhost:27017/")
         fb.remove_canonical(fb.CONNECTOR_PERSIST)
         self.assertFalse(fb.pm.get_connector_handler(fb.CONNECTOR_PERSIST).exists())
         fb.save_persist_canonical(tbl)
         result = fb.load_persist_canonical()
         self.assertTrue(fb.pm.get_connector_handler(fb.CONNECTOR_PERSIST).exists())
-        self.assertEqual((1000, 6), result.shape)
-        self.assertEqual(['cat', 'num', 'int', 'bool', 'date', 'string'], result.column_names)
+        self.assertEqual((1000, 7), result.shape)
+        self.assertEqual(['_id', 'cat', 'num', 'int', 'bool', 'date', 'string'], result.column_names)
         fb.remove_canonical(fb.CONNECTOR_PERSIST)
 
     def test_handler_sort(self):
@@ -176,9 +177,12 @@ class MongodbHandlerTest(unittest.TestCase):
         print(f" addition = {addition}")
 
     def test_raise(self):
+        startTime = datetime.now()
         with self.assertRaises(KeyError) as context:
             env = os.environ['NoEnvValueTest']
         self.assertTrue("'NoEnvValueTest'" in str(context.exception))
+        print(f"Duration - {str(datetime.now() - startTime)}")
+
 
 
 if __name__ == '__main__':
