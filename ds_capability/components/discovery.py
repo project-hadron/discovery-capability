@@ -81,6 +81,8 @@ class DataDiscovery(object):
         _dom_avg = _dom_columns / canonical.num_columns
         _quality_avg = int(round(100 - (((_null_avg + _dom_avg) / 2) * 100), 0))
         _usable = int(round((_usable_columns / canonical.num_columns) * 100, 2))
+        # duplicate
+        _dup_columns = canonical.slice(0, 500_000).drop_null().to_pandas().T.duplicated().T.sum()
         _dt_today = pd.to_datetime('today')
         mem_usage = canonical.get_total_buffer_size()
         _tbl_mem = f"{mem_usage >> 20} Mb" if mem_usage >> 20 > 0 else f"{mem_usage} bytes"
@@ -99,6 +101,7 @@ class DataDiscovery(object):
             'usability': {'mostly_null': _null_columns,
                           'predominance': _dom_columns,
                           'sparse': _sparce_columns,
+                          'duplicate': _dup_columns,
                           'candidate_keys': _key_columns}
         }
         # convert to multi-index DataFrame
