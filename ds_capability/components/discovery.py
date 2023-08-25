@@ -10,13 +10,14 @@ class DataDiscovery(object):
 
     @staticmethod
     def data_quality(canonical: pa.Table, nulls_threshold: float=None, dom_threshold: float=None,
-                     cat_threshold: int=None, stylise: bool=None):
+                     cat_threshold: int=None, capped_at: int=None, stylise: bool=None):
         """ Analyses a dataset, passed as a DataFrame and returns a quality summary
 
         :param canonical: The dataset, as a DataFrame.
         :param cat_threshold: The threshold for the max number of unique categories. Default is 60
         :param dom_threshold: The threshold limit of a dominant value. Default 0.98
         :param nulls_threshold: The threshold limit of a nulls value. Default 0.9
+        :param capped_at: the row and column cap or 0 to ignore. default 5_000_000
         :param stylise: if the output is stylised for jupyter display
         :return: pd.DataFrame
         """
@@ -25,6 +26,10 @@ class DataDiscovery(object):
         dom_threshold = dom_threshold if isinstance(dom_threshold, float) and 0 <= dom_threshold <= 1 else 0.98
         nulls_threshold = nulls_threshold if isinstance(nulls_threshold, float) and 0 <= nulls_threshold <= 1 else 0.95
         stylise = stylise if isinstance(stylise, bool) else False
+        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        if canonical.num_rows*canonical.num_columns > cap > 0:
+            row_count = int(round(cap / canonical.num_columns, 0))
+            canonical = canonical.slice(0, row_count)
         # cast the values
         tbl = Commons.table_cast(canonical, cat_max=cat_threshold)
         # dictionary
@@ -107,17 +112,23 @@ class DataDiscovery(object):
 
 
     @staticmethod
-    def data_dictionary(canonical: pa.Table, table_cast: bool=None, display_width: int=None, stylise: bool=None):
+    def data_dictionary(canonical: pa.Table, table_cast: bool=None, display_width: int=None, stylise: bool=None,
+                        capped_at: int=None):
         """ The data dictionary for a given canonical
 
         :param canonical: The canonical to interpret
         :param table_cast: attempt to cast columns to the content
         :param display_width: the width of the display
         :param stylise: if the output is stylised for jupyter display
+        :param capped_at: the row and column cap or 0 to ignore. default 5_000_000
         :return: a pa.Table or stylised pandas
         """
         display_width = display_width if isinstance(display_width, int) else 50
         stylise = stylise if isinstance(stylise, bool) else False
+        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        if canonical.num_rows*canonical.num_columns > cap > 0:
+            row_count = int(round(cap / canonical.num_columns, 0))
+            canonical = canonical.slice(0, row_count)
         record = []
         labels = [f'Attributes', 'DataType', 'Nulls', 'Dominate', 'Valid', 'Unique', 'Observations']
         # attempt cast
@@ -171,17 +182,21 @@ class DataDiscovery(object):
             return df_style
         return pa.Table.from_pandas(df)
 
-
     @staticmethod
-    def data_schema(canonical: pa.Table, table_cast: bool=None, stylise: bool=None):
+    def data_schema(canonical: pa.Table, table_cast: bool=None, capped_at: int=None, stylise: bool=None):
         """ The data dictionary for a given canonical
 
         :param canonical: The canonical to interpret
         :param table_cast: (optional) attempt to cast columns to the content
+        :param capped_at: the row and column cap or 0 to ignore. default 5_000_000
         :param stylise: (optional) if the output is stylised for jupyter display
         :return: a pa.Table or stylised pandas
         """
         stylise = stylise if isinstance(stylise, bool) else False
+        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        if canonical.num_rows*canonical.num_columns > cap > 0:
+            row_count = int(round(cap / canonical.num_columns, 0))
+            canonical = canonical.slice(0, row_count)
         if isinstance(table_cast, bool) and table_cast:
             canonical = Commons.table_cast(canonical)
         record = []
@@ -198,6 +213,7 @@ class DataDiscovery(object):
                 record.append([n, 'type', 'category'])
                 record.append([n, 'measure', 'discrete'])
                 record.append([n, 'nulls', c.null_count])
+                record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
             elif pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
                 precision = Commons.column_precision(c)
                 intervals = DataDiscovery.to_discrete_intervals(column=c, granularity=5, categories=['A','B','C','D','E'])
@@ -209,7 +225,7 @@ class DataDiscovery(object):
                 record.append([n, 'type', c.type])
                 record.append([n, 'measure', 'temporal' if pa.types.is_temporal(c.type) else 'continuous'])
                 record.append([n, 'nulls', c.null_count])
-                record.append([n, 'valid', pc.count(c.filter(c.is_valid())).as_py()])
+                record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
                 record.append([n, 'mean', pc.round(pc.mean(c),precision).as_py()])
                 record.append([n, 'std', pc.round(pc.sqrt(pc.variance(c)),precision).as_py()])
                 record.append([n, 'max', pc.round(pc.max(c),precision).as_py()])
@@ -217,6 +233,20 @@ class DataDiscovery(object):
                 record.append([n, '50%', pc.round(pc.quantile(c,0.5),precision).to_pylist()[0]])
                 record.append([n, '25%', pc.round(pc.quantile(c,0.25),precision).to_pylist()[0]])
                 record.append([n, 'min', pc.round(pc.min(c),precision).as_py()])
+                # skew
+                values = c.slice(0, 100000).to_pandas()
+                record.append([n, 'skew', round(values.skew(), 3)])
+                s_bins = [-np.inf, -1, -0.5, -0.1, 0.1, 0.5, 1, np.inf]
+                s_names = ['highly left', 'medium left', 'light left', 'normal', 'light right', 'medium right',
+                           'highly right']
+                _skew_bin = list(pd.cut([values.skew()], s_bins, labels=s_names))[0]
+                record.append([n, 'skew bias', _skew_bin])
+                # kurtosis
+                record.append([n, 'kurtosis', round(values.kurtosis(), 3)])
+                k_bins = [-np.inf, 2.9, 3.1, np.inf]
+                k_names = ['platykurtic', 'mesokurtic', 'leptokurtic']
+                _kurt_bin = list(pd.cut([values.kurtosis()], k_bins, labels=k_names))[0]
+                record.append([n, 'kurtosis_tail', _kurt_bin])
             elif pa.types.is_boolean(c.type):
                 vc = c.drop_null().value_counts()
                 t = pa.table([vc.field(1), vc.field(0)], names=['v', 'n']).sort_by([("n", "ascending")])
@@ -226,7 +256,7 @@ class DataDiscovery(object):
                 record.append([n, 'type', c.type])
                 record.append([n, 'measure', 'binary'])
                 record.append([n, 'nulls', c.null_count])
-                record.append([n, 'valid', pc.count(c.filter(c.is_valid())).as_py()])
+                record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
             elif pa.types.is_timestamp(c.type) or pa.types.is_time(c.type):
                 _ = pa.array(Commons.date2value(c.to_pylist()))
                 intervals = DataDiscovery.to_discrete_intervals(column=_, granularity=5, categories=['A','B','C','D','E'])
@@ -238,13 +268,13 @@ class DataDiscovery(object):
                 record.append([n, 'type', c.type])
                 record.append([n, 'measure', 'temporal' if pa.types.is_temporal(c.type) else 'continuous'])
                 record.append([n, 'nulls', c.null_count])
-                record.append([n, 'valid', pc.count(c.filter(c.is_valid())).as_py()])
+                record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
                 record.append([n, 'oldest', pc.min(c).as_py()])
                 record.append([n, 'newest', pc.max(c).as_py()])
             elif pa.types.is_string(c.type):
                 record.append([n, 'type', c.type])
                 record.append([n, 'nulls', c.null_count])
-                record.append([n, 'valid', pc.count(c.filter(c.is_valid())).as_py()])
+                record.append([n, 'sample', pc.sum(c.is_valid()).as_py()])
         df = pd.DataFrame(record, columns=['attributes', 'elements', 'values'])
         df['values'] = df['values'].astype(str)
         if stylise:

@@ -1,5 +1,6 @@
 import unittest
 import os
+from datetime import datetime
 from pathlib import Path
 import shutil
 from pprint import pprint
@@ -8,7 +9,7 @@ import pyarrow.compute as pc
 import pandas as pd
 from ds_capability import FeatureBuild
 from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
-from aistac.properties.property_manager import PropertyManager
+from ds_core.properties.property_manager import PropertyManager
 
 from ds_capability.components.discovery import DataDiscovery
 
@@ -60,39 +61,36 @@ class DiscoveryTest(unittest.TestCase):
         except OSError:
             pass
 
-    def test_for_smoke(self):
-        sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = sb.tools
-        tbl = tools.get_synthetic_data_types(1_000, inc_nulls=True)
-        self.assertEqual(1_000, tbl.num_rows)
-        self.assertEqual(17, tbl.num_columns)
-
     def test_data_dictionary(self):
         sb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = sb.tools
-        tbl = tools.get_synthetic_data_types(1000, inc_nulls=True)
+        tbl = tools.get_synthetic_data_types(1_000_000, inc_nulls=True)
         result = DataDiscovery.data_dictionary(tbl, stylise=True)
         pprint(result.to_string())
 
     def test_data_quality(self):
         sb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = sb.tools
-        tbl = tools.get_synthetic_data_types(1000, inc_nulls=True)
+        tbl = tools.get_synthetic_data_types(100_000, inc_nulls=True)
         result = DataDiscovery.data_quality(tbl, stylise=True)
         pprint(result.to_string())
 
     def test_data_schema(self):
         sb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = sb.tools
-        tbl = tools.get_synthetic_data_types(1000, inc_nulls=True)
+        tbl = tools.get_synthetic_data_types(600_000, inc_nulls=True)
+        startTime = datetime.now()
         result = DataDiscovery.data_schema(tbl, stylise=True)
+        print(f"Duration - {str(datetime.now() - startTime)}")
         pprint(result.to_string())
 
 
     def test_raise(self):
+        startTime = datetime.now()
         with self.assertRaises(KeyError) as context:
             env = os.environ['NoEnvValueTest']
         self.assertTrue("'NoEnvValueTest'" in str(context.exception))
+        print(f"Duration - {str(datetime.now() - startTime)}")
 
 
 if __name__ == '__main__':

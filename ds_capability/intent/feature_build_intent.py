@@ -22,8 +22,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
 
     def get_number(self, start: [int, float, str]=None, stop: [int, float, str]=None, canonical: pa.Table=None,
                    relative_freq: list=None, precision: int=None, ordered: str=None, at_most: int=None, size: int=None,
-                   quantity: float=None, seed: int=None, save_intent: bool=None, intent_order: int=None,
-                   column_name: [int, str]=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+                   quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None, intent_order: int=None,
+                   intent_level: [int, str]=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ returns a number in the range from_value to to_value. if only to_value given from_value is zero
 
         :param start: optional (signed) integer or float to start from. See below for str
@@ -33,11 +33,12 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param precision: (optional) the precision of the returned number. if None then assumes int value else float
         :param ordered: (optional) order the data ascending 'asc' or descending 'dec', values accepted 'asc' or 'des'
         :param at_most:  (optional)the most times a selection should be chosen
+        :param to_header: (optional) an optional name to call the column
         :param size: (optional) the size of the sample
         :param quantity: (optional) a number between 0 and 1 representing data that isn't null
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -55,9 +56,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         start = self._extract_value(start)
@@ -128,11 +130,11 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                 rtn_arr = pa.array(rtn_arr, pa.int64())
             except pa.lib.ArrowInvalid:
                 pass
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([rtn_arr], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
     def get_category(self, selection: list, size: int, canonical: pa.Table=None, relative_freq: list=None, encode: bool=None,
-                     quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
+                     quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
                      intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ returns a categorical as a string.
 
@@ -142,9 +144,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param relative_freq: a weighting pattern that does not have to add to 1
         :param encode: if the categorical should be returned encoded as a dictionary type or string type (default)
         :param quantity: a number between 0 and 1 representing the percentage quantity of the data
+        :param to_header: (optional) an optional name to call the column
         :param seed: a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -159,9 +162,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         if len(selection) < 1:
@@ -177,13 +181,13 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         gen = np.random.default_rng(seed)
         gen.shuffle(rtn_list)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         if encode:
-            return Commons.table_append(canonical, pa.table([pa.DictionaryArray.from_pandas(rtn_list).dictionary_encode()], names=[column_name]))
-        return Commons.table_append(canonical, pa.table([pa.DictionaryArray.from_pandas(rtn_list)], names=[column_name]))
+            return Commons.table_append(canonical, pa.table([pa.DictionaryArray.from_pandas(rtn_list).dictionary_encode()], names=[to_header]))
+        return Commons.table_append(canonical, pa.table([pa.DictionaryArray.from_pandas(rtn_list)], names=[to_header]))
 
     def get_boolean(self, size: int, canonical: pa.Table=None, probability: float=None, quantity: float=None,
-                    seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                    to_header: str=None,  seed: int=None, save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """A boolean discrete random distribution
 
@@ -191,9 +195,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param canonical: (optional) a pa.Table to append the result table to
         :param probability: a float between 0 and 1 of the probability of success. Default = 0.5
         :param quantity: a number between 0 and 1 representing data that isn't null
+        :param to_header: (optional) an optional name to call the column
         :param seed: a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -208,9 +213,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         prob = probability if isinstance(probability, int) and 0 < probability < 1 else 0.5
@@ -218,14 +224,14 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         rtn_list = list(stats.bernoulli.rvs(p=probability, size=size, random_state=seed))
         rtn_list = list(map(bool, rtn_list))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[to_header]))
 
     def get_datetime(self, start: Any, until: Any, canonical: pa.Table=None, relative_freq: list=None,
                      at_most: int=None, ordered: str=None, date_format: str=None,  as_num: bool=None,
                      ignore_time: bool=None, ignore_seconds: bool=None, size: int=None, quantity: float=None,
-                     seed: int=None, day_first: bool=None, year_first: bool=None, save_intent: bool=None,
-                     column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                     to_header: str=None,  seed: int=None, day_first: bool=None, year_first: bool=None, save_intent: bool=None,
+                     intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                      remove_duplicates: bool=None) -> pa.Table:
         """ returns a random date between two date and/or times. weighted patterns can be applied to the overall date
         range. if a signed 'int' type is passed to the start and/or until dates, the inferred date will be the current
@@ -245,6 +251,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param date_format: the string format of the date to be returned. if not set then pd.Timestamp returned
         :param as_num: returns a list of Matplotlib date values as a float. Default is False
         :param size: the size of the sample to return. Default to 1
+        :param to_header: (optional) an optional name to call the column
         :param seed: a seed value for the random function: default to None
         :param year_first: specifies if to parse with the year first
                     - If True parses dates with the year first, e.g. 10/11/12 is parsed as 2010-11-12.
@@ -255,7 +262,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
                     - If False default to a preferred preference, normally %m-%d-%Y (but not strict)
 
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -270,9 +277,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
          """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         if start is None or until is None:
@@ -314,12 +322,12 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         if isinstance(date_format, str) and len(rtn_list) > 0:
             rtn_list = rtn_list.dt.strftime(date_format)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.TimestampArray.from_pandas(rtn_list)], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([pa.TimestampArray.from_pandas(rtn_list)], names=[to_header]))
 
     def get_intervals(self, intervals: list, canonical: pa.Table=None, relative_freq: list=None, precision: int=None,
-                      size: int=None, quantity: float=None, seed: int=None, save_intent: bool=None,
-                      column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                      size: int=None, quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None,
+                      intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                       remove_duplicates: bool=None) -> pa.Table:
         """ returns a number based on a list selection of tuple(lower, upper) interval
 
@@ -329,9 +337,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param precision: the precision of the returned number. if None then assumes int value else float
         :param size: the size of the sample
         :param quantity: a number between 0 and 1 representing data that isn't null
+        :param to_header: (optional) an optional name to call the column
         :param seed: a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -346,9 +355,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         precision = precision if isinstance(precision, (float, int)) else 3
@@ -393,11 +403,11 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             rtn_list += rtn_tbl.columns.pop(0).to_pylist()
         np.random.default_rng(seed=seed).shuffle(rtn_list)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.StringArray.from_pandas(rtn_list)], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([pa.StringArray.from_pandas(rtn_list)], names=[to_header]))
 
     def get_dist_normal(self, mean: float, std: float, canonical: pa.Table=None, precision: int=None, size: int=None,
-                        quantity: float=None, seed: int=None, save_intent: bool=None, column_name: [int, str]=None,
+                        quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
                         intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """A normal (Gaussian) continuous random distribution.
 
@@ -407,9 +417,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param precision: The number of decimal points. The default is 3
         :param size: the size of the sample. if a tuple of intervals, size must match the tuple
         :param quantity: a number between 0 and 1 representing data that isn't null
+        :param to_header: (optional) an optional name to call the column
         :param seed: a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -424,9 +435,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed() if seed is None else seed
@@ -435,11 +447,11 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         rtn_list = list(generator.normal(loc=mean, scale=std, size=size))
         rtn_list = list(np.around(rtn_list, precision))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[to_header]))
 
     def get_dist_choice(self, number: [int, str, float], canonical: pa.Table=None, size: int=None, quantity: float=None,
-                        seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                        to_header: str=None,  seed: int=None, save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                         replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """Creates a list of latent values of 0 or 1 where 1 is randomly selected both upon the number given. The
         ``number`` parameter can be a direct reference to the canonical column header or to an environment variable.
@@ -450,9 +462,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param canonical: (optional) a pa.Table to append the result table to
         :param size: the size of the sample. if a tuple of intervals, size must match the tuple
         :param quantity: a number between 0 and 1 representing data that isn't null
+        :param to_header: (optional) an optional name to call the column
         :param seed: a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                        If None: default's to -1
                        if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -468,9 +481,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
        """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed() if seed is None else seed
@@ -486,11 +500,11 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             return rtn_list.reset_index(drop=True).to_list()
         rtn_list = pd.Series(data=[0] * size).to_list()
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[to_header]))
 
     def get_dist_bernoulli(self, probability: float, canonical: pa.Table=None, size: int=None, quantity: float=None,
-                           seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                           to_header: str=None,  seed: int=None, save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                            replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """A Bernoulli discrete random distribution using scipy
 
@@ -498,9 +512,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param canonical: (optional) a pa.Table to append the result table to
         :param size: the size of the sample
         :param quantity: a number between 0 and 1 representing data that isn't null
+        :param to_header: (optional) an optional name to call the column
         :param seed: a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -515,21 +530,22 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed() if seed is None else seed
         probability = self._extract_value(probability)
         rtn_list = list(stats.bernoulli.rvs(p=probability, size=size, random_state=seed))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[to_header]))
 
     def get_dist_bounded_normal(self, mean: float, std: float, lower: float, upper: float, canonical: pa.Table=None,
-                                precision: int=None, size: int=None, quantity: float=None, seed: int=None,
-                                save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                                precision: int=None, size: int=None, quantity: float=None, to_header: str=None,  seed: int=None,
+                                save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                                 replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """A bounded normal continuous random distribution.
 
@@ -541,9 +557,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param precision: the precision of the returned number. if None then assumes int value else float
         :param size: the size of the sample
         :param quantity: a number between 0 and 1 representing data that isn't null
+        :param to_header: (optional) an optional name to call the column
         :param seed: a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -558,9 +575,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         precision = precision if isinstance(precision, int) else 3
@@ -568,12 +586,12 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         rtn_list = stats.truncnorm((lower - mean) / std, (upper - mean) / std, loc=mean, scale=std)
         rtn_list = rtn_list.rvs(size, random_state=seed).round(precision)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[to_header]))
 
     def get_distribution(self, distribution: str, canonical: pa.Table=None, is_stats: bool=None, precision: int=None,
-                         size: int=None, quantity: float=None, seed: int=None, save_intent: bool=None,
-                         column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                         size: int=None, quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None,
+                         intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                          remove_duplicates: bool=None, **kwargs) -> pa.Table:
         """returns a number based the distribution type.
 
@@ -583,9 +601,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param precision: (optional) the precision of the returned number
         :param size: (optional) the size of the sample
         :param quantity: (optional) a number between 0 and 1 representing data that isn't null
+        :param to_header: (optional) an optional name to call the column
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -601,9 +620,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed() if seed is None else seed
@@ -616,12 +636,12 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             rtn_list = eval(f"generator.{distribution}(size=size, **kwargs)", globals(), locals())
         rtn_list = list(np.around(rtn_list, precision))
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[to_header]))
 
     def get_string_pattern(self, pattern: str, canonical: pa.Table=None, choices: dict=None, as_binary: bool=None,
-                           quantity: [float, int]=None, size: int=None, choice_only: bool=None, seed: int=None,
-                           save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                           quantity: [float, int]=None, size: int=None, choice_only: bool=None, to_header: str=None,  seed: int=None,
+                           save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                            replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ Returns a random string based on the pattern given. The pattern is made up from the choices passed but
         by default is as follows:
@@ -648,9 +668,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param quantity: (optional) a number between 0 and 1 representing the percentage quantity of the data
         :param size: (optional) the size of the return list. if None returns a single value
         :param choice_only: (optional) if to only use the choices given or to take not found characters as is
+        :param to_header: (optional) an optional name to call the column
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -665,9 +686,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         choice_only = False if choice_only is None or not isinstance(choice_only, bool) else choice_only
@@ -706,12 +728,12 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         if as_binary:
             rtn_list = rtn_list.str.encode(encoding='raw_unicode_escape')
         rtn_list = self._set_quantity(rtn_list.to_list(), quantity=self._quantity(quantity), seed=seed)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.StringArray.from_pandas(rtn_list)], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([pa.StringArray.from_pandas(rtn_list)], names=[to_header]))
 
     def get_sample(self, sample_name: str, canonical: pa.Table=None, sample_size: int=None, shuffle: bool=None,
-                   size: int=None, quantity: float=None, seed: int=None, save_intent: bool=None,
-                   column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                   size: int=None, quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None,
+                   intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                    remove_duplicates: bool=None) -> pa.Table:
         """ returns a sample set based on sector and name
         To see the sample sets available use the Sample class __dir__() method:
@@ -725,9 +747,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param shuffle: (optional) if the selection should be shuffled before selection. Default is true
         :param quantity: (optional) a number between 0 and 1 representing the percentage quantity of the data
         :param size: (optional) size of the return. default to 1
+        :param to_header: (optional) an optional name to call the column
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -741,9 +764,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :return: a sample list
         """
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         sample_size = sample_name if isinstance(sample_size, int) else size
@@ -752,12 +776,12 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         shuffle = shuffle if isinstance(shuffle, bool) else True
         selection = eval(f"Sample.{sample_name}(size={size}, shuffle={shuffle}, seed={seed})")
         rtn_list = self._set_quantity(selection, quantity=quantity, seed=seed)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.Array.from_pandas(rtn_list)], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([pa.Array.from_pandas(rtn_list)], names=[to_header]))
 
     def get_analysis(self, size: int, other: [str, pa.Table], canonical: pa.Table=None, category_limit: int=None,
                      date_jitter: int=None, date_units: str=None, date_ordered: bool=None, seed: int=None,
-                     save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                     save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                      replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ builds a set of columns based on another (see analyse_association)
         if a reference DataFrame is passed then as the analysis is run if the column already exists the row
@@ -773,7 +797,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param date_ordered: (optional) if the dates are shuffled or in order
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run. In
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -788,9 +812,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
+        canonical = self._get_canonical(canonical)
         other = self._get_canonical(other)
         if other is None or other.num_rows == 0:
             return None
@@ -814,7 +839,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             if pa.types.is_dictionary(column.type):
                 selection = column.dictionary.to_pylist()
                 frequency = column.value_counts().field(1).to_pylist()
-                result = self.get_category(selection=selection, relative_freq=frequency, size=size, column_name=c,
+                result = self.get_category(selection=selection, relative_freq=frequency, size=size, intent_level=c,
                                            quantity=1-nulls, save_intent=False)
             elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
                 s_values = column.to_pandas()
@@ -873,7 +898,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
 
     def get_synthetic_data_types(self, size: int, canonical: pa.Table=None, inc_nulls: bool=None,
                                  prob_nulls: float=None, seed: int=None, category_encode: bool=None,
-                                 save_intent: bool=None, column_name: [int, str]=None,intent_order: int=None,
+                                 save_intent: bool=None, intent_level: [int, str]=None,intent_order: int=None,
                                  replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ A dataset with example data types
 
@@ -884,7 +909,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param category_encode: (optional) if the categorical should be encoded to DictionaryArray
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -899,9 +924,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed(seed=seed)
@@ -910,47 +936,48 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         # cat
         canonical = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE', 'ARCHIVE'], canonical=canonical,
                               size=size, seed=seed, relative_freq=[1, 70, 20, 30, 10], encode=category_encode,
-                              column_name='cat', save_intent=False)
+                              intent_level='cat', save_intent=False)
         # num
-        canonical = self.get_dist_normal(mean=0, std=1, canonical=canonical, size=size, seed=seed, column_name='num', save_intent=False)
+        canonical = self.get_dist_normal(mean=0, std=1, canonical=canonical, size=size, seed=seed, intent_level='num', save_intent=False)
+        canonical = self.correlate_number(canonical, 'num', precision=5, jitter=2, seed=seed, intent_level='num', save_intent=False)
         # int
-        canonical = self.get_number(start=size, stop=size * 10, at_most=1, canonical=canonical, size=size, seed=seed, column_name='int',
+        canonical = self.get_number(start=size, stop=size * 10, at_most=1, canonical=canonical, size=size, seed=seed, intent_level='int',
                             save_intent=False)
         # bool
-        canonical = self.get_boolean(size=size, probability=0.7, canonical=canonical, seed=seed, column_name='bool', save_intent=False)
+        canonical = self.get_boolean(size=size, probability=0.7, canonical=canonical, seed=seed, intent_level='bool', save_intent=False)
         # date
         canonical = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, canonical=canonical, size=size,
-                              seed=seed, column_name='date', save_intent=False)
+                              seed=seed, intent_level='date', save_intent=False)
         # string
-        canonical = self.get_sample(sample_name='us_street_names', canonical=canonical, size=size, seed=seed, column_name='string',  save_intent=False)
+        canonical = self.get_sample(sample_name='us_street_names', canonical=canonical, size=size, seed=seed, intent_level='string',  save_intent=False)
 
         if isinstance(inc_nulls, bool) and inc_nulls:
             gen = np.random.default_rng()
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             # cat_null
             canonical = self.get_category(selection=['High', 'Med', 'Low'], canonical=canonical, relative_freq=[9,8,4], quantity=1 - prob_nulls,
-                                  column_name='cat_null', size=size, encode=category_encode, seed=seed,
+                                  intent_level='cat_null', size=size, encode=category_encode, seed=seed,
                                   save_intent=False)
             # num_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             canonical = self.get_number(start=-1.0, stop=1.0, canonical=canonical, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21], size=size,
-                                quantity=1 - prob_nulls, column_name='num_null', seed=seed, save_intent=False)
+                                quantity=1 - prob_nulls, intent_level='num_null', seed=seed, save_intent=False)
             # int_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            canonical = self.get_number(start=-1000, stop=1000, canonical=canonical, size=size, quantity=1 - prob_nulls, column_name='int_null',
+            canonical = self.get_number(start=-1000, stop=1000, canonical=canonical, size=size, quantity=1 - prob_nulls, intent_level='int_null',
                                 seed=seed, save_intent=False)
             # bool_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             canonical = self.get_boolean(size=size, probability=0.4, canonical=canonical, seed=seed, quantity=1 - prob_nulls,
-                                 column_name='bool_null', save_intent=False)
+                                 intent_level='bool_null', save_intent=False)
             # date_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             canonical = self.get_datetime(start='2022-12-01', until='2023-03-31', canonical=canonical, ordered=True, size=size, quantity=1 - prob_nulls,
-                                  column_name='date_null', seed=seed, save_intent=False)
+                                  intent_level='date_null', seed=seed, save_intent=False)
             # string_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             canonical = self.get_sample(sample_name='us_cities', canonical=canonical, size=size, quantity=1 - prob_nulls,
-                                column_name='string_null', seed=seed, save_intent=False)
+                                intent_level='string_null', seed=seed, save_intent=False)
             # nulls_int
             _ = pa.table([pa.array(pa.nulls(size), pa.int64())], names=['nulls_int'])
             canonical = Commons.table_append(canonical, _)
@@ -964,32 +991,17 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             _ = pa.table([pa.nulls(size)], names=['nulls'])
             canonical = Commons.table_append(canonical, _)
             # binary
-            canonical = self.get_string_pattern(pattern='cccccccc', canonical=canonical, as_binary=True, size=size, seed=seed, column_name='binary',
-                                        save_intent=False)
+            canonical = self.get_string_pattern(pattern='cccccccc', canonical=canonical, as_binary=True, size=size,
+                                                seed=seed, intent_level='binary', save_intent=False)
             # list array
             _ = pa.array(list(zip(canonical.column('num').to_pylist(), canonical.column('num_null').to_pylist())))
             _ = pa.table([_], names=['nest_list'])
             canonical = Commons.table_append(canonical, _)
-            # struct array
-            shuffle_int = pa.Array.from_pandas(canonical.column('int').to_pandas().sample(frac=1))
-            shuffle_num = pa.Array.from_pandas(canonical.column('num').to_pandas().sample(frac=1))
-            n_tbl = pa.table([canonical.column('int')], names=['_id'])
-            n_tbl = Commons.table_append(n_tbl, pa.table([canonical.column('string')], names=['doc_name']))
-            n_tbl = Commons.table_append(n_tbl, pa.table([canonical.column('date')], names=['date.prod']))
-            n_tbl = Commons.table_append(n_tbl, pa.table([canonical.column('date_null')], names=['date.last']))
-            n_tbl = Commons.table_append(n_tbl, pa.table([shuffle_int], names=['metrics.nest_list_0._id']))
-            n_tbl = Commons.table_append(n_tbl, pa.table([shuffle_num], names=['metrics.nest_list_0.value']))
-            n_tbl = Commons.table_append(n_tbl,
-                                         pa.table([canonical.column('int_null')], names=['metrics.nest_list_1._id']))
-            n_tbl = Commons.table_append(n_tbl,
-                                         pa.table([canonical.column('num_null')], names=['metrics.nest_list_1.value']))
-            _ = Commons.table_nest(n_tbl)
-            canonical = Commons.table_append(canonical, pa.table([pa.array(_)], names=['nest_struct']))
 
         return canonical
 
     def get_noise(self, size: int, num_columns: int, canonical: pa.Table=None, seed: int=None, name_prefix: str=None,
-                  save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                  save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                   replace_intent: bool=None, remove_duplicates: bool=None) -> pd.DataFrame:
         """ Generates multiple columns of noise in your dataset
 
@@ -999,7 +1011,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         :param name_prefix: a name the prefix the column names
         :param seed: seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -1014,9 +1026,10 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
+        canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed(seed=seed)
@@ -1030,7 +1043,7 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             a = generator.choice(range(1, 6))
             b = generator.choice(range(1, 6))
             _ = self.get_distribution(distribution='beta', a=a, b=b, precision=6, size=size, seed=seed,
-                                      column_name=f"{name_prefix}{next(label_gen)}", save_intent=False)
+                                      intent_level=f"{name_prefix}{next(label_gen)}", save_intent=False)
             rtn_tbl = Commons.table_append(rtn_tbl, _)
         return Commons.table_append(canonical, rtn_tbl)
 

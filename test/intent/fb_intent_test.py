@@ -2,12 +2,14 @@ import unittest
 import os
 from pathlib import Path
 import shutil
+from pprint import pprint
+
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 from ds_capability import FeatureBuild
 from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
-from aistac.properties.property_manager import PropertyManager
+from ds_core.properties.property_manager import PropertyManager
 
 # Pandas setup
 pd.set_option('max_colwidth', 320)
@@ -57,20 +59,28 @@ class FeatureBuilderTest(unittest.TestCase):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
         tbl = tools.get_synthetic_data_types(100)
+        print(tbl.column_names)
         self.assertEqual((100, 6), tbl.shape)
         self.assertCountEqual(['cat', 'num', 'int', 'bool', 'date', 'string'], tbl.column_names)
         tbl = tools.get_synthetic_data_types(100, inc_nulls=True, prob_nulls=0.03)
         self.assertEqual((100, 19), tbl.shape)
 
-    def test_run_component_pipeline(self):
+    def test_run_intent_pipeline(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
         tools: FeatureBuildIntentModel = fb.tools
         # reload the properties
         fb = FeatureBuild.from_env('test')
-        _ = tools.get_synthetic_data_types(10, inc_nulls=True, column_name='d_types')
-        result = fb.tools.run_intent_pipeline(size=20)
-        self.assertEqual((20, 19), result.shape)
+        _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, column_name='d_types')
+        result = fb.tools.run_intent_pipeline(intent_level='d_types')
+        self.assertEqual((10, 18), result.shape)
+        _ = tools.correlate_number(result, header='num', column_name='corr_num')
+        result = fb.tools.run_intent_pipeline(canonical=result, intent_level='corr_num')
+        self.assertEqual((10, 19), result.shape)
+        _ = tools.model_profiling(result, profiling='quality', column_name='profile')
+        result = fb.tools.run_intent_pipeline(canonical=result, intent_level='profile')
+        self.assertEqual((20, 3), result.shape)
 
+    #
     def test_model_noise(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools

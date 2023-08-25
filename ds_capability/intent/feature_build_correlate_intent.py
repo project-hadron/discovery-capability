@@ -1,5 +1,4 @@
 import inspect
-from datetime import datetime, time
 from typing import Any
 import numpy as np
 import pandas as pd
@@ -15,9 +14,9 @@ from ds_capability.intent.feature_build_model_intent import FeatureBuildModelInt
 class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
 
     def correlate_number(self, canonical: pa.Table, header: str, choice: [int, float, str]=None, choice_header: str=None,
-                         precision: int=None, jitter: [int, float, str]=None, offset: [int, float, str]=None,
+                         to_header: str=None, precision: int=None, jitter: [int, float, str]=None, offset: [int, float, str]=None,
                          code_str: Any=None, lower: [int, float]=None, upper: [int, float]=None, keep_zero: bool=None,
-                         seed: int=None, save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                         seed: int=None, save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                          replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ correlate a list of continuous values adjusting those values, or a subset of those values, with a
         normalised jitter (std from the value) along with a value offset. ``choice``, ``jitter`` and ``offset``
@@ -30,6 +29,7 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         :param header: the header in the Table to correlate
         :param choice: (optional) The number of values to choose to apply the change to. Can be an environment variable.
         :param choice_header: (optional) those not chosen are given the values of the given header
+        :param to_header: (optional) an optional name to call the column
         :param precision: (optional) to what precision the return values should be
         :param offset: (optional) a fixed value to offset or if str an operation to perform using @ as the header value.
         :param code_str: (optional) passing a str lambda function. e.g. 'lambda x: (x - 3) / 2''
@@ -40,7 +40,7 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         :param lower: a minimum value not to go below
         :param upper: a max value not to go above
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -55,7 +55,7 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
@@ -126,13 +126,13 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
                 rtn_arr = pa.array(rtn_arr, pa.int64())
             except pa.lib.ArrowInvalid:
                 pass
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([rtn_arr], names=[column_name])
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
     def correlate_discrete_intervals(self, canonical: pa.Table, header: str, granularity: [int, float, list]=None,
                                      lower: [int, float]=None, upper: [int, float]=None, categories: list=None,
-                                     precision: int=None, seed: int=None, save_intent: bool=None,
-                                     column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                                     to_header: str=None, precision: int=None, seed: int=None, save_intent: bool=None,
+                                     intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                                      remove_duplicates: bool=None) -> pa.Table:
         """ converts continuous representation into discrete representation through interval categorisation
 
@@ -145,11 +145,12 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
                 list[float] - the percentile or quantities, All should fall between 0 and 1
         :param lower: (optional) the lower limit of the number value. Default min()
         :param upper: (optional) the upper limit of the number value. Default max()
+        :param to_header: (optional) an optional name to call the column
         :param precision: (optional) The precision of the range and boundary values. by default set to 5.
         :param categories:(optional)  a set of labels the same length as the intervals to name the categories
         :param seed: (optional) the random seed. defaults to current datetime
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -164,7 +165,7 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
@@ -174,13 +175,13 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         rtn_arr = DataDiscovery.to_discrete_intervals(array=canonical.column(header), granularity=granularity,
                                                       lower=lower, upper=upper, categories=categories,
                                                       precision=precision)
-        column_name = column_name if isinstance(column_name, str) else next(self.label_gen)
-        return pa.table([rtn_arr.dictionary_encode()], names=[column_name])
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([rtn_arr.dictionary_encode()], names=[to_header]))
 
     def correlate_on_condition(self, canonical: pa.Table, header: str, other: str, condition: list,
                                value: [int, float, bool, str], fill_null: [int, float,str]=None,
-                               default: [int, float, bool, str]=None, seed: int=None, save_intent: bool=None,
-                               intent_order: int=None, column_name: [int, str]=None, replace_intent: bool=None,
+                               default: [int, float, bool, str]=None, to_header: str=None, seed: int=None, save_intent: bool=None,
+                               intent_order: int=None, intent_level: [int, str]=None, replace_intent: bool=None,
                                remove_duplicates: bool=None) -> pa.Table:
         """ correlates a named header to other header where the condition is met and replaces the header column
         value with a constant or value at the same index of an array. The condition is a list of triple tuples in
@@ -201,10 +202,11 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         :param condition: a tuple or tuples of
         :param value: a constant value. If the value is a string starting @ then a header values are taken
         :param default: (optional) a default constant if not value. A string starting @ then a default name is taken
+        :param to_header: (optional) an optional name to call the column
         :param fill_null: (optional) if nulls in the other they require a value representation.
         :param seed: (optional) the random seed. defaults to current datetime
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -219,7 +221,7 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
@@ -260,9 +262,6 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
             if logic not in ['xor', 'and_not', 'and_', 'or_']:
                 raise ValueError(f"The logic '{logic}' is not implemented")
             cond_list.append((c_bool, logic))
-        # remove column
-        if column_name == header:
-            canonical = canonical.drop_columns(header)
         final_cond = cond_list[0][0]
         for idx in range(len(cond_list) - 1):
             final_cond = eval(f"pc.{cond_list[idx][1]}(final_cond, cond_list[idx+1][0])", globals(), locals())
@@ -274,11 +273,12 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         elif default is None:
             default = h_col
             # replace and add it back to the original table
-        return Commons.table_append(canonical, pa.table([pc.if_else(final_cond, value, default)], names=[column_name]))
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([pc.if_else(final_cond, value, default)], names=[to_header]))
 
     def correlate_column_join(self, canonical: pa.Table, header: str, others: [str, list], drop_others: bool=None,
-                              sep: str=None, seed: int=None, save_intent: bool=None, intent_order: int=None,
-                              column_name: [int, str]=None, replace_intent: bool=None,
+                              sep: str=None, to_header: str=None, seed: int=None, save_intent: bool=None, intent_order: int=None,
+                              intent_level: [int, str]=None, replace_intent: bool=None,
                               remove_duplicates: bool=None) -> pa.Table:
         """ creates a composite new column made up of other columns. The new column replaces the header column and the
         others are dropped unless the appropriate parameters are set.
@@ -288,9 +288,10 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         :param others: the other headers to join
         :param drop_others: drop the others header columns. Default to true
         :param sep: a separator between each column value
+        :param to_header: (optional) an optional name to call the column
         :param seed: (optional) the random seed. defaults to current datetime
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -305,7 +306,7 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
@@ -325,11 +326,6 @@ class FeatureBuildCorrelateIntent(FeatureBuildModelIntent):
             else:
                 o_col = n
             h_col = pc.binary_join_element_wise(h_col, o_col, sep)
-        if header == column_name:
-            canonical = canonical.drop_columns(header)
-        return Commons.table_append(canonical, pa.table([h_col], names=[column_name]))
-
-
-
-
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([h_col], names=[to_header]))
 

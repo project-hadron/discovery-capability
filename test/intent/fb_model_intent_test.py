@@ -8,7 +8,7 @@ import pyarrow.compute as pc
 from ds_capability import FeatureBuild
 from ds_capability.components.commons import Commons
 from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
-from aistac.properties.property_manager import PropertyManager
+from ds_core.properties.property_manager import PropertyManager
 
 # Pandas setup
 pd.set_option('max_colwidth', 320)
