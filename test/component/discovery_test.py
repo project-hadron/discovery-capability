@@ -86,9 +86,7 @@ class DiscoveryTest(unittest.TestCase):
         sb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = sb.tools
         tbl = tools.get_synthetic_data_types(600_000, inc_nulls=True)
-        startTime = datetime.now()
         result = DataDiscovery.data_schema(tbl, stylise=True)
-        print(f"Duration - {str(datetime.now() - startTime)}")
         pprint(result.to_string())
 
     def test_raise(self):

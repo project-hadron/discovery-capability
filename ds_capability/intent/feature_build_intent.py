@@ -953,8 +953,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
 
         if isinstance(inc_nulls, bool) and inc_nulls:
             gen = np.random.default_rng()
-            prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             # cat_null
+            prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             canonical = self.get_category(selection=['High', 'Med', 'Low'], canonical=canonical, relative_freq=[9,8,4], quantity=1 - prob_nulls,
                                   to_header='cat_null', size=size, encode=category_encode, seed=seed,
                                   save_intent=False)
@@ -962,14 +962,6 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             canonical = self.get_number(start=-1.0, stop=1.0, canonical=canonical, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21], size=size,
                                 quantity=1 - prob_nulls, to_header='num_null', seed=seed, save_intent=False)
-            # int_null
-            prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            canonical = self.get_number(start=-1000, stop=1000, canonical=canonical, size=size, quantity=1 - prob_nulls, to_header='int_null',
-                                seed=seed, save_intent=False)
-            # bool_null
-            prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            canonical = self.get_boolean(size=size, probability=0.4, canonical=canonical, seed=seed, quantity=1 - prob_nulls,
-                                 to_header='bool_null', save_intent=False)
             # date_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             canonical = self.get_datetime(start='2022-12-01', until='2023-03-31', canonical=canonical, ordered=True, size=size, quantity=1 - prob_nulls,
@@ -978,6 +970,15 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             canonical = self.get_sample(sample_name='us_cities', canonical=canonical, size=size, quantity=1 - prob_nulls,
                                 to_header='string_null', seed=seed, save_intent=False)
+            #sparse_bool
+            canonical = self.get_boolean(size=size, probability=0.4, canonical=canonical, seed=seed, quantity=0.55,
+                                         to_header='bool_null', save_intent=False)
+            # duplicate num
+            _ = pa.table([canonical.column('num')], names=['dup_num'])
+            canonical = Commons.table_append(canonical, _)
+            # duplicate cat
+            _ = pa.table([canonical.column('cat')], names=['dup_cat'])
+            canonical = Commons.table_append(canonical, _)
             # nulls_int
             _ = pa.table([pa.array(pa.nulls(size), pa.int64())], names=['nulls_int'])
             canonical = Commons.table_append(canonical, _)

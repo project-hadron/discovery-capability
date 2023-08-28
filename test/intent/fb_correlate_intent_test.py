@@ -67,12 +67,12 @@ class FeatureBuilderTest(unittest.TestCase):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
         tbl = tools.get_synthetic_data_types(100)
-        result = tools.correlate_discrete_intervals(tbl, header='num', column_name='num')
+        result = tools.correlate_discrete_intervals(tbl, header='num', intent_level='num')
         self.assertEqual(3, pc.count(result.column('num').combine_chunks().dictionary).as_py())
-        result = tools.correlate_discrete_intervals(tbl, header='num', categories=['low', 'mid', 'high'], column_name='num')
+        result = tools.correlate_discrete_intervals(tbl, header='num', categories=['low', 'mid', 'high'], intent_level='num')
         self.assertCountEqual(['high', 'mid', 'low'], result.column('num').combine_chunks().dictionary.to_pylist())
         result = tools.correlate_discrete_intervals(tbl, header='num', granularity=[0.25,0.5,0.75],
-                                                    categories=['0%->25%', '25%->50%', '50%->75%', '75%->100%'], column_name='num')
+                                                    categories=['0%->25%', '25%->50%', '50%->75%', '75%->100%'], intent_level='num')
         self.assertCountEqual(['0%->25%', '25%->50%', '50%->75%', '75%->100%'], result.column('num').combine_chunks().dictionary.to_pylist())
 
     def test_correlate_on_condition(self):
@@ -83,20 +83,20 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual(0, pc.count(pc.index_in(tbl.column('int').combine_chunks(), pa.array([0])).drop_null()).as_py())
         # check three zeros
         result = tools.correlate_on_condition(tbl, header='int', other='num',
-                                              condition=[(1, 'greater', 'or'), (-1, 'less', None)], value=0, column_name='int')
+                                              condition=[(1, 'greater', 'or'), (-1, 'less', None)], value=0, intent_level='int')
         self.assertEqual(352, pc.count(pc.index_in(result.column('int').combine_chunks(), pa.array([0])).drop_null()).as_py())
         # check string
         result = tools.correlate_on_condition(tbl, header='cat', other='cat',
-                                              condition=[(pa.array(['INACTIVE', "SUSPENDED"]), 'is_in', None)], value='N/A', column_name='target')
+                                              condition=[(pa.array(['INACTIVE', "SUSPENDED"]), 'is_in', None)], value='N/A', intent_level='target')
         self.assertEqual(228, pc.count(pc.index_in(result.column('target').combine_chunks(), pa.array(['N/A'])).drop_null()).as_py())
         # check headers
         result = tools.correlate_on_condition(tbl, header='int', other='num',
                                               condition=[(1, 'greater', 'or'), (-1, 'less', None)],
-                                              value=0, default=1, column_name='target')
+                                              value=0, default=1, intent_level='target')
         self.assertEqual(648, pc.sum(result.column('target')).as_py())
         result = tools.correlate_on_condition(tbl, header='int', other='num',
                                               condition=[(1, 'greater', 'or'), (-1, 'less', None)],
-                                              value=0, default="@num", column_name='target')
+                                              value=0, default="@num", intent_level='target')
         self.assertEqual(result.column('target').slice(2, 4), result.column('num').slice(2, 4))
         self.assertEqual(352, pc.count(pc.index_in(result.column('target').combine_chunks(), pa.array([0])).drop_null()).as_py())
 
@@ -104,27 +104,27 @@ class FeatureBuilderTest(unittest.TestCase):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
         tbl = tools.get_synthetic_data_types(10, seed=101)
-        result = tools.correlate_column_join(tbl, header='cat', others='string', sep=': ', column_name='compound')
+        result = tools.correlate_column_join(tbl, header='cat', others='string', sep=': ', intent_level='compound')
         self.assertCountEqual(['cat', 'num', 'int', 'bool', 'date', 'compound'], result.column_names)
         self.assertEqual("PENDING: Smokeys Gate", result.column('compound').combine_chunks()[0].as_py())
-        result = tools.correlate_column_join(tbl, header='cat', others='string', sep=': ', column_name='cat')
+        result = tools.correlate_column_join(tbl, header='cat', others='string', sep=': ', intent_level='cat')
         self.assertCountEqual(['cat', 'num', 'int', 'bool', 'date'], result.column_names)
         self.assertEqual("PENDING: Smokeys Gate", result.column('cat').combine_chunks()[0].as_py())
         tbl = tools.get_synthetic_data_types(1000, inc_nulls=True, seed=101)
-        result = tools.correlate_column_join(tbl, header='cat', others=['cat_null', 'string_null'], sep='-', column_name='compound')
+        result = tools.correlate_column_join(tbl, header='cat', others=['cat_null', 'string_null'], sep='-', intent_level='compound')
         self.assertGreater(result.column('compound').combine_chunks().null_count, 0)
 
     def test_correlate_column_join_constant(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
         tbl = tools.get_synthetic_data_types(10, seed=101)
-        result = tools.correlate_column_join(tbl, header='PI', others='int', column_name='compound')
+        result = tools.correlate_column_join(tbl, header='PI', others='int', intent_level='compound')
         self.assertTrue(pc.all(pc.match_like(result.column('compound'),"PI__")).as_py())
         self.assertEqual(['cat', 'num', 'bool', 'date', 'string', 'compound'], result.column_names)
-        result = tools.correlate_column_join(tbl, header='int', others=['-PI-', 'date'], column_name='int')
+        result = tools.correlate_column_join(tbl, header='int', others=['-PI-', 'date'], intent_level='int')
         self.assertTrue(pc.all(pc.match_like(result.column('int'),"__-PI-20%")).as_py())
         self.assertEqual(['cat', 'num', 'bool', 'string', 'int'], result.column_names)
-        result = tools.correlate_column_join(tbl, header='int', others=['-PI-', 'date'], drop_others=False, column_name='compound')
+        result = tools.correlate_column_join(tbl, header='int', others=['-PI-', 'date'], drop_others=False, intent_level='compound')
         self.assertEqual(['cat', 'num', 'int', 'bool', 'date', 'string', 'compound'], result.column_names)
 
 
