@@ -1,9 +1,7 @@
 # Developing Mongo Persist Handler
 import ast
 import pyarrow as pa
-import json
 
-from bson import ObjectId
 from ds_core.handlers.abstract_handlers import AbstractSourceHandler, AbstractPersistHandler
 from ds_core.handlers.abstract_handlers import HandlerFactory, ConnectorContract
 from ds_capability.components.commons import Commons
@@ -16,7 +14,8 @@ class MongodbSourceHandler(AbstractSourceHandler):
         """ initialise the Handler passing the source_contract dictionary """
         # required module import
         self.mongo = HandlerFactory.get_module('pymongo')
-        self.pma = HandlerFactory.get_module('pymongoarrow')
+        self.pymongo = HandlerFactory.get_module('pymongoarrow')
+        self.bson = HandlerFactory.get_module('bson')
         super().__init__(connector_contract)
 
         _kwargs = {**self.connector_contract.kwargs, **self.connector_contract.query}
@@ -55,7 +54,7 @@ class MongodbSourceHandler(AbstractSourceHandler):
                     traverse_it(item)
             elif isinstance(it, dict):
                 if '_id' in it.keys():
-                    if isinstance(it.get('_id'), ObjectId):
+                    if isinstance(it.get('_id'), self.bson.ObjectId):
                         it.update({'_id': str(it.get('_id'))})
                 for key in it.keys():
                     traverse_it(it[key])
@@ -64,7 +63,7 @@ class MongodbSourceHandler(AbstractSourceHandler):
 
         if self._mongo_aggregate is not None:
             result = list(self._mongo_collection.aggregate(self._mongo_aggregate))
-            if isinstance(result[0].get('_id'), ObjectId) or self._decode:
+            if isinstance(result[0].get('_id'), self.bson.ObjectId) or self._decode:
                 traverse_it(result)
             return Commons.table_flatten(pa.Table.from_pylist(result))
         cursor = self._mongo_collection.find(self._mongo_find, self._mongo_project)
@@ -75,7 +74,7 @@ class MongodbSourceHandler(AbstractSourceHandler):
         if self._mongo_sort is not None:
             cursor.sort(self._mongo_sort)
         result = list(cursor)
-        if isinstance(result[0].get('_id'), ObjectId) or self._decode:
+        if isinstance(result[0].get('_id'), self.bson.ObjectId) or self._decode:
             traverse_it(result)
         return Commons.table_flatten(pa.Table.from_pylist(result))
 

@@ -5,31 +5,10 @@ from ds_capability.components.discovery import DataDiscovery
 from ds_capability.intent.abstract_feature_build_intent import AbstractFeatureBuildIntentModel
 from ds_capability.intent.common_intent import CommonsIntentModel
 from ds_capability.components.commons import Commons
-from ds_capability.managers.feature_build_property_manager import FeatureBuildPropertyManager
 
 
 # noinspection PyArgumentList
 class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
-
-    def __init__(self, property_manager: FeatureBuildPropertyManager, default_save_intent: bool=None,
-                 default_intent_level: [str, int, float]=None, order_next_available: bool=None,
-                 default_replace_intent: bool=None):
-        """initialisation of the Intent class.
-
-        :param property_manager: the property manager class that references the intent contract.
-        :param default_save_intent: (optional) The default action for saving intent in the property manager
-        :param default_intent_level: (optional) the default level intent should be saved at
-        :param order_next_available: (optional) if the default behaviour for the order should be next available order
-        :param default_replace_intent: (optional) the default replace existing intent behaviour
-        """
-        default_save_intent = default_save_intent if isinstance(default_save_intent, bool) else True
-        default_replace_intent = default_replace_intent if isinstance(default_replace_intent, bool) else True
-        default_intent_level = default_intent_level if isinstance(default_intent_level, (str, int, float)) else 'A'
-        default_intent_order = -1 if isinstance(order_next_available, bool) and order_next_available else 0
-        super().__init__(property_manager=property_manager, default_save_intent=default_save_intent,
-                         default_intent_level=default_intent_level, default_intent_order=default_intent_order,
-                         default_replace_intent=default_replace_intent)
-        self.label_gen = Commons.label_gen()
 
     def model_sample_link(self, canonical: pa.Table, other: [str, pa.Table], headers: list, replace: bool=None,
                           rename_map: [dict, list]=None, multi_map: dict=None, relative_freq: list=None, seed: int=None,
@@ -92,7 +71,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                          summary_connector: bool=None, flagged_connector: str=None, detail_connector: str=None,
                          unmatched_connector: str=None, seed: int=None, save_intent: bool=None,
                          intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                         remove_duplicates: bool=None, **kwargs) -> pa.Table:
+                         remove_duplicates: bool=None) -> pa.Table:
         """returns the difference between two canonicals, joined on a common and unique key.
         The ``on_key`` parameter can be a direct reference to the canonical column header or to an environment
         variable. If the environment variable is used ``on_key`` should be set to ``"${<<YOUR_ENVIRON>>}"`` where
@@ -172,7 +151,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                 unmatched = unmatched.set_index(on_key, drop=True).reset_index(drop=True)
                 unmatched.insert(0, 'found_in', unmatched.pop('_merge'))
                 handler = self._pm.get_connector_handler(unmatched_connector)
-                handler.persist_canonical(pa.Table.from_pandas(unmatched), **kwargs)
+                handler.persist_canonical(pa.Table.from_pandas(unmatched))
             else:
                 raise ValueError(f"The connector name {unmatched_connector} has been given but no Connect Contract added")
 
@@ -203,7 +182,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                 diff_comp = diff_comp.sort_values(on_key)
                 diff_comp = diff_comp.reset_index(drop=True)
                 handler = self._pm.get_connector_handler(detail_connector)
-                handler.persist_canonical(pa.Table.from_pandas(diff_comp), **kwargs)
+                handler.persist_canonical(pa.Table.from_pandas(diff_comp))
             else:
                 raise ValueError(f"The connector name {detail_connector} has been given but no Connect Contract added")
 
@@ -218,7 +197,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                 count.columns = ['Attribute', 'Summary']
                 summary = pd.concat([count, summary], axis=0).reset_index(drop=True)
                 handler = self._pm.get_connector_handler(summary_connector)
-                handler.persist_canonical(pa.Table.from_pandas(summary), **kwargs)
+                handler.persist_canonical(pa.Table.from_pandas(summary))
             else:
                 raise ValueError(f"The connector name {summary_connector} has been given but no Connect Contract added")
 
@@ -228,7 +207,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
                 diff = diff.sort_values(on_key)
                 diff = diff.reset_index(drop=True)
                 handler = self._pm.get_connector_handler(flagged_connector)
-                handler.persist_canonical(pa.Table.from_pandas(diff), **kwargs)
+                handler.persist_canonical(pa.Table.from_pandas(diff))
                 return canonical
             raise ValueError(f"The connector name {flagged_connector} has been given but no Connect Contract added")
 
@@ -241,7 +220,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
     def model_profiling(self, canonical: pa.Table, profiling: str, headers: [str, list]=None, d_types: [str, list]=None,
                         regex: [str, list]=None, drop: bool=None, connector_name: str=None,  seed: int=None,
                         save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                        replace_intent: bool=None, remove_duplicates: bool=None, **kwargs) -> pa.Table:
+                        replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ Data profiling provides, analyzing, and creating useful summaries of data. The process yields a high-level
         overview which aids in the discovery of data quality issues, risks, and overall trends. It can be used to
         identify any errors, anomalies, or patterns that may exist within the data. There are three types of data
@@ -288,7 +267,7 @@ class FeatureBuildModelIntent(AbstractFeatureBuildIntentModel, CommonsIntentMode
         if isinstance(connector_name, str):
             if self._pm.has_connector(connector_name):
                 handler = self._pm.get_connector_handler(connector_name)
-                handler.persist_canonical(result, **kwargs)
+                handler.persist_canonical(result)
                 return canonical
             raise ValueError(f"The connector name {connector_name} has been given but no Connect Contract added")
         return result

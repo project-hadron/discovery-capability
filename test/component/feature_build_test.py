@@ -1,8 +1,8 @@
-import ast
 import unittest
 import os
 from pathlib import Path
 import shutil
+import ast
 from datetime import datetime
 from pprint import pprint
 
@@ -10,10 +10,10 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
-
-from ds_core.handlers.event_handlers import EventManager
+from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
 from ds_core.properties.property_manager import PropertyManager
-from ds_capability import FeatureBuild, Controller
+
+from ds_capability import FeatureBuild
 
 # Pandas setup
 pd.set_option('max_colwidth', 320)
@@ -63,8 +63,15 @@ class FeatureBuilderTest(unittest.TestCase):
         except OSError:
             pass
 
-    def test_for_smoke(self):
-        set_service()
+    def test_run_intent_pipeline_order(self):
+        fb = FeatureBuild.from_env('test', has_contract=False)
+        tools: FeatureBuildIntentModel = fb.tools
+        _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_level='simulator')
+        _ = tools.correlate_number(_, header='num', intent_level='data_quality', intent_order=0)
+        _ = tools.model_profiling(_, profiling='quality', intent_level='data_quality', intent_order=1)
+        pprint(pm_view('feature_build', 'test', 'intent'))
+        fb.run_component_pipeline(intent_levels=['simulator', 'data_quality'])
+
 
     def test_raise(self):
         startTime = datetime.now()
@@ -74,35 +81,23 @@ class FeatureBuilderTest(unittest.TestCase):
         print(f"Duration - {str(datetime.now() - startTime)}")
 
 
-def get_table(size: int=10, inc_null: bool=None):
-    return FeatureBuild.from_memory().tools.get_synthetic_data_types(size=size, inc_nulls=inc_null)
+def get_table():
+    num = pa.array([1.0, None, 5.0, -0.46421, 3.5, 7.233, -2], pa.float64())
+    val = pa.array([1, 2, 3, 4, 5, 6, 7], pa.int64())
+    date = pc.strptime(["2023-01-02 04:49:06", "2023-01-02 04:57:12", None, None, "2023-01-02 05:23:50", None, None],
+                       format='%Y-%m-%d %H:%M:%S', unit='ns')
+    text = pa.array(["Blue", "Green", None, 'Red', 'Orange', 'Yellow', 'Pink'], pa.string())
+    binary = pa.array([True, True, None, False, False, True, False], pa.bool_())
+    cat = pa.array([None, 'M', 'F', 'M', 'F', 'M', 'M'], pa.string()).dictionary_encode()
+    return pa.table([num, val, date, text, binary, cat], names=['num', 'int', 'date', 'text', 'bool', 'cat'])
 
-def set_service():
-    EventManager().set('sample', get_table())
-    fb1 = FeatureBuild.from_env('task1', has_contract=False)
-    fb1.set_source_uri("event://sample")
-    fb1.set_persist_uri("event://task1_outcome")
-    tbl = fb1.tools.get_synthetic_data_types(size=10)
-    _ = fb1.tools.get_noise(size=10, num_columns=2, canonical=tbl)
-    fb1.run_component_pipeline()
-    pprint(pm_view('feature_build', 'task1'))
-    # fb2 = FeatureBuild.from_env('task2', has_contract=False)
-    # fb2.set_source_uri(fb1.get_persist_contract().raw_uri)
-    # fb2.set_persist_uri("event://task2_outcome")
-    # source_tbl = fb2.load_source_canonical()
-    # _ = fb2.tools.correlate_number(canonical=source_tbl, header='num', column_name='corr')
-    # fb2.run_component_pipeline()
-    # controller = Controller.from_env(has_contract=False)
-    # controller.intent_model.feature_build(canonical=None, task_name='task1', intent_level='task1_tr')
-    # controller.intent_model.wrangle(canonical=None, task_name='task2', intent_level='task2_wr')
 
-def pm_view(capability: str, task: str, section: str=None):
+def pm_view(capability: str, task: str, section: str = None):
     uri = os.path.join(os.environ['HADRON_PM_PATH'], f"hadron_pm_{capability}_{task}.parquet")
     tbl = pq.read_table(uri)
     tbl = tbl.column(0).combine_chunks()
-    result = ast.literal_eval(tbl.to_pylist()[0]).get(capability,{}).get(task,{})
+    result = ast.literal_eval(tbl.to_pylist()[0]).get(capability, {}).get(task, {})
     return result.get(section, {}) if isinstance(section, str) and section in result.keys() else result
-
 
 
 if __name__ == '__main__':

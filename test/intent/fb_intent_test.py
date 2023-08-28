@@ -2,11 +2,13 @@ import unittest
 import os
 from pathlib import Path
 import shutil
+import ast
 from pprint import pprint
 
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
+import pyarrow.parquet as pq
 from ds_capability import FeatureBuild
 from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
 from ds_core.properties.property_manager import PropertyManager
@@ -70,15 +72,56 @@ class FeatureBuilderTest(unittest.TestCase):
         tools: FeatureBuildIntentModel = fb.tools
         # reload the properties
         fb = FeatureBuild.from_env('test')
-        _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, column_name='d_types')
-        result = fb.tools.run_intent_pipeline(intent_level='d_types')
+        _ = tools.get_synthetic_data_types(size=10, inc_nulls=True)
+        result = fb.tools.run_intent_pipeline()
         self.assertEqual((10, 18), result.shape)
-        _ = tools.correlate_number(result, header='num', column_name='corr_num')
-        result = fb.tools.run_intent_pipeline(canonical=result, intent_level='corr_num')
+        _ = tools.correlate_number(result, header='num')
+        result = fb.tools.run_intent_pipeline(canonical=result)
         self.assertEqual((10, 19), result.shape)
-        _ = tools.model_profiling(result, profiling='quality', column_name='profile')
-        result = fb.tools.run_intent_pipeline(canonical=result, intent_level='profile')
-        self.assertEqual((20, 3), result.shape)
+        _ = tools.model_profiling(result, profiling='quality')
+        pprint(pm_view('feature_build', 'test', 'intent'))
+        result = fb.tools.run_intent_pipeline(canonical=result)
+        self.assertEqual((21, 3), result.shape)
+
+    def test_run_intent_pipeline_order(self):
+        fb = FeatureBuild.from_env('test', has_contract=False)
+        tools: FeatureBuildIntentModel = fb.tools
+        # reload the properties
+        fb = FeatureBuild.from_env('test')
+        _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_order=0)
+        _ = tools.correlate_number(_, header='num', intent_order=1)
+        _ = tools.model_profiling(_, profiling='quality', intent_order=1)
+        pprint(pm_view('feature_build', 'test', 'intent'))
+        result = fb.tools.run_intent_pipeline()
+        self.assertEqual((21, 3), result.shape)
+
+    def test_run_intent_pipeline_canonical(self):
+        fb = FeatureBuild.from_env('test', has_contract=False)
+        tools: FeatureBuildIntentModel = fb.tools
+        # reload the properties
+        fb = FeatureBuild.from_env('test')
+        tbl = tools.get_synthetic_data_types(size=10, inc_nulls=True, save_intent=False)
+        _ = tools.correlate_number(tbl, header='num')
+        _ = tools.model_profiling(_, profiling='quality')
+        pprint(pm_view('feature_build', 'test', 'intent'))
+        result = fb.tools.run_intent_pipeline(canonical=tbl)
+        self.assertEqual((21, 3), result.shape)
+        # get number of columns from the summary
+        self.assertEqual(str(19), result.column('summary').slice(5, 1).to_pylist()[0])
+
+    def test_run_intent_pipeline_intent_level(self):
+        fb = FeatureBuild.from_env('test', has_contract=False)
+        tools: FeatureBuildIntentModel = fb.tools
+        # reload the properties
+        fb = FeatureBuild.from_env('test')
+        tbl = tools.get_synthetic_data_types(size=10, inc_nulls=True, save_intent=False)
+        _ = tools.correlate_number(tbl, header='num', intent_level='quantity')
+        _ = tools.model_profiling(_, profiling='quality', intent_level='quantity')
+        pprint(pm_view('feature_build', 'test', 'intent'))
+        result = fb.tools.run_intent_pipeline(canonical=tbl, intent_level='quantity')
+        self.assertEqual((21, 3), result.shape)
+        # get number of columns from the summary
+        self.assertEqual(str(19), result.column('summary').slice(5, 1).to_pylist()[0])
 
     #
     def test_model_noise(self):
@@ -94,6 +137,13 @@ class FeatureBuilderTest(unittest.TestCase):
         with self.assertRaises(KeyError) as context:
             env = os.environ['NoEnvValueTest']
         self.assertTrue("'NoEnvValueTest'" in str(context.exception))
+
+def pm_view(capability: str, task: str, section: str=None):
+    uri = os.path.join(os.environ['HADRON_PM_PATH'], f"hadron_pm_{capability}_{task}.parquet")
+    tbl = pq.read_table(uri)
+    tbl = tbl.column(0).combine_chunks()
+    result = ast.literal_eval(tbl.to_pylist()[0]).get(capability,{}).get(task,{})
+    return result.get(section, {}) if isinstance(section, str) and section in result.keys() else result
 
 
 if __name__ == '__main__':

@@ -33,56 +33,58 @@ class DataDiscovery(object):
         # cast the values
         tbl = Commons.table_cast(canonical, cat_max=cat_threshold)
         # dictionary
-        _null_columns = 0
-        _dom_columns = 0
-        _sparce_columns = 0
-        _date_columns = 0
-        _bool_columns = 0
-        _cat_columns = 0
-        _num_columns = 0
-        _int_columns = 0
-        _str_columns = 0
-        _nest_columns = 0
-        _other_columns = 0
-        _key_columns = 0
+        _null_columns = []
+        _dom_columns = []
+        _sparce_columns = []
+        _date_columns = []
+        _bool_columns = []
+        _cat_columns = []
+        _num_columns = []
+        _int_columns = []
+        _str_columns = []
+        _nest_columns = []
+        _other_columns = []
+        _key_columns = []
         for n in tbl.column_names:
             c = tbl.column(n).combine_chunks()
             if pa.types.is_nested(c.type):
-                _nest_columns += 1
+                _nest_columns.append(n)
                 continue
             if not pa.types.is_dictionary(c.type):
                 if pc.count(c).as_py() == 0 or c.null_count/pc.count(c).as_py() > nulls_threshold:
-                    _null_columns += 1
+                    _null_columns.append(n)
                 elif pc.count_distinct(c.drop_null()).as_py() == pc.count(c).as_py():
-                    _key_columns += 1
+                    _key_columns.append(n)
                 elif 1-(pc.count_distinct(c.drop_null()).as_py()/pc.count(c).as_py()) > dom_threshold:
-                    _dom_columns += 1
+                    _dom_columns.append(n)
                 elif (pa.types.is_integer(c.type) or pa.types.is_floating(c.type)) \
                           and pc.greater(pc.divide(pc.count(c.filter(pc.equal(c,0))),
                                                    pc.count(c).cast(pa.float64())),0.66).as_py():
-                    _sparce_columns += 1
+                    _sparce_columns.append(n)
             if pa.types.is_dictionary(c.type):
-                _cat_columns += 1
+                _cat_columns.append(n)
             elif pa.types.is_string(c.type):
-                _str_columns += 1
+                _str_columns.append(n)
             elif pa.types.is_integer(c.type):
-                _int_columns += 1
+                _int_columns.append(n)
             elif pa.types.is_floating(c.type):
-                _num_columns += 1
+                _num_columns.append(n)
             elif pa.types.is_boolean(c.type):
-                _bool_columns += 1
+                _bool_columns.append(n)
             elif pa.types.is_timestamp(c.type) or pa.types.is_time(c.type):
-                _date_columns += 1
+                _date_columns.append(n)
             else:
-                _other_columns += 1
+                _other_columns.append(n)
         # dictionary
         _usable_columns = _date_columns + _bool_columns + _cat_columns + _num_columns + _int_columns + _str_columns
-        _null_avg = _null_columns / canonical.num_columns
-        _dom_avg = _dom_columns / canonical.num_columns
+        _null_avg = len(_null_columns) / canonical.num_columns
+        _dom_avg = len(_dom_columns) / canonical.num_columns
         _quality_avg = int(round(100 - (((_null_avg + _dom_avg) / 2) * 100), 0))
-        _usable = int(round((_usable_columns / canonical.num_columns) * 100, 2))
+        _usable = int(round((len(_usable_columns) / canonical.num_columns) * 100, 2))
         # duplicate
-        _dup_columns = canonical.slice(0, 500_000).drop_null().to_pandas().T.duplicated().T.sum()
+        _dup_columns = canonical.slice(0, 500_000).drop_null().to_pandas().T.duplicated().T
+        _dup_columns = _dup_columns[_dup_columns].index.to_list()
+        # time
         _dt_today = pd.to_datetime('today')
         mem_usage = canonical.get_total_buffer_size()
         _tbl_mem = f"{mem_usage >> 20} Mb" if mem_usage >> 20 > 0 else f"{mem_usage} bytes"
@@ -92,17 +94,17 @@ class DataDiscovery(object):
             'timestamp': {'readable': _dt_today.strftime('%d %B %Y %I:%M %p'),
                           'semantic': _dt_today.strftime('%Y-%m-%d %H:%M:%S')},
             'score': {'quality_avg': f"{_quality_avg}%", 'usability_avg': f"{_usable}%"},
-            'data_shape': {'rows': canonical.num_rows, 'columns': canonical.num_columns,
-                         'tbl_memory': _tbl_mem, 'total_allocated': _tot_mem},
-            'data_type': {'floating': _num_columns, 'integer': _int_columns,
-                          'category': _cat_columns, 'datetime': _date_columns,
-                          'bool': _bool_columns,'string': _str_columns,
-                          'nested': _nest_columns, 'others': _other_columns},
-            'usability': {'mostly_null': _null_columns,
-                          'predominance': _dom_columns,
-                          'sparse': _sparce_columns,
-                          'duplicate': _dup_columns,
-                          'candidate_keys': _key_columns}
+            'data_shape': {'tbl_memory': _tbl_mem, 'total_allocated': _tot_mem,
+                           'rows': canonical.num_rows, 'columns': canonical.num_columns},
+            'data_type': {'floating': len(_num_columns), 'integer': len(_int_columns),
+                          'category': len(_cat_columns), 'datetime': len(_date_columns),
+                          'bool': len(_bool_columns),'string': len(_str_columns),
+                          'nested': len(_nest_columns), 'others': len(_other_columns)},
+            'usability': {'mostly_null': len(_null_columns),
+                          'predominance': len(_dom_columns),
+                          'sparse': len(_sparce_columns),
+                          'duplicate': len(_dup_columns),
+                          'candidate_keys': len(_key_columns)}
         }
         # convert to multi-index DataFrame
         result = pd.DataFrame.from_dict(report, orient="index").stack().to_frame()
@@ -111,7 +113,10 @@ class DataDiscovery(object):
         result = result.reset_index(names=['sections', 'elements'])
         if stylise:
             return Commons.report(result, index_header='sections', bold=['elements'])
-        return pa.Table.from_pandas(result)
+        reference = [_num_columns, _int_columns, _cat_columns, _date_columns, _bool_columns, _str_columns, _nest_columns,
+                 _other_columns, _null_columns, _dom_columns, _sparce_columns, _dup_columns, _key_columns]
+        return Commons.table_append(pa.Table.from_pandas(result),
+                                    pa.table([pa.array([[]] * 8 + reference, pa.list_(pa.string()))], names=['columns']))
 
 
     @staticmethod

@@ -1,36 +1,35 @@
-import numpy as np
-import pandas as pd
 import pyarrow as pa
-from ds_core.intent.abstract_intent import AbstractIntentModel
-from ds_core.properties.abstract_properties import AbstractPropertyManager
 from ds_capability.components.commons import Commons
+from ds_capability.managers.feature_build_property_manager import FeatureBuildPropertyManager
+from ds_core.intent.abstract_intent import AbstractIntentModel
 
 class AbstractFeatureBuildIntentModel(AbstractIntentModel):
 
     _INTENT_PARAMS = ['self', 'save_intent', 'intent_level', 'intent_order',
                       'replace_intent', 'remove_duplicates', 'seed']
 
-    def __init__(self, property_manager: AbstractPropertyManager, default_save_intent: bool=None,
-                 default_intent_level: [str, int, float]=None, default_intent_order: int=None,
+    def __init__(self, property_manager: FeatureBuildPropertyManager, default_save_intent: bool=None,
+                 default_intent_level: [str, int, float]=None, order_next_available: bool=None,
                  default_replace_intent: bool=None):
         """initialisation of the Intent class.
 
         :param property_manager: the property manager class that references the intent contract.
         :param default_save_intent: (optional) The default action for saving intent in the property manager
         :param default_intent_level: (optional) the default level intent should be saved at
-        :param default_intent_order: (optional) if the default behaviour for the order should be next available order
+        :param order_next_available: (optional) if the default behaviour for the order should be next available order
         :param default_replace_intent: (optional) the default replace existing intent behaviour
         """
         default_save_intent = default_save_intent if isinstance(default_save_intent, bool) else True
         default_replace_intent = default_replace_intent if isinstance(default_replace_intent, bool) else True
-        default_intent_level = default_intent_level if isinstance(default_intent_level, (str, int, float)) else 'A'
-        default_intent_order = default_intent_order if isinstance(default_intent_order, int) else 0
+        default_intent_level = default_intent_level if isinstance(default_intent_level, (str, int, float)) else 'primary'
+        default_intent_order = -1 if isinstance(order_next_available, bool) and order_next_available else 0
         intent_param_exclude = ['canonical']
-        intent_type_additions = [np.int8, np.int16, np.int32, np.int64, np.float32, np.float64, pd.Timestamp]
+        intent_type_additions = []
         super().__init__(property_manager=property_manager, default_save_intent=default_save_intent,
                          intent_param_exclude=intent_param_exclude, default_intent_level=default_intent_level,
                          default_intent_order=default_intent_order, default_replace_intent=default_replace_intent,
                          intent_type_additions=intent_type_additions)
+        self.label_gen = Commons.label_gen()
 
     def run_intent_pipeline(self, canonical: pa.Table=None, intent_level: [str, int]=None, seed: int=None,
                             simulate: bool=None, **kwargs) -> pa.Table:
@@ -45,11 +44,10 @@ class AbstractFeatureBuildIntentModel(AbstractIntentModel):
         :return: a pa.Table
         """
         simulate = simulate if isinstance(simulate, bool) else False
+        intent_level = intent_level if isinstance(intent_level, (str, int)) else self._default_intent_level
         col_sim = {"column": [], "order": [], "method": []}
-        # legacy
         canonical = self._get_canonical(canonical)
         size = canonical.shape[0] if isinstance(canonical, pa.Table) else kwargs.pop('size', 1000)
-        result = None
         # test if there is any intent to run
         if not self._pm.has_intent(intent_level):
             raise ValueError(f"intent '{intent_level}' is not in [{self._pm.get_intent()}]")
@@ -63,20 +61,19 @@ class AbstractFeatureBuildIntentModel(AbstractIntentModel):
                             col_sim['order'].append(order)
                             col_sim['method'].append(method)
                             continue
-                        result = None
                         params.update(params.pop('kwargs', {}))
                         params.update({'save_intent': False})
                         if isinstance(seed, int):
                             params.update({'seed': seed})
                         _ = params.pop('intent_creator', 'Unknown')
-                        result = eval(f"self.{method}(canonical=canonical, **params)", globals(), locals())
+                        canonical = eval(f"self.{method}(canonical=canonical, **params)", globals(), locals())
                 except ValueError as ve:
                     raise ValueError(f"intent '{intent_level}', order '{order}', method '{method}' failed with: {ve}")
                 except TypeError as te:
                     raise TypeError(f"intent '{intent_level}', order '{order}', method '{method}' failed with: {te}")
         if simulate:
             return pa.Table.from_pydict(col_sim)
-        return result
+        return canonical
 
     """
         PRIVATE METHODS SECTION
