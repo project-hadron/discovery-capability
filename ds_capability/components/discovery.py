@@ -50,29 +50,30 @@ class DataDiscovery(object):
             if pa.types.is_nested(c.type):
                 _nest_columns.append(n)
                 continue
-            if not pa.types.is_dictionary(c.type):
-                if c.null_count/tbl.num_rows > nulls_threshold:
-                    _null_columns.append(n)
-                elif c.null_count / tbl.num_rows > 0.66:
-                    _sparce_columns.append(n)
-                elif pc.count_distinct(c.drop_null()).as_py() == pc.count(c).as_py():
-                    _key_columns.append(n)
-                elif 1-(pc.count_distinct(c.drop_null()).as_py()/pc.count(c).as_py()) > dom_threshold:
-                    _dom_columns.append(n)
-            if pa.types.is_dictionary(c.type):
-                _cat_columns.append(n)
-            elif pa.types.is_string(c.type):
+            elif pa.types.is_string(c.type) and c.null_count != tbl.num_rows:
                 _str_columns.append(n)
-            elif pa.types.is_integer(c.type):
+            elif pa.types.is_integer(c.type) and c.null_count != tbl.num_rows:
                 _int_columns.append(n)
-            elif pa.types.is_floating(c.type):
+            elif pa.types.is_floating(c.type) and c.null_count != tbl.num_rows:
                 _num_columns.append(n)
-            elif pa.types.is_boolean(c.type):
+            elif pa.types.is_boolean(c.type) and c.null_count != tbl.num_rows:
                 _bool_columns.append(n)
-            elif pa.types.is_timestamp(c.type) or pa.types.is_time(c.type):
+            elif pa.types.is_timestamp(c.type) or pa.types.is_time(c.type) and c.null_count != tbl.num_rows:
                 _date_columns.append(n)
+            elif pa.types.is_dictionary(c.type):
+                _cat_columns.append(n)
+                c = c.dictionary_decode()
             else:
                 _other_columns.append(n)
+                # nulls and
+            if c.null_count/tbl.num_rows > nulls_threshold:
+                _null_columns.append(n)
+            elif c.null_count / tbl.num_rows > 0.66:
+                _sparce_columns.append(n)
+            elif pc.count_distinct(c.drop_null()).as_py() == pc.count(c).as_py():
+                _key_columns.append(n)
+            elif 1-(pc.count_distinct(c.drop_null()).as_py()/pc.count(c).as_py()) > dom_threshold:
+                _dom_columns.append(n)
         # dictionary
         _usable_columns = _date_columns + _bool_columns + _cat_columns + _num_columns + _int_columns + _str_columns
         _null_avg = len(_null_columns) / canonical.num_columns

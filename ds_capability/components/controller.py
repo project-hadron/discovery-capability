@@ -380,24 +380,31 @@ class Controller(AbstractComponent):
                         if isinstance(sleep, int) and count < repeat - 1:
                             time.sleep(sleep)
                         continue
-                canonical = None
                 for intent in intent_levels:
                     task = intent.get('task')
                     source = intent.get('source', self.CONNECTOR_SOURCE)
                     persist = intent.get('persist', self.CONNECTOR_PERSIST)
                     if isinstance(run_cycle_report, str):
                         df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'running {task}']
+                    if not self.pm.has_connector(connector_name=source):
+                        raise ValueError(f"The data connector name '{source}' is not in the connectors catalog")
+                    handler = self.pm.get_connector_handler(source)
+                    source_tbl = handler.source_canonical()
+                    if isinstance(run_cycle_report, str):
+                        df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'sourcing {source}']
                     # get the result
-                    task_tbl = self.intent_model.run_intent_pipeline(source, intent_level=task,
+                    persist_tbl = self.intent_model.run_intent_pipeline(source_tbl, intent_level=task,
                                                                      controller_repo=self.URI_PM_REPO)
-                    canonical = Commons.table_append(canonical, task_tbl)
                     if isinstance(run_cycle_report, str):
                         df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f"canonical shape is "
-                                                                                        f"{canonical.shape}"]
-                # if not self.pm.has_connector(connector_name=persist):
-                #     raise ValueError(f"The data connector name '{persist}' is not in the connectors catalog")
-                # handler = self.pm.get_connector_handler(persist)
-                # handler.persist_canonical(canonical)
+                                                                                        f"{persist_tbl.shape}"]
+                    if not self.pm.has_connector(connector_name=persist):
+                        raise ValueError(f"The data connector name '{persist}' is not in the connectors catalog")
+                    handler = self.pm.get_connector_handler(persist)
+                    handler.persist_canonical(persist_tbl)
+                    if isinstance(run_cycle_report, str):
+                        df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'persisted {persist}']
+                        df_report.loc[len(df_report.index)] = [datetime.datetime.now(), 'tasks complete']
                 if isinstance(run_cycle_report, str):
                     df_report.loc[len(df_report.index)] = [datetime.datetime.now(), 'tasks complete']
                 if isinstance(sleep, int) and count < repeat-1:

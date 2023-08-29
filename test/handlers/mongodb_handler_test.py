@@ -135,14 +135,23 @@ class MongodbHandlerTest(unittest.TestCase):
                 "customerCategory":1,  
                 "customerSubCategory":1, 
                 "customerType":1, 
+                "organizationChildRelationship": {
+                    "$cond": {
+                        "if": {"$isArray": "$organizationChildRelationship"},
+                        "then": "$organizationChildRelationship",
+                        "else": [
+                            {
+                                "organization": {
+                                    "_id": None,
+                                    "referredType": None
+                                },
+                                "relationshipType": None
+                            }
+                        ]
+                    }},
                 "riskCategory":1, 
                 "status": 1,
                 "creditProfile": 1, 
-                #"creditProfile.creditRiskRating": 1, 
-                #"creditProfile.creditScore": 1,
-                #"creditProfile.creditAgencyName": 1, 
-                #"creditProfile.creditAgencyType": 1,
-                #"creditProfile.validFor": 1,
                 "deniedList.isDenied": 1, 
                 "deniedList.validFor.startDateTime": 1,
                 "engagedParty": 1
