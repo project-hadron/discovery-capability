@@ -51,16 +51,14 @@ class DataDiscovery(object):
                 _nest_columns.append(n)
                 continue
             if not pa.types.is_dictionary(c.type):
-                if pc.count(c).as_py() == 0 or c.null_count/pc.count(c).as_py() > nulls_threshold:
+                if c.null_count/tbl.num_rows > nulls_threshold:
                     _null_columns.append(n)
+                elif c.null_count / tbl.num_rows > 0.66:
+                    _sparce_columns.append(n)
                 elif pc.count_distinct(c.drop_null()).as_py() == pc.count(c).as_py():
                     _key_columns.append(n)
                 elif 1-(pc.count_distinct(c.drop_null()).as_py()/pc.count(c).as_py()) > dom_threshold:
                     _dom_columns.append(n)
-                elif (pa.types.is_integer(c.type) or pa.types.is_floating(c.type)) \
-                          and pc.greater(pc.divide(pc.count(c.filter(pc.equal(c,0))),
-                                                   pc.count(c).cast(pa.float64())),0.66).as_py():
-                    _sparce_columns.append(n)
             if pa.types.is_dictionary(c.type):
                 _cat_columns.append(n)
             elif pa.types.is_string(c.type):
@@ -82,8 +80,12 @@ class DataDiscovery(object):
         _quality_avg = int(round(100 - (((_null_avg + _dom_avg) / 2) * 100), 0))
         _usable = int(round((len(_usable_columns) / canonical.num_columns) * 100, 2))
         # duplicate
-        _dup_columns = canonical.slice(0, 500_000).drop_null().to_pandas().T.duplicated().T
-        _dup_columns = _dup_columns[_dup_columns].index.to_list()
+        _dup_columns = []
+        for i in range(0, len(tbl.column_names)):
+            col_1 = tbl.column_names[i]
+            for col_2 in tbl.column_names[i + 1:]:
+                if tbl.column(col_1).equals(tbl.column(col_2)):
+                    _dup_columns.append(col_2)
         # time
         _dt_today = pd.to_datetime('today')
         mem_usage = canonical.get_total_buffer_size()

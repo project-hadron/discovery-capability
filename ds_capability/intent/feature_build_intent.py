@@ -971,8 +971,8 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
             canonical = self.get_sample(sample_name='us_cities', canonical=canonical, size=size, quantity=1 - prob_nulls,
                                 to_header='string_null', seed=seed, save_intent=False)
             #sparse_bool
-            canonical = self.get_boolean(size=size, probability=0.4, canonical=canonical, seed=seed, quantity=0.55,
-                                         to_header='bool_null', save_intent=False)
+            canonical = self.get_number(start=-50, stop=8.0, canonical=canonical, size=size, quantity=0.3,
+                                        to_header='sparse', seed=seed, save_intent=False)
             # duplicate num
             _ = pa.table([canonical.column('num')], names=['dup_num'])
             canonical = Commons.table_append(canonical, _)
