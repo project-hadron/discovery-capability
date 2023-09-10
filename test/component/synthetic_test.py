@@ -6,7 +6,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 from ds_capability import FeatureBuild
-from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
+from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
 
 # Pandas setup
@@ -55,7 +55,7 @@ class SyntheticTest(unittest.TestCase):
 
     def test_for_smoke(self):
         sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = sb.tools
+        tools: FeatureBuildIntent = sb.tools
         tbl = tools.get_synthetic_data_types(10)
         old_schema = tbl.schema
         sb.add_connector_uri('sample', './working/data/sample.parquet')

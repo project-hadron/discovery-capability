@@ -10,7 +10,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from ds_capability import FeatureBuild
-from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
+from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
 
 # Pandas setup
@@ -59,7 +59,7 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_for_smoke(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         tbl = tools.get_synthetic_data_types(100)
         self.assertEqual((100, 6), tbl.shape)
         self.assertCountEqual(['cat', 'num', 'int', 'bool', 'date', 'string'], tbl.column_names)
@@ -80,7 +80,7 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_run_intent_pipeline(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         # reload the properties
         fb = FeatureBuild.from_env('test')
         _ = tools.get_synthetic_data_types(size=10, inc_nulls=True)
@@ -96,7 +96,7 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_run_intent_pipeline_order(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         # reload the properties
         fb = FeatureBuild.from_env('test')
         _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_order=0)
@@ -108,7 +108,7 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_run_intent_pipeline_canonical(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         # reload the properties
         fb = FeatureBuild.from_env('test')
         tbl = tools.get_synthetic_data_types(size=10, inc_nulls=True, save_intent=False)
@@ -122,7 +122,7 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_run_intent_pipeline_intent_level(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         # reload the properties
         fb = FeatureBuild.from_env('test')
         tbl = tools.get_synthetic_data_types(size=10, inc_nulls=True, save_intent=False)
@@ -137,7 +137,7 @@ class FeatureBuilderTest(unittest.TestCase):
     #
     def test_model_noise(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         tbl = tools.get_noise(10, num_columns=3)
         self.assertEqual((10, 3), tbl.shape)
         self.assertEqual(['A', 'B', 'C'], tbl.column_names)

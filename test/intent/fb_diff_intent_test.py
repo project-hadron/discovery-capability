@@ -6,7 +6,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 from ds_capability import FeatureBuild
-from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
+from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
 
 # Pandas setup
@@ -59,7 +59,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_for_smoke(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         fb.set_source_uri('./working/source/hadron_synth_origin.pq')
         fb.add_connector_uri('sample', './working/source/hadron_synth_other.pq')
         tbl = fb.load_source_canonical()
@@ -76,7 +76,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_pipeline(self):
         fb = FeatureBuild.from_env('tester', has_contract=False)
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         fb.set_source_uri('./working/source/hadron_synth_origin.pq')
         fb.add_connector_uri('sample', './working/source/hadron_synth_other.pq')
         tbl = fb.load_source_canonical()
@@ -87,7 +87,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_model_no_difference(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         fb.add_connector_uri('sample', './working/data/sample.parquet')
         tbl = tools.get_synthetic_data_types(10, inc_nulls=False)
         fb.save_canonical('sample', tbl)
@@ -97,7 +97,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_model_difference_num(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         df = pa.table(data=    {"A": list("ABCDEFG"), "B": [1, 2, 5, 5, 3, 3, 1], 'C': [0,  2, 3, 3, 3, 2, 1], 'D': [0, 2, 0, 4, 3, 2, 1]})
         target = pa.table(data={"A": list("ABCDEFG"), "B": [1, 2, 5, 4, 3, 3, 1], 'C': [11, 2, 3, 4, 3, 2, 1], 'D': [0, 2, 0, 4, 3, 2, 1]})
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
@@ -114,7 +114,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_model_difference_str(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         df = pa.table(data=    {"A": list("ABCDEFG"), "B": ['B', 'C', 'A', 'A', 'F', 'E', 'G'], 'C': ['L', 'L',  'M', 'N', 'J', 'K', 'M']})
         target = pa.table(data={"A": list("ABCDEFG"), "B": ['B', 'C', 'D', 'A', 'F', 'E', 'G'], 'C': ['L', 'FX', 'M', 'N', 'P', 'K', 'M']})
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
@@ -130,7 +130,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_model_difference_unmatched(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         df = pa.table(data={"X": list("ABCDEFGHK"),"Y": list("ABCABCABC"),  "B": ['B','C','A','A','F','E','G','X','Y'],'C': ['L','L','M','N','J','K','M','X','Y']})
         target = pa.table(data={"X": list("ABCDEFGX"),"Y": list("ABCABCAB"),"B": ['B','C','D','A','F','E','G','P'],    'C': ['L','FX','M','N','P','K','M','P'],"D": list("XYZXYZXY")})
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
@@ -148,7 +148,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_model_difference_unmatched_data(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         fb.set_source_uri('working/source/hadron_synth_origin.pq')
         fb.add_connector_uri('target', uri='working/source/hadron_synth_other.pq')
         fb.add_connector_uri('unmatched', uri='working/data/unmatched.csv')
@@ -168,7 +168,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_model_difference_equal(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         df = pa.table(data=    {"X": list("ABCDEFG"), "Y": list("RSTUVWX"), "B": ['B', 'C', 'A', 'A', 'F', 'E', 'G'], 'C': ['L', 'L',  'M', 'N', 'J', 'K', 'M']})
         target = pa.table(data={"X": list("ABCDEFG"), "Y": list("RSTUVWX"), "B": ['B', 'C', 'A', 'A', 'F', 'E', 'G'], 'C': ['L', 'L',  'M', 'N', 'J', 'K', 'M']})
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
@@ -185,7 +185,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_model_difference_multi_key(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         df = pa.table(data=    {"X": list("ABCDEFG"), "Y": list("RSTUVWX"), "B": ['B', 'C', 'A', 'A', 'F', 'E', 'G'], 'C': ['L', 'L',  'M', 'N', 'J', 'K', 'M']})
         target = pa.table(data={"X": list("ABCDEFG"), "Y": list("RSTUVWX"), "B": ['B', 'C', 'D', 'A', 'F', 'E', 'G'], 'C': ['L', 'FX', 'M', 'N', 'P', 'K', 'M']})
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
@@ -202,7 +202,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_model_difference_order(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         df = pa.table(data={"A": list("ABCDEFG"), "B": list("ABCFCBA"), 'C': list("BCDECFB"), 'D': [0, 2, 0, 4, 3, 2, 1]})
         target = pa.table(data={"A": list("ABCDEFG"), "B": list("BBCDCAA"), 'C': list("BCDECFB"), 'D': [0, 2, 0, 4, 1, 2, 1]})
         _ = target.to_pandas().sample(frac = 1)
@@ -215,7 +215,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_model_difference_drop(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         df = pa.table(data={"A": list("ABCDEFG"), "B": list("ABCFCBA"), 'C': list("BCDECFB"), 'D': [0, 2, 0, 4, 3, 2, 1]})
         target = pa.table(data={"A": list("ABCDEFG"), "B": list("BBCDCAA"), 'C': list("BCDECFB"), 'D': [0, 2, 0, 4, 1, 2, 1]})
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
@@ -226,7 +226,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_model_difference_summary(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         df = pa.table(data={"X":  list("ABCDEFG"),    "Y": list("ABCDEFG"), "B": [1, 2, 3, 4, 3, 3, 1], 'C': [0, 2, 0, 4, 3, 2, 1]})
         target = pa.table(data={"X": list("ABCDEFG"), "Y": list("ABCDEFG"), "B": [1, 2, 5, 4, 3, 3, 1], 'C': [1, 2, 3, 4, 3, 2, 1]})
         fb.add_connector_persist('target', uri_file='target.csv')
@@ -246,7 +246,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
 
     def test_model_difference_detail(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         df = pa.table(data={"X":  list("CBADEFG"), "Y":  list("ABCDEFG"), "B": [1, 2, 3, 4, 3, 3, 1], 'C': [0, 2, 0, 4, 3, 2, 1]})
         target = pa.table(data={"X": list("CBADEFG"), "Y":  list("ABCDEFG"), "B": [1, 2, 5, 4, 3, 3, 1], 'C': [1, 2, 3, 4, 3, 2, 1]})
         fb.add_connector_persist('target', uri_file='working/data/target.csv')

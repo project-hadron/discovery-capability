@@ -7,7 +7,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 from ds_capability import FeatureBuild
 from ds_capability.components.commons import Commons
-from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
+from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
 
 # Pandas setup
@@ -56,13 +56,13 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_for_smoke(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         tbl = tools.get_synthetic_data_types(100)
         self.assertEqual(100, tbl.num_rows)
 
     def test_model_sample_link(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         canonical = tools.get_synthetic_data_types(10, category_encode=False)
         other = tools.get_synthetic_data_types(5, category_encode=False)
         result = tools.model_sample_link(canonical=canonical, other=other, headers=['int'], rename_map=['key'])

@@ -1,13 +1,13 @@
 from __future__ import annotations
 from ds_capability.components.commons import Commons
-from ds_capability.intent.feature_build_intent import FeatureBuildIntent
-from ds_capability.managers.feature_build_property_manager import FeatureBuildPropertyManager
+from ds_capability.intent.feature_select_intent import FeatureSelectIntent
+from ds_capability.managers.feature_select_property_manager import FeatureSelectPropertyManager
 from ds_capability.components.abstract_common_component import AbstractCommonComponent
 
 __author__ = 'Darryl Oatridge'
 
 
-class FeatureBuild(AbstractCommonComponent):
+class FeatureSelect(AbstractCommonComponent):
 
     @classmethod
     def from_uri(cls, task_name: str, uri_pm_path: str, creator: str, uri_pm_repo: str=None, pm_file_type: str=None,
@@ -15,7 +15,7 @@ class FeatureBuild(AbstractCommonComponent):
                  reset_templates: bool=None, template_path: str=None, template_module: str=None,
                  template_source_handler: str=None, template_persist_handler: str=None, align_connectors: bool=None,
                  default_save_intent: bool=None, default_intent_level: bool=None, order_next_available: bool=None,
-                 default_replace_intent: bool=None, has_contract: bool=None) -> FeatureBuild:
+                 default_replace_intent: bool=None, has_contract: bool=None) -> FeatureSelect:
         """ Class Factory Method to instantiates the component's application. The Factory Method handles the
         instantiation of the Properties Manager, the Intent Model and the persistence of the uploaded properties.
         See class inline docs for an example method
@@ -46,11 +46,11 @@ class FeatureBuild(AbstractCommonComponent):
         pm_file_type = pm_file_type if isinstance(pm_file_type, str) else 'parquet'
         pm_module = pm_module if isinstance(pm_module, str) else cls.DEFAULT_MODULE
         pm_handler = pm_handler if isinstance(pm_handler, str) else cls.DEFAULT_PERSIST_HANDLER
-        _pm = FeatureBuildPropertyManager(task_name=task_name, creator=creator)
-        _intent_model = FeatureBuildIntent(property_manager=_pm, default_save_intent=default_save_intent,
-                                           default_intent_level=default_intent_level,
-                                           order_next_available=order_next_available,
-                                           default_replace_intent=default_replace_intent)
+        _pm = FeatureSelectPropertyManager(task_name=task_name, creator=creator)
+        _intent_model = FeatureSelectIntent(property_manager=_pm, default_save_intent=default_save_intent,
+                                             default_intent_level=default_intent_level,
+                                             order_next_available=order_next_available,
+                                             default_replace_intent=default_replace_intent)
         super()._init_properties(property_manager=_pm, uri_pm_path=uri_pm_path, default_save=default_save,
                                  uri_pm_repo=uri_pm_repo, pm_file_type=pm_file_type, pm_module=pm_module,
                                  pm_handler=pm_handler, pm_kwargs=pm_kwargs, has_contract=has_contract)
@@ -60,15 +60,15 @@ class FeatureBuild(AbstractCommonComponent):
                    align_connectors=align_connectors)
 
     @property
-    def pm(self) -> FeatureBuildPropertyManager:
+    def pm(self) -> FeatureSelectPropertyManager:
         return self._component_pm
 
     @property
-    def intent_model(self) -> FeatureBuildIntent:
+    def intent_model(self) -> FeatureSelectIntent:
         return self._intent_model
 
     @property
-    def tools(self) -> FeatureBuildIntent:
+    def tools(self) -> FeatureSelectIntent:
         return self._intent_model
 
     def run_component_pipeline(self, intent_levels: [str, int, list]=None, run_book: str=None, seed: int=None,

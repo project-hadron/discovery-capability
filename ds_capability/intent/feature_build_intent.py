@@ -14,7 +14,7 @@ from ds_capability.sample.sample_data import Sample
 
 
 # noinspection PyArgumentList,PyUnresolvedReferences
-class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
+class FeatureBuildIntent(FeatureBuildCorrelateIntent):
 
     """Feature data is representative data that, depending on its application, holds statistical and
     distributive characteristics of its real world counterpart. This component provides a set of actions

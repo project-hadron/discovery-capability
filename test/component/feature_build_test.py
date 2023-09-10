@@ -12,7 +12,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from ds_core.handlers.event_handlers import EventPersistHandler
 
-from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
+from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
 
 from ds_capability import FeatureBuild
@@ -67,7 +67,7 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_run_intent_pipeline(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_level='simulator')
         _ = tools.correlate_number(_, header='num', intent_level='data_quality', intent_order=0)
         _ = tools.model_profiling(_, profiling='quality', intent_level='data_quality', intent_order=1)
@@ -80,7 +80,7 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_run_intent_pipeline_event_manager(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         fb.set_persist_uri('event://task')
         _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_level='simulator')
         _ = tools.correlate_number(_, header='num', intent_level='data_quality', intent_order=0)

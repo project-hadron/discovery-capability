@@ -6,7 +6,7 @@ import pandas as pd
 import pyarrow as pa
 from ds_capability import FeatureBuild
 from ds_capability.components.commons import Commons
-from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
+from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
 
 # Pandas setup
@@ -59,7 +59,7 @@ class SyntheticTest(unittest.TestCase):
 
     def test_for_smoke(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         tbl = tools.get_synthetic_data_types(100, inc_nulls=True)
         fb.add_connector_uri('sample', './working/source/data_type.parquet')
         fb.save_canonical('sample', tbl)
@@ -69,14 +69,14 @@ class SyntheticTest(unittest.TestCase):
 
     def test_direct_other(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         tbl = tools.get_synthetic_data_types(10, inc_nulls=True)
         result = tools.get_analysis(100, tbl)
         self.assertEqual((100, 17), result.shape)
 
     def test_flattened_sample(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         fb.add_connector_uri('sample', './working/source/complex_flatten_records.parquet')
         tbl = fb.load_canonical('sample')
         self.assertEqual((4, 20), tbl.shape)
@@ -85,7 +85,7 @@ class SyntheticTest(unittest.TestCase):
 
     def test_complex_nested(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         document = [
             {"_id": "I35138",
              "contactMedium": [

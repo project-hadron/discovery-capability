@@ -1,10 +1,11 @@
+import pyarrow as pa
 from ds_capability.components.commons import Commons
 from ds_capability.intent.abstract_feature_intent import AbstractFeatureIntentModel
-from ds_capability.managers.feature_build_property_manager import FeatureBuildPropertyManager
+from ds_capability.managers.feature_select_property_manager import FeatureSelectPropertyManager
 
-class AbstractFeatureBuildIntentModel(AbstractFeatureIntentModel):
+class AbstractFeatureSelectIntentModel(AbstractFeatureIntentModel):
 
-    def __init__(self, property_manager: FeatureBuildPropertyManager, default_save_intent: bool=None,
+    def __init__(self, property_manager: FeatureSelectPropertyManager, default_save_intent: bool=None,
                  default_intent_level: [str, int, float]=None, order_next_available: bool=None,
                  default_replace_intent: bool=None):
         """initialisation of the Intent class.

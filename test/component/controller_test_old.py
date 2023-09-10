@@ -7,7 +7,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pandas as pd
 from ds_capability import FeatureBuild, Controller
-from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
+from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
 
 from ds_capability.components.discovery import DataDiscovery

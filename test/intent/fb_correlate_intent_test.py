@@ -6,7 +6,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 from ds_capability import FeatureBuild
-from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
+from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
 
 # Pandas setup
@@ -59,13 +59,13 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_for_smoke(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         tbl = tools.get_synthetic_data_types(100)
         self.assertEqual((100, 6), tbl.shape)
 
     def test_correlate_discrete_intervals(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         tbl = tools.get_synthetic_data_types(100)
         result = tools.correlate_discrete_intervals(tbl, header='num', intent_level='num')
         self.assertEqual(3, pc.count(result.column('num').combine_chunks().dictionary).as_py())
@@ -77,7 +77,7 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_correlate_on_condition(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         tbl = tools.get_synthetic_data_types(1000, seed=101)
         # check no zeros
         self.assertEqual(0, pc.count(pc.index_in(tbl.column('int').combine_chunks(), pa.array([0])).drop_null()).as_py())
@@ -102,7 +102,7 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_correlate_column_join(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         tbl = tools.get_synthetic_data_types(10, seed=101)
         result = tools.correlate_column_join(tbl, header='cat', others='string', sep=': ', intent_level='compound')
         self.assertCountEqual(['cat', 'num', 'int', 'bool', 'date', 'compound'], result.column_names)
@@ -116,7 +116,7 @@ class FeatureBuilderTest(unittest.TestCase):
 
     def test_correlate_column_join_constant(self):
         fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = fb.tools
+        tools: FeatureBuildIntent = fb.tools
         tbl = tools.get_synthetic_data_types(10, seed=101)
         result = tools.correlate_column_join(tbl, header='PI', others='int', intent_level='compound')
         self.assertTrue(pc.all(pc.match_like(result.column('compound'),"PI__")).as_py())

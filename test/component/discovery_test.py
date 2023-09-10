@@ -8,7 +8,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pandas as pd
 from ds_capability import FeatureBuild
-from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
+from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
 
 from ds_capability.components.discovery import DataDiscovery
@@ -63,28 +63,28 @@ class DiscoveryTest(unittest.TestCase):
 
     def test_data_dictionary(self):
         sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = sb.tools
+        tools: FeatureBuildIntent = sb.tools
         tbl = tools.get_synthetic_data_types(1_000_000, inc_nulls=True)
         result = DataDiscovery.data_dictionary(tbl, stylise=True)
         pprint(result.to_string())
 
     def test_data_quality(self):
         sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = sb.tools
+        tools: FeatureBuildIntent = sb.tools
         tbl = tools.get_synthetic_data_types(100_000, inc_nulls=True)
         result = DataDiscovery.data_quality(tbl, stylise=True)
         pprint(result.to_string())
 
     def test_data_quality_ref(self):
         sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = sb.tools
+        tools: FeatureBuildIntent = sb.tools
         tbl = tools.get_synthetic_data_types(100_000, inc_nulls=True)
         result = DataDiscovery.data_quality(tbl, stylise=False)
         pprint(result.schema)
 
     def test_data_schema(self):
         sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntentModel = sb.tools
+        tools: FeatureBuildIntent = sb.tools
         tbl = tools.get_synthetic_data_types(600_000, inc_nulls=True)
         result = DataDiscovery.data_schema(tbl, stylise=True)
         pprint(result.to_string())
