@@ -934,42 +934,48 @@ class FeatureBuildIntentModel(FeatureBuildCorrelateIntent):
         prob_nulls = prob_nulls if isinstance(prob_nulls, float) and 0 < prob_nulls < 1 else 0.1
         category_encode = category_encode if isinstance(category_encode, bool) else True
         # cat
-        canonical = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE', 'ARCHIVE'], canonical=canonical,
-                              size=size, seed=seed, relative_freq=[1, 70, 20, 30, 10], encode=category_encode,
-                              to_header='cat', save_intent=False)
+        canonical = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE', 'ARCHIVE'],
+                                      canonical=canonical, size=size, seed=seed, relative_freq=[1, 70, 20, 30, 10],
+                                      encode=category_encode, to_header='cat', save_intent=False)
         # num
-        canonical = self.get_dist_normal(mean=0, std=1, canonical=canonical, size=size, seed=seed, to_header='num', save_intent=False)
-        canonical = self.correlate_number(canonical, 'num', precision=5, jitter=2, seed=seed, to_header='num', save_intent=False)
+        canonical = self.get_dist_normal(mean=0, std=1, canonical=canonical, size=size, seed=seed, to_header='num',
+                                         save_intent=False)
+        canonical = self.correlate_number(canonical, 'num', precision=5, jitter=2, seed=seed, to_header='num',
+                                          save_intent=False)
         # int
-        canonical = self.get_number(start=size, stop=size * 10, at_most=1, canonical=canonical, size=size, seed=seed, to_header='int',
-                            save_intent=False)
+        canonical = self.get_number(start=size, stop=size * 10, at_most=1, ordered=True, canonical=canonical, size=size,
+                                    seed=seed, to_header='int', save_intent=False)
         # bool
-        canonical = self.get_boolean(size=size, probability=0.7, canonical=canonical, seed=seed, to_header='bool', save_intent=False)
+        canonical = self.get_boolean(size=size, probability=0.7, canonical=canonical, seed=seed, to_header='bool',
+                                     save_intent=False)
         # date
-        canonical = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, canonical=canonical, size=size,
-                              seed=seed, to_header='date', save_intent=False)
+        canonical = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, canonical=canonical,
+                                      size=size, seed=seed, to_header='date', save_intent=False)
         # string
-        canonical = self.get_sample(sample_name='us_street_names', canonical=canonical, size=size, seed=seed, to_header='string',  save_intent=False)
+        canonical = self.get_sample(sample_name='us_street_names', canonical=canonical, size=size, seed=seed,
+                                    to_header='string',  save_intent=False)
 
         if isinstance(inc_nulls, bool) and inc_nulls:
             gen = np.random.default_rng()
             # cat_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            canonical = self.get_category(selection=['High', 'Med', 'Low'], canonical=canonical, relative_freq=[9,8,4], quantity=1 - prob_nulls,
-                                  to_header='cat_null', size=size, encode=category_encode, seed=seed,
-                                  save_intent=False)
+            canonical = self.get_category(selection=['High', 'Med', 'Low'], canonical=canonical, relative_freq=[9,8,4],
+                                          quantity=1 - prob_nulls, to_header='cat_null', size=size,
+                                          encode=category_encode, seed=seed, save_intent=False)
             # num_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            canonical = self.get_number(start=-1.0, stop=1.0, canonical=canonical, relative_freq=[1, 1, 2, 3, 5, 8, 13, 21], size=size,
-                                quantity=1 - prob_nulls, to_header='num_null', seed=seed, save_intent=False)
+            canonical = self.get_number(start=-1.0, stop=1.0, canonical=canonical, size=size,
+                                        relative_freq=[1, 1, 2, 3, 5, 8, 13, 21], quantity=1 - prob_nulls,
+                                        to_header='num_null', seed=seed, save_intent=False)
             # date_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            canonical = self.get_datetime(start='2022-12-01', until='2023-03-31', canonical=canonical, ordered=True, size=size, quantity=1 - prob_nulls,
-                                  to_header='date_null', seed=seed, save_intent=False)
+            canonical = self.get_datetime(start='2022-12-01', until='2023-03-31', canonical=canonical, ordered=True,
+                                          size=size, quantity=1 - prob_nulls, to_header='date_null', seed=seed,
+                                          save_intent=False)
             # string_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            canonical = self.get_sample(sample_name='us_cities', canonical=canonical, size=size, quantity=1 - prob_nulls,
-                                to_header='string_null', seed=seed, save_intent=False)
+            canonical = self.get_sample(sample_name='us_cities', canonical=canonical, size=size, quantity=1-prob_nulls,
+                                        to_header='string_null', seed=seed, save_intent=False)
             #sparse_bool
             canonical = self.get_number(start=-50, stop=8.0, canonical=canonical, size=size, quantity=0.3,
                                         to_header='sparse', seed=seed, save_intent=False)

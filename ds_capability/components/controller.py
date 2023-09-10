@@ -2,6 +2,7 @@ import datetime
 import threading
 import time
 import pandas as pd
+import pyarrow as pa
 from ds_core.handlers.abstract_handlers import ConnectorContract
 from ds_core.components.abstract_component import AbstractComponent
 
@@ -10,6 +11,7 @@ from ds_capability.managers.controller_property_manager import ControllerPropert
 from ds_capability.intent.controller_intent import ControllerIntentModel
 
 
+# noinspection PyArgumentList
 class Controller(AbstractComponent):
     """Controller Class for the management and overview of task components"""
 
@@ -191,55 +193,74 @@ class Controller(AbstractComponent):
         self.pm.reset_use_case()
         self.pm_persist(save)
 
-    def report_use_case(self, as_dict: bool=None, stylise: bool=None):
-        """ a report on the use_case set as part of the domain contract
-
-        :param as_dict: (optional) if the result should be a dictionary. Default is False
-        :param stylise: (optional) if as_dict is False, if the return dataFrame should be stylised
-        :return:
-        """
-        as_dict = as_dict if isinstance(as_dict, bool) else False
+    def report_use_case(self, stylise: bool=None):
+        """ a report on the use_case set as part of the domain contract"""
         stylise = stylise if isinstance(stylise, bool) else True
         report = self.pm.report_use_case()
-        if as_dict:
-            return report
         report = pd.DataFrame(report, index=['values'])
-        report = report.transpose().reset_index()
-        report.columns = ['use_case', 'values']
         if stylise:
-            return self._report(report, index_header='use_case')
-        return report
+            report = report.transpose().reset_index()
+            report.columns = ['use_case', 'values']
+            return Commons.report(report, index_header='use_case')
+        return pa.Table.from_pandas(report)
 
     def report_tasks(self, stylise: bool=True):
-        """ generates a report for all the current component task
-
-        :param stylise: returns a stylised dataframe with formatting
-        :return: pd.Dataframe
-        """
+        """ generates a report for all the current component task"""
         report = pd.DataFrame.from_dict(data=self.pm.report_intent())
-        intent_replace = {'transition': 'Transition', 'synthetic_builder': 'SyntheticBuilder', 'wrangle': 'Wrangle',
-                          'feature_catalog': 'FeatureCatalog', 'data_tolerance': 'DataTolerance',
-                          'models_builder': 'ModelsBuilder'}
+        intent_replace = {'feature_select': 'FeatureSelect', 'feature_build': 'FeatureBuild'}
         report['component'] = report.intent.replace(to_replace=intent_replace)
-        report['task'] = [x[0][10:] for x in report['parameters']]
-        report['parameters'] = [x[1:] for x in report['parameters']]
-        report = report.loc[:, ['level', 'order', 'component', 'task', 'parameters', 'creator']]
+        report = report.loc[:, ['level', 'order', 'component', 'parameters', 'creator']]
         if stylise:
-            return self._report(report, index_header='level')
-        return report
+            return Commons.report(report, index_header='level')
+        return pa.Table.from_pandas(report)
 
     def report_run_book(self, stylise: bool=True):
-        """ generates a report on all the intent
-
-        :param stylise: returns a stylised dataframe with formatting
-        :return: pd.Dataframe
-        """
+        """ generates a report on all the intent actions"""
         report = pd.DataFrame(self.pm.report_run_book())
-        explode = report.explode(column='run_book', ignore_index=True)
-        canonical = explode.join(pd.json_normalize(explode['run_book'])).drop(columns=['run_book']).replace(None, '')
+        report = report.explode(column='run_book', ignore_index=True)
+        report = report.join(pd.json_normalize(report['run_book'])).drop(columns=['run_book']).fillna('')
         if stylise:
-            return Commons.report(canonical, index_header='name')
-        return canonical
+            return Commons.report(report, index_header='name')
+        return pa.Table.from_pandas(report)
+
+    def add_run_book(self, run_levels: [str, list], book_name: str=None, save: bool=None):
+        """ sets a named run book, the run levels are a list of levels and the order they are run in
+
+        :param run_levels: the name or list of levels to be run
+        :param book_name: (optional) the name of the run_book. defaults to 'primary_run_book'
+        :param save: (optional) override of the default save action set at initialisation.
+       """
+        book_name = book_name if isinstance(book_name, str) else self.pm.PRIMARY_RUN_BOOK
+        for run_level in Commons.list_formatter(run_levels):
+            self.add_run_book_level(run_level=run_level, book_name=book_name)
+        return
+
+    def add_run_book_level(self, run_level: str, book_name: str=None, source: str=None, persist: [str, list]=None,
+                           save: bool=None):
+        """ adds a single runlevel to the end of a run_book. If the name already exists it will be replaced. When
+        designing the runbook this gives easier implementation of the data handling specific for this runbook
+
+        :param run_level: the run_level to add.
+        :param book_name: (optional) the name of the run_book. defaults to 'primary_run_book'
+        :param source: (optional) the intent level source
+        :param persist: (optional) the intent level persist
+        :param save: (optional) override of the default save action set at initialisation.
+       """
+        book_name = book_name if isinstance(book_name, str) else self.pm.PRIMARY_RUN_BOOK
+        run_level = Commons.param2dict(run_level=run_level, source=source, persist=persist)
+        if self.pm.has_run_book(book_name=book_name):
+            run_levels = self.pm.get_run_book(book_name=book_name)
+            for i in range(len(run_levels)):
+                if isinstance(run_levels[i], str) and run_levels[i] == run_level:
+                    run_levels[i].remove(run_level)
+                elif isinstance(run_levels[i], dict) and run_levels[i].get('run_level') == run_level.get('run_level'):
+                    del run_levels[i]
+            run_levels.append(run_level)
+        else:
+            run_levels = [run_level]
+        self.pm.set_run_book(book_name=book_name, run_levels=run_levels)
+        self.pm_persist(save)
+
 
     def report_intent(self, levels: [str, int, list]=None, stylise: bool = True):
         """ generates a report on all the intent
@@ -249,13 +270,14 @@ class Controller(AbstractComponent):
         :return: pd.Dataframe
         """
         if isinstance(levels, (int, str)):
-            df = pd.DataFrame.from_dict(data=self.pm.report_intent_params(level=levels))
+            report = pd.DataFrame.from_dict(data=self.pm.report_intent_params(level=levels))
             if stylise:
-                return self._report(df, index_header='order')
-        df = pd.DataFrame.from_dict(data=self.pm.report_intent(levels=levels))
-        if stylise:
-            return self._report(df, index_header='level')
-        return df
+                return Commons.report(report, index_header='order')
+        else:
+            report = pd.DataFrame.from_dict(data=self.pm.report_intent(levels=levels))
+            if stylise:
+                return Commons.report(report, index_header='level')
+        return pa.Table.from_pandas(report)
 
     def report_notes(self, catalog: [str, list]=None, labels: [str, list]=None, regex: [str, list]=None,
                      re_ignore_case: bool=False, stylise: bool=True, drop_dates: bool=False):
@@ -271,89 +293,56 @@ class Controller(AbstractComponent):
         """
         stylise = True if not isinstance(stylise, bool) else stylise
         drop_dates = False if not isinstance(drop_dates, bool) else drop_dates
-        style = [{'selector': 'th', 'props': [('font-size', "120%"), ("text-align", "center")]},
-                 {'selector': '.row_heading, .blank', 'props': [('display', 'none;')]}]
         report = self.pm.report_notes(catalog=catalog, labels=labels, regex=regex, re_ignore_case=re_ignore_case,
                                       drop_dates=drop_dates)
-        df = pd.DataFrame.from_dict(data=report)
+        report = pd.DataFrame.from_dict(data=report)
         if stylise:
-            df_style = df.style.set_table_styles(style).set_properties(**{'text-align': 'left'})
-            _ = df_style.set_properties(subset=['section'], **{'font-weight': 'bold'})
-            _ = df_style.set_properties(subset=['label', 'section'], **{'font-size': "120%"})
-            return df_style
-        return df
+            return Commons.report(report, index_header='section', large_font='label')
+        return pa.Table.from_pandas(report)
 
-    def run_controller(self, run_book: [str, list, dict]=None, mod_tasks: [list, dict]=None, repeat: int=None,
-                       sleep: int=None, run_time: int=None, source_check_uri: str=None, run_cycle_report: str=None):
-        """ Runs the components pipeline based on the runbook instructions. The run_book can be a simple list of
-        controller registered task name that will run in the given order passing the resulting outcome of one to the
-        input of the next, a list of task dictionaries that contain more detailed run commands (see below) or a
-        mixture of task names and task dictionaries. If no runbook is given,  all registered task names are taken from
-        the intent list and run in no particular order and independent of each other using their connector source and
-        persist as data input
-
-        run book list elements can be a dictionary contain more detailed run commands for a particular task. if a
-        dictionary is used it must contain the task_name as a minimum
-        The dictionary keys are as follows:
-            - task_name: The task name (intent level) this run detail is applied to
-            - source: (optional) The task name of the source or '@<intent_name>' to reference a known event book
-            - persist: (optional) if True, persists to disk rather than pass through memory
-            - end_source (optional) if this task will be the last to use the source, remove it from memory on completion
-
-        for example:
-            run_book = [
-                controller.runbook2dict(task='task1_tr', persist=True),
-                controller.runbook2dict(task='task2_wr', source='@'),
-            ]
-
-        mod_tasks are a dictionary of modifications to tasks in the runbook. The run_book will still define the run
-        order and modification tasks not found in the run_book will be ignored. The dictionary is indexed on the task
-        name with the modifications a sub-dictionary of name value pairs.
-            for example: mod_tasks = {'my_synth_gen': {source: 1000}}
-            changes 'my_synth_gen' to now have a source reference of 1000 meaning it will generate 1000 synthetic rows.
+    def run_controller(self, run_book: [str, list, dict]=None, repeat: int=None, sleep: int=None, run_time: int=None,
+                       source_check_uri: str=None, run_cycle_report: str=None):
+        """ Runs the components pipeline based on the runbook instructions. The run_book is a pre-registered
+        Controller run_book names to execute. If no run book is given, default values are substituted, finally taking
+        the intent list if all else fails.
 
         The run_cycle_report automatically generates the connector contract with the name 'run_cycle_report'. To reload
         the report for observation use the controller method 'load_canonical(...) passing the name 'run_cycle_report'.
 
         :param run_book: (optional) a run_book reference, a list of task names (intent levels)
-        :param mod_tasks: (optional) a dict of modifications that override an existing task in the runbook
         :param repeat: (optional) the number of times this intent should be repeated. None or -1 -> never, 0 -> forever
         :param sleep: (optional) number of seconds to sleep before repeating
         :param run_time: (optional) number of seconds to run the controller using repeat and sleep cycles time is up
         :param source_check_uri: (optional) The source uri to check for change since last controller instance cycle
         :param run_cycle_report: (optional) a full name for the run cycle report
         """
-        _lock = threading.Lock()
-        mod_tasks = mod_tasks if isinstance(mod_tasks, (list, dict)) else []
         if isinstance(run_cycle_report, str):
             self.add_connector_persist(connector_name='run_cycle_report', uri_file=run_cycle_report)
-        if isinstance(mod_tasks, dict):
-            mod_tasks = [mod_tasks]
+        df_report = pd.DataFrame(columns=['time', 'text'])
         if not self.pm.has_intent():
             return
-        if isinstance(run_book, str):
-            if not self.pm.has_run_book(run_book) and run_book not in self.pm.get_intent().keys():
-                raise ValueError(f"The run book or intent level '{run_book}' can not be found in the controller")
-            if self.pm.has_run_book(run_book):
-                intent_levels = self.pm.get_run_book(book_name=run_book)
+        # tidy run_book
+        run_book = Commons.list_formatter(run_book)
+        if not run_book:
+            if self.pm.has_run_book(self.pm.PRIMARY_RUN_BOOK):
+                run_book = self.pm.get_run_book(self.pm.PRIMARY_RUN_BOOK)
+            elif self.pm.has_intent(self.pm.DEFAULT_INTENT_LEVEL):
+                self.add_run_book_level(run_level=self.pm.DEFAULT_INTENT_LEVEL, book_name=self.pm.PRIMARY_RUN_BOOK)
+                run_book = self.pm.get_run_book(self.pm.PRIMARY_RUN_BOOK)
             else:
-                intent_levels = Commons.list_formatter(run_book)
-        elif isinstance(run_book, list):
-            intent_levels = run_book
-        elif isinstance(run_book, dict):
-            intent_levels = [run_book]
-        elif self.pm.has_run_book(book_name=self.pm.PRIMARY_RUN_BOOK):
-            intent_levels = self.pm.get_run_book(book_name=self.pm.PRIMARY_RUN_BOOK)
-        else:
-            intent_levels = Commons.list_formatter(self.pm.get_intent().keys())
-            # always put the DEFAULT_INTENT_LEVEL first
-            if self.pm.DEFAULT_INTENT_LEVEL in intent_levels:
-                intent_levels.insert(0, intent_levels.pop(intent_levels.index(self.pm.DEFAULT_INTENT_LEVEL)))
-        for idx in range(len(intent_levels)):
-            for mod in mod_tasks:
-                if intent_levels[idx].get('task') in mod.keys():
-                    intent_levels[idx].update(mod.get(intent_levels[idx].get('task'), {}))
-            intent_levels[idx] = self.runbook_script(**intent_levels[idx])
+                for level in self.pm.get_intent().keys():
+                    self.add_run_book_level(run_level=level, book_name=self.pm.PRIMARY_RUN_BOOK)
+                run_book = self.pm.get_run_book(self.pm.PRIMARY_RUN_BOOK)
+        run_dict = []
+        for book in run_book:
+            if isinstance(book, str):
+                if self.pm.has_run_book(book):
+                    for item in self.pm.get_run_book(book):
+                        run_dict.append(item)
+                else:
+                    run_dict.append({'run_level': f'{book}'})
+            else:
+                run_dict.append(book)
         handler = None
         if isinstance(source_check_uri, str):
             self.add_connector_uri(connector_name='source_check_uri', uri=source_check_uri)
@@ -364,13 +353,12 @@ class Controller(AbstractComponent):
         end_time = datetime.datetime.now() + datetime.timedelta(seconds=run_time)
         repeat = repeat if isinstance(repeat, int) and repeat > 0 else 1
         run_count = 0
-        df_report = pd.DataFrame(columns=['time', 'text'])
         while True: # run_time always runs once
             if isinstance(run_cycle_report, str):
-                df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'start run-cycle {run_count}']
+                df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'starting pipeline -{run_count}-']
             for count in range(repeat):
                 if isinstance(run_cycle_report, str):
-                    df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'start task cycle {count}']
+                    df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'starting cycle -{count}-']
                 if handler and handler.exists():
                     if handler.has_changed():
                         handler.reset_changed(False)
@@ -380,33 +368,19 @@ class Controller(AbstractComponent):
                         if isinstance(sleep, int) and count < repeat - 1:
                             time.sleep(sleep)
                         continue
-                for intent in intent_levels:
-                    task = intent.get('task')
-                    source = intent.get('source', self.CONNECTOR_SOURCE)
-                    persist = intent.get('persist', self.CONNECTOR_PERSIST)
+                for book in run_dict:
+                    run_level = book.get('run_level')
+                    source = book.get('source', self.CONNECTOR_SOURCE)
+                    persist = book.get('persist', self.CONNECTOR_PERSIST)
                     if isinstance(run_cycle_report, str):
-                        df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'running {task}']
-                    if not self.pm.has_connector(connector_name=source):
-                        raise ValueError(f"The data connector name '{source}' is not in the connectors catalog")
-                    handler = self.pm.get_connector_handler(source)
-                    source_tbl = handler.source_canonical()
+                        df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f"running: '{run_level}'"]
+                    # run level
+                    shape = self.intent_model.run_intent_pipeline(run_level=run_level, source=source, persist=persist,
+                                                                  controller_repo=self.URI_PM_REPO)
                     if isinstance(run_cycle_report, str):
-                        df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'sourcing {source}']
-                    # get the result
-                    persist_tbl = self.intent_model.run_intent_pipeline(source_tbl, intent_level=task,
-                                                                     controller_repo=self.URI_PM_REPO)
-                    if isinstance(run_cycle_report, str):
-                        df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f"canonical shape is "
-                                                                                        f"{persist_tbl.shape}"]
-                    if not self.pm.has_connector(connector_name=persist):
-                        raise ValueError(f"The data connector name '{persist}' is not in the connectors catalog")
-                    handler = self.pm.get_connector_handler(persist)
-                    handler.persist_canonical(persist_tbl)
-                    if isinstance(run_cycle_report, str):
-                        df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'persisted {persist}']
-                        df_report.loc[len(df_report.index)] = [datetime.datetime.now(), 'tasks complete']
+                        df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'outcome shape: {shape}']
                 if isinstance(run_cycle_report, str):
-                    df_report.loc[len(df_report.index)] = [datetime.datetime.now(), 'tasks complete']
+                    df_report.loc[len(df_report.index)] = [datetime.datetime.now(), 'cycle complete']
                 if isinstance(sleep, int) and count < repeat-1:
                     if isinstance(run_cycle_report, str):
                         df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'sleep for {sleep} seconds']
@@ -420,38 +394,10 @@ class Controller(AbstractComponent):
                     df_report.loc[len(df_report.index)] = [datetime.datetime.now(), f'sleep for {sleep} seconds']
                 time.sleep(sleep)
         if isinstance(run_cycle_report, str):
-            df_report.loc[len(df_report.index)] = [datetime.datetime.now(), 'end of report']
-            self.save_canonical(connector_name='run_cycle_report', canonical=df_report)
+            df_report.loc[len(df_report.index)] = [datetime.datetime.now(), 'pipeline complete']
+            _ = pa.Table.from_pandas(df_report, preserve_index=False)
+            self.save_canonical(connector_name='run_cycle_report', canonical=_)
         return
-
-    @staticmethod
-    def _report(canonical: pd.DataFrame, index_header: str, bold: [str, list]=None, large_font: [str, list]=None):
-        """ generates a stylised report
-
-        :param canonical
-        :param index_header:
-        :param bold:
-        :param large_font
-        :return: stylised report DataFrame
-        """
-        pd.set_option('max_colwidth', 200)
-        pd.set_option('expand_frame_repr', True)
-        bold = Commons.list_formatter(bold)
-        bold.append(index_header)
-        large_font = Commons.list_formatter(large_font)
-        large_font.append(index_header)
-        style = [{'selector': 'th', 'props': [('font-size', "120%"), ("text-align", "center")]},
-                 {'selector': '.row_heading, .blank', 'props': [('display', 'none;')]}]
-        index = canonical[canonical[index_header].duplicated()].index.to_list()
-        canonical.loc[index, index_header] = ''
-        canonical = canonical.reset_index(drop=True)
-        df_style = canonical.style.set_table_styles(style)
-        _ = df_style.set_properties(**{'text-align': 'left'})
-        if len(bold) > 0:
-            _ = df_style.set_properties(subset=bold, **{'font-weight': 'bold'})
-        if len(large_font) > 0:
-            _ = df_style.set_properties(subset=large_font, **{'font-size': "120%"})
-        return df_style
 
     @staticmethod
     def runbook_script(task: str, source: str=None, persist: str=None, drop: bool=None) -> dict:

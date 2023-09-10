@@ -2,19 +2,12 @@ from abc import abstractmethod
 import pandas as pd
 import pyarrow as pa
 from ds_core.components.abstract_component import AbstractComponent
-
 from ds_capability.components.commons import Commons
-
-__author__ = 'Darryl Oatridge'
-
 from ds_capability.components.discovery import DataDiscovery
 
 
+# noinspection PyArgumentList
 class AbstractCommonComponent(AbstractComponent):
-
-    DEFAULT_MODULE = 'ds_core.handlers.pyarrow_handlers'
-    DEFAULT_SOURCE_HANDLER = 'PyarrowSourceHandler'
-    DEFAULT_PERSIST_HANDLER = 'PyarrowPersistHandler'
 
     @classmethod
     @abstractmethod
@@ -25,16 +18,6 @@ class AbstractCommonComponent(AbstractComponent):
                  default_save_intent: bool=None, default_intent_level: bool=None, order_next_available: bool=None,
                  default_replace_intent: bool=None, has_contract: bool=None):
         return cls
-
-    # @property
-    # def discover(self) -> DataDiscovery:
-    #     """The components instance"""
-    #     return DataDiscovery()
-
-    # @property
-    # def visual(self) -> Visualisation:
-    #     """The visualisation instance"""
-    #     return Visualisation()
 
     def load_source_canonical(self, reset_changed: bool=None, has_changed: bool=None, return_empty: bool=None,
                               **kwargs) -> pa.Table:
@@ -142,7 +125,7 @@ class AbstractCommonComponent(AbstractComponent):
         """ generates a report on the source contract
 
         :param stylise: (optional) returns a stylised DataFrame with formatting
-        :return: pd.DataFrame
+        :return: pa.Table
         """
         report = self.pm.report_task_meta()
         df = pd.DataFrame.from_dict(data=report, orient='index').reset_index()
@@ -152,7 +135,7 @@ class AbstractCommonComponent(AbstractComponent):
             df[c] = [f"{x[1:]}" if str(x).startswith('$') else x for x in df[c]]
         if stylise:
             return Commons.report(df, index_header='name')
-        return df
+        return pa.Table.from_pandas(df)
 
     def report_connectors(self, connector_filter: [str, list]=None, inc_pm: bool=None, inc_template: bool=None,
                           stylise: bool=True):
@@ -162,7 +145,7 @@ class AbstractCommonComponent(AbstractComponent):
         :param inc_pm: (optional) include the property manager connector
         :param inc_template: (optional) include the template connectors
         :param stylise: (optional) returns a stylised DataFrame with formatting
-        :return: pd.DataFrame
+        :return: pa.Table
         """
         report = self.pm.report_connectors(connector_filter=connector_filter, inc_pm=inc_pm,
                                            inc_template=inc_template)
@@ -172,56 +155,52 @@ class AbstractCommonComponent(AbstractComponent):
             df[c] = [f"{x[1:]}" if str(x).startswith('$') else x for x in df[c]]
         if stylise:
             return Commons.report(df, index_header='connector_name')
-        return df
+        return pa.Table.from_pandas(df)
 
     def report_column_catalog(self, column_name: [str, list]=None, stylise: bool=True):
         """ generates a report on the source contract
 
         :param column_name: (optional) filters on specific column names.
         :param stylise: (optional) returns a stylised DataFrame with formatting
-        :return: pd.DataFrame
+        :return: pa.Table
         """
         stylise = True if not isinstance(stylise, bool) else stylise
-        style = [{'selector': 'th', 'props': [('font-size', "120%"), ("text-align", "center")]},
-                 {'selector': '.row_heading, .blank', 'props': [('display', 'none;')]}]
         df = pd.DataFrame.from_dict(data=self.pm.report_intent(levels=column_name, as_description=True,
                                                                level_label='column_name'))
         if stylise:
-            df_style = df.style.set_table_styles(style).set_properties(**{'text-align': 'left'})
-            _ = df_style.set_properties(subset=['column_name'], **{'font-weight': 'bold'})
-            return df_style
-        return df
+            return Commons.report(df, index_header='column_name')
+        return pa.Table.from_pandas(df)
 
     def report_run_book(self, stylise: bool=True):
         """ generates a report on all the intent
 
         :param stylise: returns a stylised dataframe with formatting
-        :return: pd.Dataframe
+        :return: pa.Table
         """
         df = pd.DataFrame.from_dict(data=self.pm.report_run_book())
         if stylise:
             return Commons.report(df, index_header='name')
-        return df
+        return pa.Table.from_pandas(df)
 
     def report_environ(self, hide_not_set: bool=True, stylise: bool=True):
         """ generates a report on all the intent
 
         :param hide_not_set: hide environ keys that are not set.
         :param stylise: returns a stylised dataframe with formatting
-        :return: pd.Dataframe
+        :return: pa.Table
         """
         df = pd.DataFrame.from_dict(data=super().report_environ(hide_not_set), orient='index').reset_index()
         df.columns = ["environ", "value"]
         if stylise:
             return Commons.report(df, index_header='environ')
-        return df
+        return pa.Table.from_pandas(df)
 
     def report_intent(self, levels: [str, int, list]=None, stylise: bool=True):
         """ generates a report on all the intent
 
         :param levels: (optional) a filter on the levels. passing a single value will report a single parameterised view
         :param stylise: (optional) returns a stylised dataframe with formatting
-        :return: pd.Dataframe
+        :return: pa.Table
         """
         if isinstance(levels, (int, str)):
             df = pd.DataFrame.from_dict(data=self.pm.report_intent_params(level=levels))
@@ -230,7 +209,7 @@ class AbstractCommonComponent(AbstractComponent):
         df = pd.DataFrame.from_dict(data=self.pm.report_intent(levels=levels))
         if stylise:
             return Commons.report(df, index_header='level')
-        return df
+        return pa.Table.from_pandas(df)
 
     def report_notes(self, catalog: [str, list]=None, labels: [str, list]=None, regex: [str, list]=None,
                      re_ignore_case: bool=False, stylise: bool=True, drop_dates: bool=False):
@@ -242,11 +221,11 @@ class AbstractCommonComponent(AbstractComponent):
         :param re_ignore_case: (optional) if the regular expression should be case sensitive
         :param stylise: (optional) returns a stylised dataframe with formatting
         :param drop_dates: (optional) excludes the 'date' column from the report
-        :return: pd.Dataframe
+        :return: pa.Table
         """
         report = self.pm.report_notes(catalog=catalog, labels=labels, regex=regex, re_ignore_case=re_ignore_case,
                                       drop_dates=drop_dates)
         df = pd.DataFrame.from_dict(data=report)
         if stylise:
             return Commons.report(df, index_header='section', bold='label')
-        return df
+        return pa.Table.from_pandas(df)

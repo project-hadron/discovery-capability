@@ -1,5 +1,5 @@
 import inspect
-import pyarrow as pa
+from ds_capability.components.commons import Commons
 from ds_core.intent.abstract_intent import AbstractIntentModel
 
 from ds_capability import FeatureBuild
@@ -35,27 +35,27 @@ class ControllerIntentModel(AbstractIntentModel):
                          default_intent_order=default_intent_order, default_replace_intent=default_replace_intent,
                          intent_type_additions=intent_type_additions)
 
-    def run_intent_pipeline(self, canonical: pa.Table, intent_level: [int, str]=None, controller_repo: str=None,
-                            **kwargs):
+    def run_intent_pipeline(self, run_level: str, source: str=None, persist: [str, list]=None,
+                            controller_repo: str=None, **kwargs):
         """ Collectively runs all parameterised intent taken from the property manager against the code base as
         defined by the intent_contract.
 
         It is expected that all intent methods have the 'canonical' as the first parameter of the method signature
         and will contain 'save_intent' as parameters.
 
-        :param canonical: a pyarrow Table
-        :param intent_level: (optional) The intent_level to run. if none then assume pm constant DEFAULT_INTENT_LEVEL
+        :param run_level:
+        :param persist:
+        :param source:
         :param controller_repo: (optional) the controller repo to use if no uri_pm_repo is within the intent parameters
         :param kwargs: additional kwargs to add to the parameterised intent, these will replace any that already exist
         :return: Canonical with parameterised intent applied
         """
         # get the list of levels to run
-        intent_level = intent_level if isinstance(intent_level, (int, str)) else self._pm.DEFAULT_INTENT_LEVEL
-        if not self._pm.has_intent(intent_level):
-            raise ValueError(f"The intent level '{intent_level}' could not be found in the "
+        if not self._pm.has_intent(run_level):
+            raise ValueError(f"The intent level '{run_level}' could not be found in the "
                              f"property manager '{self._pm.manager_name()}' for task '{self._pm.task_name}'")
-        result = None
-        level_key = self._pm.join(self._pm.KEY.intent_key, intent_level)
+        shape = None
+        level_key = self._pm.join(self._pm.KEY.intent_key, run_level)
         for order in sorted(self._pm.get(level_key, {})):
             for method, params in self._pm.get(self._pm.join(level_key, order), {}).items():
                 if method in self.__dir__():
@@ -67,19 +67,20 @@ class ControllerIntentModel(AbstractIntentModel):
                     # remove the creator param
                     _ = params.pop('intent_creator', 'Unknown')
                     # add excluded params and set to False
-                    params.update({'run_task': True, 'save_intent': False})
+                    params.update({'save_intent': False})
                     # add the controller_repo if given
                     if isinstance(controller_repo, str) and 'uri_pm_repo' not in params.keys():
                         params.update({'uri_pm_repo': controller_repo})
-                    result = eval(f"self.{method}(canonical=canonical, **{params})", globals(), locals())
-        return result
+                    shape = eval(f"self.{method}(source=source, persist=persist, **{params})", globals(), locals())
+        return shape
 
-    def feature_build(self, canonical: pa.Table, task_name: str, columns: [str, list]=None, seed: int=None,
-                      save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
+    def feature_build(self, task_name: str, source: str=None, persist: [str, list]=None, columns: [str, list]=None,
+                      seed: int=None, save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
                       replace_intent: bool=None, remove_duplicates: bool=None):
         """ register a Transition component task pipeline
 
-        :param canonical: the canonical to run through the component pipeline
+        :param persist:
+        :param source:
         :param task_name: the task_name reference for this component
         :param columns: (optional) a single or list of intent_level to run, if list, run in order given
         :param seed: (optional) a seed for the run
@@ -101,8 +102,20 @@ class ControllerIntentModel(AbstractIntentModel):
         # create the event book
         fb: FeatureBuild = eval(f"FeatureBuild.from_env(task_name=task_name, default_save=False, "
                                 f"has_contract=True)", globals(), locals())
+        if source and fb.pm.has_connector(source):
+            canonical = fb.load_canonical(source)
+        elif fb.pm.has_connector(fb.CONNECTOR_SOURCE):
+            canonical = fb.load_source_canonical()
+        else:
+            canonical = None
         canonical = fb.intent_model.run_intent_pipeline(canonical=canonical, intent_levels=intent_level, seed=seed)
-        return canonical
+        if persist:
+            for out in Commons.list_formatter(persist):
+                if fb.pm.has_connector(out):
+                    fb.save_canonical(connector_name=out, canonical=canonical)
+        else:
+            fb.save_persist_canonical(canonical=canonical)
+        return canonical.shape
 
     def _set_intend_signature(self, intent_params: dict, intent_level: [int, str]=None, intent_order: int=None,
                               replace_intent: bool=None, remove_duplicates: bool=None, save_intent: bool=None):

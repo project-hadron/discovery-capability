@@ -1,9 +1,5 @@
 from __future__ import annotations
-
-from typing import Any
-
 from ds_capability.components.commons import Commons
-
 from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
 from ds_capability.managers.feature_build_property_manager import FeatureBuildPropertyManager
 from ds_capability.components.abstract_common_component import AbstractCommonComponent
@@ -20,7 +16,7 @@ class FeatureBuild(AbstractCommonComponent):
                  template_source_handler: str=None, template_persist_handler: str=None, align_connectors: bool=None,
                  default_save_intent: bool=None, default_intent_level: bool=None, order_next_available: bool=None,
                  default_replace_intent: bool=None, has_contract: bool=None) -> FeatureBuild:
-        """ Class Factory Method to instantiates the components application. The Factory Method handles the
+        """ Class Factory Method to instantiates the component's application. The Factory Method handles the
         instantiation of the Properties Manager, the Intent Model and the persistence of the uploaded properties.
         See class inline docs for an example method
 
@@ -93,7 +89,7 @@ class FeatureBuild(AbstractCommonComponent):
         elif isinstance(run_book, str) and self.pm.has_run_book(book_name=run_book):
             intent_levels = self.pm.get_run_book(book_name=run_book)
         else:
-            intent_levels = []
+            intent_levels = list(self.pm.get_intent().keys())
         canonical = None
         if self.pm.has_connector(self.CONNECTOR_SOURCE):
             canonical = self.load_source_canonical(reset_changed=reset_changed, has_changed=has_changed)

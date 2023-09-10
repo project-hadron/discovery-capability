@@ -10,6 +10,8 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
+from ds_core.handlers.event_handlers import EventPersistHandler
+
 from ds_capability.intent.feature_build_intent import FeatureBuildIntentModel
 from ds_core.properties.property_manager import PropertyManager
 
@@ -63,15 +65,34 @@ class FeatureBuilderTest(unittest.TestCase):
         except OSError:
             pass
 
-    def test_run_intent_pipeline_order(self):
+    def test_run_intent_pipeline(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
         tools: FeatureBuildIntentModel = fb.tools
         _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_level='simulator')
         _ = tools.correlate_number(_, header='num', intent_level='data_quality', intent_order=0)
         _ = tools.model_profiling(_, profiling='quality', intent_level='data_quality', intent_order=1)
-        pprint(pm_view('feature_build', 'test', 'intent'))
+        # pprint(pm_view('feature_build', 'test', 'intent'))
         fb.run_component_pipeline(intent_levels=['simulator', 'data_quality'])
+        result = fb.load_persist_canonical()
+        self.assertEqual((21, 4), result.shape)
+        # get number of columns from the summary
+        self.assertEqual(str(20), result.column('summary').slice(7, 1).to_pylist()[0])
 
+    def test_run_intent_pipeline_event_manager(self):
+        fb = FeatureBuild.from_env('test', has_contract=False)
+        tools: FeatureBuildIntentModel = fb.tools
+        fb.set_persist_uri('event://task')
+        _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_level='simulator')
+        _ = tools.correlate_number(_, header='num', intent_level='data_quality', intent_order=0)
+        _ = tools.model_profiling(_, profiling='quality', intent_level='data_quality', intent_order=1)
+        # pprint(pm_view('feature_build', 'test', 'intent'))
+        fb.run_component_pipeline(intent_levels=['simulator', 'data_quality'])
+        result = fb.load_persist_canonical()
+        self.assertEqual((21, 4), result.shape)
+        # get number of columns from the summary
+        self.assertEqual(str(20), result.column('summary').slice(7, 1).to_pylist()[0])
+        h = fb.pm.get_connector_handler(fb.CONNECTOR_PERSIST)
+        self.assertIsInstance(h,EventPersistHandler)
 
     def test_raise(self):
         startTime = datetime.now()

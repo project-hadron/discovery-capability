@@ -61,11 +61,22 @@ class FeatureBuilderTest(unittest.TestCase):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntentModel = fb.tools
         tbl = tools.get_synthetic_data_types(100)
-        print(tbl.column_names)
         self.assertEqual((100, 6), tbl.shape)
         self.assertCountEqual(['cat', 'num', 'int', 'bool', 'date', 'string'], tbl.column_names)
         tbl = tools.get_synthetic_data_types(100, inc_nulls=True, prob_nulls=0.03)
         self.assertEqual((100, 19), tbl.shape)
+
+    def test_event_event_singleton(self):
+        fb = FeatureBuild.from_env('task1', has_contract=False)
+        fb.set_persist_uri("event://task1_outcome")
+        tbl = fb.tools.get_synthetic_data_types(size=10)
+        # pprint(pm_view('feature_build', 'task1', 'intent'))
+        fb.run_component_pipeline()
+        h = fb.pm.get_connector_handler(fb.CONNECTOR_PERSIST)
+        self.assertEqual(tbl.column_names, h.event_manager.get('task1_outcome').column_names)
+        result = fb.load_persist_canonical()
+        self.assertEqual(tbl.column_names, result.column_names)
+        self.assertEqual(tbl.shape, result.shape)
 
     def test_run_intent_pipeline(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
@@ -74,14 +85,14 @@ class FeatureBuilderTest(unittest.TestCase):
         fb = FeatureBuild.from_env('test')
         _ = tools.get_synthetic_data_types(size=10, inc_nulls=True)
         result = fb.tools.run_intent_pipeline()
-        self.assertEqual((10, 18), result.shape)
+        self.assertEqual((10, 19), result.shape)
         _ = tools.correlate_number(result, header='num')
         result = fb.tools.run_intent_pipeline(canonical=result)
-        self.assertEqual((10, 19), result.shape)
+        self.assertEqual((10, 20), result.shape)
         _ = tools.model_profiling(result, profiling='quality')
         pprint(pm_view('feature_build', 'test', 'intent'))
         result = fb.tools.run_intent_pipeline(canonical=result)
-        self.assertEqual((21, 3), result.shape)
+        self.assertEqual((21, 4), result.shape)
 
     def test_run_intent_pipeline_order(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
@@ -93,7 +104,7 @@ class FeatureBuilderTest(unittest.TestCase):
         _ = tools.model_profiling(_, profiling='quality', intent_order=1)
         pprint(pm_view('feature_build', 'test', 'intent'))
         result = fb.tools.run_intent_pipeline()
-        self.assertEqual((21, 3), result.shape)
+        self.assertEqual((21, 4), result.shape)
 
     def test_run_intent_pipeline_canonical(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
@@ -105,9 +116,9 @@ class FeatureBuilderTest(unittest.TestCase):
         _ = tools.model_profiling(_, profiling='quality')
         pprint(pm_view('feature_build', 'test', 'intent'))
         result = fb.tools.run_intent_pipeline(canonical=tbl)
-        self.assertEqual((21, 3), result.shape)
+        self.assertEqual((21, 4), result.shape)
         # get number of columns from the summary
-        self.assertEqual(str(19), result.column('summary').slice(5, 1).to_pylist()[0])
+        self.assertEqual(str(20), result.column('summary').slice(7, 1).to_pylist()[0])
 
     def test_run_intent_pipeline_intent_level(self):
         fb = FeatureBuild.from_env('test', has_contract=False)
@@ -118,10 +129,10 @@ class FeatureBuilderTest(unittest.TestCase):
         _ = tools.correlate_number(tbl, header='num', intent_level='quantity')
         _ = tools.model_profiling(_, profiling='quality', intent_level='quantity')
         pprint(pm_view('feature_build', 'test', 'intent'))
-        result = fb.tools.run_intent_pipeline(canonical=tbl, intent_level='quantity')
-        self.assertEqual((21, 3), result.shape)
+        result = fb.tools.run_intent_pipeline(canonical=tbl, run_level='quantity')
+        self.assertEqual((21, 4), result.shape)
         # get number of columns from the summary
-        self.assertEqual(str(19), result.column('summary').slice(5, 1).to_pylist()[0])
+        self.assertEqual(str(20), result.column('summary').slice(7, 1).to_pylist()[0])
 
     #
     def test_model_noise(self):

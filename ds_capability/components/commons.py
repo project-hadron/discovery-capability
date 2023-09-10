@@ -1,5 +1,6 @@
 from typing import Any
 import pandas as pd
+import pyarrow as pa
 from ds_core.components.core_commons import CoreCommons
 
 
@@ -28,7 +29,7 @@ class Commons(CoreCommons):
         return dates.to_list()
 
     @staticmethod
-    def report(canonical: pd.DataFrame, index_header: [str, list], bold: [str, list]=None,
+    def report(canonical: pd.DataFrame, index_header: [str, list]=None, bold: [str, list]=None,
                large_font: [str, list]=None):
         """ generates a stylised report
 
@@ -62,3 +63,10 @@ class Commons(CoreCommons):
         if len(large_font) > 0:
             _ = df_style.set_properties(subset=large_font, **{'font-size': "120%"})
         return df_style
+
+    @staticmethod
+    def table_report(t: pa.Table, index_header: [str, list]=None, bold: [str, list]=None,
+                     large_font: [str, list]=None):
+        """ generates a stylised version of the pyarrow table """
+        df = pd.DataFrame(Commons.table_nest(t))
+        return Commons.report(df, index_header=index_header, bold=bold, large_font=large_font)
