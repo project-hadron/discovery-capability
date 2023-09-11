@@ -129,7 +129,7 @@ class FeatureBuilderTest(unittest.TestCase):
         _ = tools.correlate_number(tbl, header='num', intent_level='quantity')
         _ = tools.model_profiling(_, profiling='quality', intent_level='quantity')
         pprint(pm_view('feature_build', 'test', 'intent'))
-        result = fb.tools.run_intent_pipeline(canonical=tbl, run_level='quantity')
+        result = fb.tools.run_intent_pipeline(canonical=tbl, intent_level='quantity')
         self.assertEqual((21, 4), result.shape)
         # get number of columns from the summary
         self.assertEqual(str(20), result.column('summary').slice(7, 1).to_pylist()[0])

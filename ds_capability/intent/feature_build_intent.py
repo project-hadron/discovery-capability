@@ -976,14 +976,14 @@ class FeatureBuildIntent(FeatureBuildCorrelateIntent):
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             canonical = self.get_sample(sample_name='us_cities', canonical=canonical, size=size, quantity=1-prob_nulls,
                                         to_header='string_null', seed=seed, save_intent=False)
-            #sparse_bool
+            #sparse
             canonical = self.get_number(start=-50, stop=8.0, canonical=canonical, size=size, quantity=0.3,
                                         to_header='sparse', seed=seed, save_intent=False)
+            # one string
+            _ = pa.table([pa.array(['one']*size)], names=['one_string'])
+            canonical = Commons.table_append(canonical, _)
             # duplicate num
             _ = pa.table([canonical.column('num')], names=['dup_num'])
-            canonical = Commons.table_append(canonical, _)
-            # duplicate cat
-            _ = pa.table([canonical.column('cat')], names=['dup_cat'])
             canonical = Commons.table_append(canonical, _)
             # nulls_int
             _ = pa.table([pa.array(pa.nulls(size), pa.int64())], names=['nulls_int'])
