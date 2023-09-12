@@ -1,11 +1,9 @@
 from ds_core.properties.abstract_properties import AbstractPropertyManager
-from ds_capability.components.commons import Commons
 
 __author__ = 'Darryl Oatridge'
 
 
-class FeatureBuildPropertyManager(AbstractPropertyManager):
-    """property manager for the Data Builder"""
+class FeatureTransformPropertyManager(AbstractPropertyManager):
 
     def __init__(self, task_name: str, creator: str):
         """initialises the properties manager.

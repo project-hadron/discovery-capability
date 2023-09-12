@@ -1,4 +1,3 @@
-from ds_capability.components.commons import Commons
 from ds_core.properties.abstract_properties import AbstractPropertyManager
 
 __author__ = 'Darryl Oatridge'
@@ -69,8 +68,3 @@ class FeatureSelectPropertyManager(AbstractPropertyManager):
         self._base_pm.remove(self.KEY.provenance_key)
         self.set(self.KEY.provenance_key, {})
         return
-
-    @staticmethod
-    def list_formatter(value) -> list:
-        """override of the list_formatter to include Pandas types"""
-        return Commons.list_formatter(value=value)

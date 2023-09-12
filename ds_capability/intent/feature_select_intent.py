@@ -3,10 +3,11 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 from ds_capability.components.commons import Commons
+from ds_capability.intent.common_intent import CommonsIntentModel
 from ds_capability.intent.abstract_feature_select_intent import AbstractFeatureSelectIntentModel
 
 
-class FeatureSelectIntent(AbstractFeatureSelectIntentModel):
+class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
 
     def auto_clean_header(self, canonical: pa.Table, case: str=None, rename_map: [dict, list, str]=None,
                           replace_spaces: str=None, save_intent: bool=None, intent_level: [int, str]=None,
