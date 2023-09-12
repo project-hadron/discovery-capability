@@ -118,4 +118,5 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         drop_first = drop_first if isinstance(drop_first, bool) else False
         d_type = data_type if data_type else pa.int64()
         dummies = pd.get_dummies(canonical.to_pandas(), columns=headers, prefix=prefix, prefix_sep=prefix_sep,
+                              dummy_na=dummy_na, drop_first=drop_first, dtype=data_type)
         return pa.Table.from_pandas(dummies)
