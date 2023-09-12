@@ -70,30 +70,3 @@ class FeatureSelect(AbstractCommonComponent):
     @property
     def tools(self) -> FeatureSelectIntent:
         return self._intent_model
-
-    def run_component_pipeline(self, intent_levels: [str, int, list]=None, run_book: str=None, seed: int=None,
-                               reset_changed: bool=None, has_changed: bool=None, **kwargs):
-        """runs the synthetic component pipeline. By passing an int value as the canonical will generate a synthetic
-        file of that size
-
-        :param intent_levels: (optional) a single or list of intent levels to run
-        :param run_book: (optional) a saved runbook to run
-        :param seed: (optional) a seed value for this run
-        :param reset_changed: (optional) resets the has_changed boolean to True
-        :param has_changed: (optional) tests if the underline canonical has changed since last load else error returned
-        :param kwargs: any additional kwargs
-        """
-        run_book = run_book if isinstance(run_book, str) and self.pm.has_run_book(run_book) else self.pm.PRIMARY_RUN_BOOK
-        if isinstance(intent_levels, (str, int, list)):
-            intent_levels = Commons.list_formatter(intent_levels)
-        elif isinstance(run_book, str) and self.pm.has_run_book(book_name=run_book):
-            intent_levels = self.pm.get_run_book(book_name=run_book)
-        else:
-            intent_levels = list(self.pm.get_intent().keys())
-        canonical = None
-        if self.pm.has_connector(self.CONNECTOR_SOURCE):
-            canonical = self.load_source_canonical(reset_changed=reset_changed, has_changed=has_changed)
-        for level in intent_levels:
-            canonical = self.intent_model.run_intent_pipeline(canonical=canonical, intent_level=level, seed=seed, **kwargs)
-        self.save_persist_canonical(canonical)
-        return

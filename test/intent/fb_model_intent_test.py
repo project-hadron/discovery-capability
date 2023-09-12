@@ -73,6 +73,13 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertCountEqual(result.column_names, canonical.column_names + ['key1', 'key2'])
         self.assertTrue(result.column('key1').equals(result.column('key2')))
 
+    def test_model_missing(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntent = fb.tools
+        canonical = tools.get_synthetic_data_types(100, inc_nulls=True, category_encode=True)
+        result = tools.model_missing(canonical, headers=['num_null', 'string_null'])
+        print(fb.canonical_report())
+
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:

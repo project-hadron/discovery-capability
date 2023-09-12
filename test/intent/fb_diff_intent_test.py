@@ -80,7 +80,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
         fb.set_source_uri('./working/source/hadron_synth_origin.pq')
         fb.add_connector_uri('sample', './working/source/hadron_synth_other.pq')
         tbl = fb.load_source_canonical()
-        _ = tools.model_difference(tbl, other='sample', on_key='unique', column_name='diff')
+        _ = tools.model_difference(tbl, other='sample', on_key='unique', intent_level='diff')
         fb.run_component_pipeline()
         result = fb.load_persist_canonical()
         self.assertEqual((10,7), result.shape)
