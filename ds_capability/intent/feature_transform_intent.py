@@ -12,11 +12,55 @@ from ds_capability.intent.abstract_feature_transform_intent import AbstractFeatu
 
 class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentModel):
 
-    def encode_integer(self, canonical: pa.Table, headers: [str, list], ranking: list=None, prefix=None,
-                       seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
-                       intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
+    def encode_date_integer(self, canonical: pa.Table, headers: [str, list], prefix=None, day_first: bool = True,
+                            year_first: bool = False, seed: int=None, save_intent: bool=None,
+                            intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                            remove_duplicates: bool=None):
+        """ date encoding to integer replaces dates for integer values.
+
+        :param canonical: pyarrow Table
+        :param headers: the header(s) to apply encoding too
+        :param prefix: (optional) a str to prefix the column
+        :param day_first: (optional) if the dates given are day first format. Default to True
+        :param year_first: (optional) if the dates given are year first. Default to False
+        :param seed: seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the intent level that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pd.DataFrame
+        """
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # intend code block on the canonical
+        canonical = self._get_canonical(canonical)
+        prefix = prefix if isinstance(prefix, str) else ''
+        headers = Commons.list_formatter(headers)
+        _ = self._seed() if seed is None else seed
+        tbl = None
+        for n in canonical.column_names:
+            c = canonical.column(n)
+            if not pa.types.is_timestamp(c.type) or not pa.types.is_time(c.type):
+                continue
+            column = pa.array(Commons.date2value(c.to_pylist()), pa.int64())
+            new_header = f"{prefix}{n}"
+            tbl = Commons.table_append(tbl, pa.table([column], names=[new_header]))
+        return Commons.table_append(canonical, tbl)
+
+    def encode_category_integer(self, canonical: pa.Table, headers: [str, list], ranking: list=None, prefix=None,
+                                seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
+                                intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
         """ Integer encoding replaces the categories by digits from 1 to n, where n is the number of distinct
-        categories of the variable. Integer encoding can be either nominal or orinal.
+        categories of the variable. Integer encoding can be either nominal or ordinal.
 
         Nominal data is categorical variables without any particular order between categories. This means that
         the categories cannot be sorted and there is no natural order between them.
@@ -29,8 +73,8 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         categorical value is not found in the list it is grouped with other missing values and given the last
         ranking.
 
-        :param canonical: a pd.DataFrame as the reference dataframe
-        :param headers: the header(s) to apply the encoding
+        :param canonical: pyarrow Table
+        :param headers: the header(s) to apply encoding too
         :param ranking: (optional) if used, ranks the categorical values to the list given
         :param prefix: a str to prefix the column
         :param seed: seed: (optional) a seed value for the random function: default to None
@@ -79,16 +123,16 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
             tbl = Commons.table_append(tbl, pa.table([column], names=[new_header]))
         return Commons.table_append(canonical, tbl)
 
-    def encode_one_hot(self, canonical: pa.Table, headers: [str, list], prefix=None, data_type: pa.Table=None,
-                       prefix_sep: str=None, dummy_na: bool = False, drop_first: bool = False, seed: int=None,
-                       save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                       replace_intent: bool=None, remove_duplicates: bool=None) -> pd.DataFrame:
+    def encode_category_one_hot(self, canonical: pa.Table, headers: [str, list], prefix=None, data_type: pa.Table=None,
+                                prefix_sep: str=None, dummy_na: bool = False, drop_first: bool = False, seed: int=None,
+                                save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                                replace_intent: bool=None, remove_duplicates: bool=None) -> pd.DataFrame:
         """ encodes categorical data types, One hot encoding, consists in encoding each categorical variable with
         different boolean variables (also called dummy variables) which take values 0 or 1, indicating if a category
         is present in an observation.
 
-        :param canonical:
-        :param headers: the header(s) to apply multi-hot
+        :param canonical: pyarrow Table
+        :param headers: the header(s) to apply encoding too
         :param prefix: str, list of str, or dict of str, String to append DataFrame intent levels, with equal length.
         :param prefix_sep: str separator, default '_'
         :param dummy_na: Add a column to indicate null values, if False nullss are ignored.
@@ -132,8 +176,8 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         different boolean variables (also called dummy variables) which take values 0 or 1, indicating if a category
         is present in an observation.
 
-        :param canonical:
-        :param headers: the header(s) to apply multi-hot
+        :param canonical: pyarrow Table
+        :param headers: the header(s) to apply scaling too
         :param scalar:(optional)
         :param prefix: (optional) a str prefix for generated headers
         :param precision: (optional) how many decimal places. default to 3
@@ -186,8 +230,8 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         different boolean variables (also called dummy variables) which take values 0 or 1, indicating if a category
         is present in an observation.
 
-        :param canonical:
-        :param headers: the header(s) to apply multi-hot
+        :param canonical: pyarrow Table
+        :param headers: the header(s) to apply scaling too
         :param prefix: (optional) a str prefix for generated headers
         :param precision: (optional) how many decimal places. default to 3
         :param seed: seed: (optional) a seed value for the random function: default to None
@@ -237,9 +281,9 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         different boolean variables (also called dummy variables) which take values 0 or 1, indicating if a category
         is present in an observation.
 
-        :param canonical:
-        :param headers: the header(s) to apply multi-hot
-        :param transform: The transform function, 'log', 'sqrt', 'cbrt', 'boxcox' or 'yeojohnson'
+        :param canonical: pyarrow Table
+        :param headers: the header(s) to apply scaling too
+        :param transform: the transform function, 'log', 'sqrt', 'cbrt', 'boxcox' or 'yeojohnson'
         :param prefix: (optional) a str prefix for generated headers
         :param precision: (optional) how many decimal places. default to 3
         :param seed: seed: (optional) a seed value for the random function: default to None
@@ -315,7 +359,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         and has become a popular choice in many deep learning architectures.
 
         :param canonical: a pyarrow table
-        :param headers: the headers to apply activation
+        :param headers: the header(s) to apply scaling too
         :param activation: The activation function, 'tanh', 'sigmoid' or 'ReLu'
         :param prefix: (optional) a str prefix for generated headers
         :param precision: (optional) how many decimal places. default to 3

@@ -4,6 +4,8 @@ from pathlib import Path
 import shutil
 import ast
 from datetime import datetime
+from pprint import pprint
+
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -89,6 +91,15 @@ class FeatureBuilderTest(unittest.TestCase):
         result = tools.auto_drop_correlated(tbl)
         self.assertEqual(18, result.num_columns)
         self.assertNotIn('dup_num', result.column_names)
+
+    def test_auto_projection(self):
+        tbl = FeatureBuild.from_memory().tools.get_noise(size=1000, num_columns=5)
+        fs = FeatureSelect.from_memory()
+        tools: FeatureSelectIntent = fs.tools
+        result = fs.tools.auto_projection(tbl, n_components=2)
+        control = ['pca_A', 'pca_B']
+        self.assertEqual(control, result.column_names)
+        self.assertEqual((1000, 2), result.shape)
 
     def test_raise(self):
         startTime = datetime.now()

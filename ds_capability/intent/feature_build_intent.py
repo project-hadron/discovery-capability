@@ -1495,8 +1495,8 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         tbl_canonical = canonical.drop_columns(left_diff)
         tbl_other = other.drop_columns(right_diff)
         # pandas
-        df_canonical = tbl_canonical.to_pandas()
-        df_other = tbl_other.to_pandas()
+        df_canonical = tbl_canonical.to_pandas(split_blocks=True)
+        df_other = tbl_other.to_pandas(split_blocks=True)
         # sort
         df_canonical.sort_values(on_key, inplace=True)
         df_other.sort_values(on_key, inplace=True)

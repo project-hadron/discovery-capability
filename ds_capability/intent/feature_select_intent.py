@@ -2,6 +2,9 @@ import inspect
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
 from ds_capability.components.commons import Commons
 from ds_capability.intent.common_intent import CommonsIntentModel
 from ds_capability.intent.abstract_feature_select_intent import AbstractFeatureSelectIntentModel
@@ -151,7 +154,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         predominant value greater than the default 0.998 percent.
 
         :param canonical:
-        :param nulls_threshold: The threshold limit of a nulls value. Default 0.9
+        :param nulls_threshold: The threshold limit of a nulls value. Default 0.95
         :param nulls_list: can be boolean or a list:
                     if boolean and True then null_list equals ['NaN', 'nan', 'null', '', 'None', ' ']
                     if list then this is considered potential null values.
@@ -264,3 +267,57 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                     col_name = corr_matrix.columns[i]  # getting the name of column
                     to_drop.add(col_name)
         return canonical.drop_columns(to_drop)
+
+    def auto_projection(self, canonical: pa.Table, headers: list=None, drop: bool=None, n_components: [int, float]=None,
+                        seed: int=None, save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                        replace_intent: bool=None, remove_duplicates: bool=None, **kwargs) -> pd.DataFrame:
+        """Principal component analysis (PCA) is a linear dimensionality reduction using Singular Value Decomposition
+        of the data to project it to a lower dimensional space.
+
+        :param canonical:
+        :param headers: (optional) a list of headers to select (default) or drop from the dataset
+        :param drop: (optional) if True then srop the headers. False by default
+        :param n_components: (optional) Number of components to keep.
+        :param seed: (optional) placeholder
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the level name that groups intent by a reference name
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :param kwargs: additional parameters to pass the PCA model
+        :return: a pd.DataFrame
+        """
+        # resolve intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        headers = Commons.list_formatter(headers)
+        sample = Commons.filter_columns(canonical, headers=headers, drop=drop, d_types=[pa.float64(), pa.int64()])
+        sample = self.auto_drop_columns(sample, nulls_threshold=0.3)
+        sample = Commons.table_fill_null(sample)
+        if not sample or len(sample) == 0:
+            return canonical
+        n_components = n_components if isinstance(n_components, (int, float)) \
+                                       and 0 < n_components < sample.shape[1]  else sample.shape[1]
+        sample = sample.to_pandas(split_blocks=True)
+        # standardise
+        scaler = StandardScaler()
+        train = scaler.fit_transform(sample)
+        # pca
+        pca = PCA(n_components=n_components, **kwargs)
+        train = pca.fit_transform(train)
+        gen = Commons.label_gen(prefix='pca_')
+        names = []
+        for n in range(train.shape[1]):
+            names.append(next(gen))
+        tbl = pa.Table.from_arrays(train.T, names=names)
+        canonical = canonical.drop_columns(sample.columns)
+        return Commons.table_append(canonical, tbl)
