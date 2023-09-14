@@ -326,7 +326,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
             rtn_list = rtn_list.dt.strftime(date_format)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
-        arr = pa.array(rtn_list, pa.timestamp(unit=time_unit, tz=timezone))
+        arr = pc.cast(pa.TimestampArray.from_pandas(rtn_list), pa.timestamp(time_unit, timezone))
         return Commons.table_append(canonical, pa.table([arr], names=[to_header]))
 
     def get_intervals(self, intervals: list, canonical: pa.Table=None, relative_freq: list=None, precision: int=None,
