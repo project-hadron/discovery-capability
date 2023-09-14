@@ -155,60 +155,51 @@ class FeatureBuilderTest(unittest.TestCase):
         tbl = tools.correlate_date_diff(tbl, 'creationDate', 'processDate', to_header='diff', precision=0)
         tprint(tbl)
 
-    # def test_correlate_dates(self):
-    #     fb = FeatureBuild.from_memory()
-    #     tools: FeatureBuildIntent = fb.tools
-    #     tbl = tools.get_synthetic_data_types(10)
-    #     df = pd.DataFrame(columns=['dates'], data=['2019/01/30', '2019/02/12', '2019/03/07', '2019/03/07'])
-    #     result = tools.correlate_dates(df, 'dates', date_format='%Y/%m/%d')
-    #     self.assertEqual(df['dates'].to_list(), result)
-    #     # offset
-    #     result = tools.correlate_dates(df, 'dates', offset=2, date_format='%Y/%m/%d')
-    #     self.assertEqual(['2019/02/01', '2019/02/14', '2019/03/09', '2019/03/09'], result)
-    #     result = tools.correlate_dates(df, 'dates', offset=-2, date_format='%Y/%m/%d')
-    #     self.assertEqual(['2019/01/28', '2019/02/10', '2019/03/05', '2019/03/05'], result)
-    #     result = tools.correlate_dates(df, 'dates', offset={'years': 1, 'months': 2}, date_format='%Y/%m/%d')
-    #     self.assertEqual(['2020/03/30', '2020/04/12', '2020/05/07', '2020/05/07'], result)
-    #     result = tools.correlate_dates(df, 'dates', offset={'years': -1, 'months': 2}, date_format='%Y/%m/%d')
-    #     self.assertEqual(['2018/03/30', '2018/04/12', '2018/05/07', '2018/05/07'], result)
-    #     # jitter
-    #     now = datetime.datetime.now()
-    #     df = pd.DataFrame(columns=['dates'], data=tools._get_datetime(now, now + datetime.timedelta(days=1), size=1000, seed=31))
-    #     df['result'] = tools.correlate_dates(df, 'dates', jitter=1, jitter_units='D', seed=31)
-    #     loss = tools.correlate_dates(df, header='result', now_delta='D')
-    #     self.assertEqual([579, 329, 83, 9], pd.Series(loss).value_counts().to_list())
-    #     # nulls
-    #     df = pd.DataFrame(columns=['dates'], data=['2019/01/30', np.nan, '2019/03/07', '2019/03/07'])
-    #     result = tools.correlate_dates(df, 'dates')
-    #     self.assertEqual('NaT', str(result[1]))
+    def test_correlate_dates(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntent = fb.tools
+        arr = pa.array(pd.to_datetime(['2019/01/30', '2019/02/12', '2019/03/07', '2019/03/07']), pa.timestamp('us'))
+        tbl = pa.table([arr], names=['dates'])
+        # offset
+        result = tools.correlate_dates(tbl, 'dates', offset=2, date_format='%Y/%m/%d', to_header='offset')
+        self.assertEqual(['2019/02/01', '2019/02/14', '2019/03/09', '2019/03/09'], result.column('offset').to_pylist())
+        result = tools.correlate_dates(tbl, 'dates', offset=-2, date_format='%Y/%m/%d', to_header='offset')
+        self.assertEqual(['2019/01/28', '2019/02/10', '2019/03/05', '2019/03/05'], result.column('offset').to_pylist())
+        result = tools.correlate_dates(tbl, 'dates', offset={'years': 1, 'months': 2}, date_format='%Y/%m/%d', to_header='offset')
+        self.assertEqual(['2020/03/30', '2020/04/12', '2020/05/07', '2020/05/07'], result.column('offset').to_pylist())
+        result = tools.correlate_dates(tbl, 'dates', offset={'years': -1, 'months': 2}, date_format='%Y/%m/%d', to_header='offset')
+        self.assertEqual(['2018/03/30', '2018/04/12', '2018/05/07', '2018/05/07'], result.column('offset').to_pylist())
+        # jitter
+        result = tools.correlate_dates(tbl, 'dates', jitter=2, jitter_units='D', to_header='jitter', seed=31)
+        loss = tools.correlate_date_diff(result, first_date='dates', second_date='jitter', to_header='diff')
+        self.assertEqual([-1, 1, 1, -2], loss.column('diff').to_pylist())
 
-    # def test_correlate_date_min_max(self):
-    #     fb = FeatureBuild.from_memory()
-    #     tools: FeatureBuildIntent = fb.tools
-    #     tbl = tools.get_synthetic_data_types(10)
-    #     # control
-    #     df = pd.DataFrame(columns=['dates'], data=tools._get_datetime("2018/01/01", '2018/01/02', size=1000, seed=31))
-    #     result = tools.correlate_dates(df, 'dates', jitter=5, jitter_units='D', date_format='%Y/%m/%d', seed=31)
-    #     self.assertEqual("2017/12/14", pd.Series(result).min())
-    #     self.assertEqual("2018/01/18", pd.Series(result).max())
-    #     # min
-    #     result = tools.correlate_dates(df, 'dates', jitter=5, jitter_units='D', min_date="2018/01/01", date_format='%Y/%m/%d', seed=31)
-    #     self.assertEqual("2018/01/01", pd.Series(result).min())
-    #     self.assertEqual("2018/01/18", pd.Series(result).max())
-    #     # max
-    #     result = tools.correlate_dates(df, 'dates', jitter=5, jitter_units='D', max_date="2018/01/01", date_format='%Y/%m/%d', seed=31)
-    #     self.assertEqual("2017/12/14", pd.Series(result).min())
-    #     self.assertEqual("2018/01/01", pd.Series(result).max())
-    #
-    # def test_correlate_date_as_delta(self):
-    #     fb = FeatureBuild.from_memory()
-    #     tools: FeatureBuildIntent = fb.tools
-    #     tbl = tools.get_synthetic_data_types(10)
-    #     # control
-    #     now = pd.Timestamp.now()
-    #     df = pd.DataFrame(columns=['dates'], data=[now - pd.DateOffset(years=52), now - pd.DateOffset(years=20)])
-    #     result = tools.correlate_dates(df, 'dates', now_delta='Y')
-    #     self.assertEqual([52, 20], result)
+    def test_correlate_date_min_max(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntent = fb.tools
+        arr = pa.array(pd.to_datetime(['2017/12/14', '2017/12/20', '2018/01/18', '2017/12/27']), pa.timestamp('us'))
+        tbl = pa.table([arr], names=['dates'])
+        # control
+        result = tools.correlate_dates(tbl, 'dates', jitter=5, jitter_units='D', date_format='%Y/%m/%d', to_header='maxmin', seed=31)
+        self.assertEqual("2017/12/12", pc.min(result.column('maxmin')).as_py())
+        self.assertEqual("2018/01/21", pc.max(result.column('maxmin')).as_py())
+        # min
+        result = tools.correlate_dates(tbl, 'dates', jitter=5, jitter_units='D', min_date="2017/12/24", date_format='%Y/%m/%d', to_header='maxmin', seed=31)
+        self.assertEqual("2017/12/24", pc.min(result.column('maxmin')).as_py())
+        self.assertEqual("2018/01/21", pc.max(result.column('maxmin')).as_py())
+        # max
+        result = tools.correlate_dates(tbl, 'dates', jitter=5, jitter_units='D', max_date="2018/01/01", date_format='%Y/%m/%d', to_header='maxmin', seed=31)
+        self.assertEqual("2017/12/12", pc.min(result.column('maxmin')).as_py())
+        self.assertEqual("2018/01/01", pc.max(result.column('maxmin')).as_py())
+
+    def test_correlate_date_as_delta(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntent = fb.tools
+        arr = pa.array(pd.to_datetime(['2018/01/30', '2019/02/12', '2019/03/07', '2020/03/07']), pa.timestamp('us'))
+        tbl = pa.table([arr], names=['dates'])
+        # control
+        result = tools.correlate_dates(tbl, 'dates', now_delta='Y', date_format='%Y/%m/%d', to_header='delta', seed=31)
+        self.assertEqual([5,4,4,3], result.column('delta').to_pylist())
 
 
     def test_raise(self):
