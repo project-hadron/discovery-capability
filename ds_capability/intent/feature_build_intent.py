@@ -1369,15 +1369,15 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        if second_date not in canonical.column:
+        if second_date not in canonical.column_names:
             raise ValueError(f"The column header '{second_date}' is not in the canonical DataFrame")
-        if first_date not in canonical.columns:
+        if first_date not in canonical.column_names:
             raise ValueError(f"The column header '{first_date}' is not in the canonical DataFrame")
         canonical = self._get_canonical(canonical)
         _seed = seed if isinstance(seed, int) else self._seed()
         precision = precision if isinstance(precision, int) else 0
         units = units if isinstance(units, str) else 'D'
-        selected = canonical[[first_date, second_date]]
+        selected = Commons.filter_columns(canonical, headers=[first_date, second_date]).to_pandas()
         rename = (selected[second_date].sub(selected[first_date], axis=0) / np.timedelta64(1, units))
         rtn_list = [np.round(v, precision) for v in rename]
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
