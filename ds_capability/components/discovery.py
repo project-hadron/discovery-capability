@@ -297,7 +297,8 @@ class DataDiscovery(object):
                               upper: [int, float]=None, categories: list=None, precision: int=None) -> pa.Array:
         """ creates discrete intervals from continuous values """
         # intend code block on the canonical
-        granularity = 5 if not isinstance(granularity, (int, float, list)) or granularity == 0 else granularity
+        granularity = granularity if isinstance(granularity, (int, float, list)) or granularity == 0 else 5
+        granularity = len(categories) if isinstance(categories, list) else granularity
         precision = precision if isinstance(precision, int) else 5
         # firstly get the granularity
         lower = lower if isinstance(lower, (int, float)) else pc.min(column).as_py()

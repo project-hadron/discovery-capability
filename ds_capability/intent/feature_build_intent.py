@@ -13,6 +13,7 @@ from ds_capability.components.commons import Commons
 from ds_capability.sample.sample_data import Sample
 
 
+# noinspection PyArgumentList
 class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
 
     """Feature data is representative data that, depending on its application, holds statistical and
@@ -227,24 +228,26 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[to_header]))
 
     def get_datetime(self, start: Any, until: Any, canonical: pa.Table=None, relative_freq: list=None,
-                     at_most: int=None, ordered: str=None, date_format: str=None,  as_num: bool=None,
-                     ignore_time: bool=None, ignore_seconds: bool=None, size: int=None, quantity: float=None,
-                     to_header: str=None,  seed: int=None, day_first: bool=None, year_first: bool=None, save_intent: bool=None,
-                     intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                     remove_duplicates: bool=None) -> pa.Table:
+                     at_most: int=None, ordered: str=None, date_format: str=None, timezone: str=None,
+                     time_unit: str=None, as_num: bool=None, ignore_time: bool=None, ignore_seconds: bool=None,
+                     size: int=None, quantity: float=None, to_header: str=None,  seed: int=None, day_first: bool=None,
+                     year_first: bool=None, save_intent: bool=None, intent_level: [int, str]=None,
+                     intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ returns a random date between two date and/or times. weighted patterns can be applied to the overall date
         range. if a signed 'int' type is passed to the start and/or until dates, the inferred date will be the current
         date time with the integer being the offset from the current date time in 'days'.
 
         Note: If no patterns are set this will return a linearly random number between the range boundaries.
 
+        :param timezone: (optional)
+        :param time_unit: (optional) the time units for the timezone. Options 's' 'ms' 'us' or 'ns'
         :param start: the start boundary of the date range can be str, datetime, pd.datetime, pd.Timestamp or int
         :param until: up until boundary of the date range can be str, datetime, pd.datetime, pd.Timestamp or int
         :param canonical: (optional) a pa.Table to append the result table to
-        :param quantity: the quantity of values that are not null. Number between 0 and 1
+        :param quantity: (optional) the quantity of values that are not null. Number between 0 and 1
         :param relative_freq: (optional) A pattern across the whole date range.
-        :param at_most: the most times a selection should be chosen
-        :param ordered: order the data ascending 'asc' or descending 'dec', values accepted 'asc' or 'des'
+        :param at_most: (optional) the most times a selection should be chosen
+        :param ordered: (optional) order the data ascending 'asc' or descending 'dec', values accepted 'asc' or 'des'
         :param ignore_time: ignore time elements and only select from Year, Month, Day elements. Default is False
         :param ignore_seconds: ignore second elements and only select from Year to minute elements. Default is False
         :param date_format: the string format of the date to be returned. if not set then pd.Timestamp returned
@@ -285,6 +288,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         if start is None or until is None:
             raise ValueError("The start or until parameters cannot be of NoneType")
         # Code block for intent
+        time_unit = time_unit if isinstance(time_unit, str) and time_unit in ['s', 'ms', 'us', 'ns'] else 'us'
         as_num = as_num if isinstance(as_num, bool) else False
         ignore_seconds = ignore_seconds if isinstance(ignore_seconds, bool) else False
         ignore_time = ignore_time if isinstance(ignore_time, bool) else False
@@ -322,7 +326,8 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
             rtn_list = rtn_list.dt.strftime(date_format)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.TimestampArray.from_pandas(rtn_list)], names=[to_header]))
+        arr = pa.array(rtn_list, pa.timestamp(unit=time_unit, tz=timezone))
+        return Commons.table_append(canonical, pa.table([arr], names=[to_header]))
 
     def get_intervals(self, intervals: list, canonical: pa.Table=None, relative_freq: list=None, precision: int=None,
                       size: int=None, quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None,
@@ -968,7 +973,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                         to_header='num_null', seed=seed, save_intent=False)
             # date_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            canonical = self.get_datetime(start='2022-12-01', until='2023-03-31', canonical=canonical, ordered=True,
+            canonical = self.get_datetime(start='2023-02-01', until='2023-05-31', canonical=canonical, ordered=True,
                                           size=size, quantity=1 - prob_nulls, to_header='date_null', seed=seed,
                                           save_intent=False)
             # string_null
@@ -1002,7 +1007,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
             # list array
             _ = pa.array(list(zip(canonical.column('num').to_pylist(), canonical.column('num_null').to_pylist())))
             _ = pa.table([_], names=['nest_list'])
-            canonical = Commons.table_append(canonical, _)
+            canonical = Commons.table_append(canonical, _.slice(0, size))
 
         return canonical
 
@@ -1174,6 +1179,211 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
+    def correlate_dates(self, canonical: pa.Table, header: str, choice: [int, float, str]=None, choice_header: str=None,
+                        offset: [int, dict, str]=None, jitter: [int, str]=None, jitter_units: str=None,
+                        ignore_time: bool=None, ignore_seconds: bool=None, min_date: str=None, max_date: str=None,
+                        now_delta: str=None, to_header: str=None, date_format: str=None, day_first: bool=None,
+                        year_first: bool=None, seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
+                        intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
+        """ correlate a list of continuous dates adjusting those dates, or a subset of those dates, with a
+        normalised jitter along with a value offset. ``choice``, ``jitter`` and ``offset`` can accept environment
+        variable string names starting with ``${`` and ending with ``}``.
+
+        When using offset and a dict is passed, the dict should take the form {'days': 1}, where the unit is plural,
+        to add 1 day or a singular name {'hour': 3}, where the unit is singular, to replace the current with 3 hours.
+        Offsets can be 'years', 'months', 'weeks', 'days', 'hours', 'minutes' or 'seconds'. If an int is passed
+        days are assumed.
+
+        :param canonical: a pd.DataFrame as the reference dataframe
+        :param header: the header in the DataFrame to correlate
+        :param choice: (optional) The number of values or percentage between 0 and 1 to choose.
+        :param choice_header: (optional) those not chosen are given the values of the given header
+        :param offset: (optional) Temporal parameter that add to or replace the offset value. if int then assume 'days'
+        :param jitter: (optional) the random jitter or deviation in days
+        :param jitter_units: (optional) the units of the jitter, Options: 'W', 'D', 'h', 'm', 's'. default 'D'
+        :param to_header: (optional) an optional name to call the column
+        :param ignore_time: ignore time elements and only select from Year, Month, Day elements. Default is False
+        :param ignore_seconds: ignore second elements and only select from Year to minute elements. Default is False
+        :param min_date: (optional)a minimum date not to go below
+        :param max_date: (optional)a max date not to go above
+        :param now_delta: (optional) returns a delta from now as an int list, Options: 'Y', 'M', 'W', 'D', 'h', 'm', 's'
+        :param day_first: (optional) if the dates given are day first firmat. Default to True
+        :param year_first: (optional) if the dates given are year first. Default to False
+        :param date_format: (optional) the format of the output
+        :param seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a list of equal size to that given
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        seed = seed if isinstance(seed, int) else self._seed()
+        values = canonical.column(header).to_pandas()
+        choice_header = choice_header if isinstance(choice_header, str) and choice_header in canonical.column_names else header
+        others = canonical.column(choice_header).to_pandas()
+
+        def _clean(control):
+            _unit_type = ['years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds',
+                          'year', 'month', 'week', 'day', 'hour', 'minute', 'second']
+            _params = {}
+            if isinstance(control, int):
+                control = {'days': control}
+            if isinstance(control, dict):
+                for k, v in control.items():
+                    if k not in _unit_type:
+                        raise ValueError(f"The key '{k}' in 'offset', is not a recognised unit type for pd.DateOffset")
+            return control
+
+        seed = self._seed() if seed is None else seed
+        ignore_seconds = ignore_seconds if isinstance(ignore_seconds, bool) else False
+        ignore_time = ignore_time if isinstance(ignore_time, bool) else False
+        offset = _clean(offset) if isinstance(offset, (dict, int)) else None
+        if isinstance(now_delta, str) and now_delta not in ['Y', 'M', 'W', 'D', 'h', 'm', 's']:
+            raise ValueError(f"the now_delta offset unit '{now_delta}' is not recognised "
+                             f"use of of ['Y', 'M', 'W', 'D', 'h', 'm', 's']")
+        # set minimum date
+        _min_date = pd.to_datetime(min_date, errors='coerce')
+        if _min_date is None or _min_date is pd.NaT:
+            _min_date = pd.to_datetime(pd.Timestamp.min)
+        # set max date
+        _max_date = pd.to_datetime(max_date, errors='coerce')
+        if _max_date is None or _max_date is pd.NaT:
+            _max_date = pd.to_datetime(pd.Timestamp.max)
+        if _min_date >= _max_date:
+            raise ValueError(f"the min_date {min_date} must be less than max_date {max_date}")
+        # convert values into datetime
+        s_values = pd.Series(pd.to_datetime(values, errors='coerce', dayfirst=day_first, yearfirst=year_first))
+        s_others = pd.Series(pd.to_datetime(others, errors='coerce', dayfirst=day_first, yearfirst=year_first))
+        dt_tz = s_values.dt.tz
+        # choose the items to jitter
+        if isinstance(choice, (str, int, float)):
+            size = s_values.size
+            choice = self._extract_value(choice)
+            choice = int(choice * size) if isinstance(choice, float) and 0 <= choice <= 1 else int(choice)
+            choice = choice if 0 <= choice < size else size
+            gen = np.random.default_rng(seed=seed)
+            choice_idx = gen.choice(s_values.index, size=choice, replace=False)
+            choice_idx = [choice_idx] if isinstance(choice_idx, int) else choice_idx
+            s_values = s_values.iloc[choice_idx]
+        if isinstance(jitter, (str, int)):
+            size = s_values.size
+            jitter = self._extract_value(jitter)
+            jitter_units = self._extract_value(jitter_units)
+            units_allowed = ['W', 'D', 'h', 'm', 's', 'milli', 'micro']
+            jitter_units = jitter_units if isinstance(jitter_units, str) and jitter_units in units_allowed else 'D'
+            # set jitters to time deltas
+            jitter = pd.Timedelta(value=jitter, unit=jitter_units) if isinstance(jitter, int) else pd.Timedelta(value=0)
+            jitter = int(jitter.to_timedelta64().astype(int) / 10 ** 3)
+            gen = np.random.default_rng(seed)
+            results = gen.normal(loc=0, scale=jitter, size=size)
+            results = pd.Series(pd.to_timedelta(results, unit='micro'), index=s_values.index)
+            s_values = s_values.add(results)
+        null_idx = s_values[s_values.isna()].index
+        if isinstance(offset, dict) and offset:
+            s_values = s_values.add(pd.DateOffset(**offset))
+        # sort max and min
+        if _min_date > pd.to_datetime(pd.Timestamp.min):
+            if _min_date > s_values.min():
+                min_idx = s_values.dropna().where(s_values < _min_date).dropna().index
+                s_values.iloc[min_idx] = _min_date
+            else:
+                raise ValueError(f"The min value {min_date} is greater than the max result value {s_values.max()}")
+        if _max_date < pd.to_datetime(pd.Timestamp.max):
+            if _max_date < s_values.max():
+                max_idx = s_values.dropna().where(s_values > _max_date).dropna().index
+                s_values.iloc[max_idx] = _max_date
+            else:
+                raise ValueError(f"The max value {max_date} is less than the min result value {s_values.min()}")
+        # set the changed values
+        if canonical.num_rows == s_values.size:
+            s_others = s_values
+        else:
+            s_others.iloc[s_values.index] = s_values
+        if now_delta:
+            s_others = s_others.dt.tz_convert(None) if s_others.dt.tz else s_others
+            s_others = (s_others - pd.Timestamp.now()).abs()
+            s_others = (s_others / np.timedelta64(1, now_delta))
+            s_others = s_others.round(0) if null_idx.size > 0 else s_others.astype(int)
+        else:
+            if isinstance(date_format, str):
+                s_others = s_others.dt.strftime(date_format)
+            else:
+                if s_others.dt.tz:
+                    s_others = s_others.dt.tz_convert(dt_tz)
+                else:
+                    s_others = s_others.dt.tz_localize(dt_tz)
+        if ignore_time:
+            s_others = pd.Series(pd.DatetimeIndex(s_others).normalize())
+        elif ignore_seconds:
+            s_others = s_others.dt.round('min')
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([s_others], names=[to_header]))
+
+    def correlate_date_diff(self, canonical: pa.Table, first_date: str, second_date: str, units: str=None,
+                            to_header: str=None, precision: int=None, seed: int=None, save_intent: bool=None,
+                            column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                            remove_duplicates: bool=None, **kwargs):
+        """ returns a column for the difference between a primary and secondary date where the primary is an early date
+        than the secondary.
+
+        :param canonical:
+        :param first_date: the primary or older date field
+        :param second_date: the secondary or newer date field
+        :param units: (optional) The Timedelta units e.g. 'D', 'W', 'M', 'Y'. default is 'D'
+        :param to_header: (optional) an optional name to call the column
+        :param precision: the precision of the result
+        :param seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :param kwargs: a set of kwargs to include in any executable function
+        :return: value set based on the selection list and the action
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        if second_date not in canonical.column:
+            raise ValueError(f"The column header '{second_date}' is not in the canonical DataFrame")
+        if first_date not in canonical.columns:
+            raise ValueError(f"The column header '{first_date}' is not in the canonical DataFrame")
+        canonical = self._get_canonical(canonical)
+        _seed = seed if isinstance(seed, int) else self._seed()
+        precision = precision if isinstance(precision, int) else 0
+        units = units if isinstance(units, str) else 'D'
+        selected = canonical[[first_date, second_date]]
+        rename = (selected[second_date].sub(selected[first_date], axis=0) / np.timedelta64(1, units))
+        rtn_list = [np.round(v, precision) for v in rename]
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([rtn_list], names=[to_header]))
+
+
     def correlate_discrete_intervals(self, canonical: pa.Table, header: str, granularity: [int, float, list]=None,
                                      lower: [int, float]=None, upper: [int, float]=None, categories: list=None,
                                      to_header: str=None, precision: int=None, seed: int=None, save_intent: bool=None,
@@ -1233,6 +1443,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         the form: [(comparison, operation, logic)] where comparison is the thing to look for, the operation, what
         to do with it and the logic if you are chaining tuples, the logic to join them. An example might be:
 
+                [(comparison, operation, logic)]
                 [(1, 'greater', 'or'), (-1, 'less', None)]
                 [(pa.array(['INACTIVE', 'PENDING']), 'is_in', None)]
 
