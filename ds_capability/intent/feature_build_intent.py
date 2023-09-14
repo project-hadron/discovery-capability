@@ -1337,7 +1337,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
 
     def correlate_date_diff(self, canonical: pa.Table, first_date: str, second_date: str, units: str=None,
                             to_header: str=None, precision: int=None, seed: int=None, save_intent: bool=None,
-                            column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                            intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                             remove_duplicates: bool=None, **kwargs):
         """ returns a column for the difference between a primary and secondary date where the primary is an early date
         than the secondary.
@@ -1350,7 +1350,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         :param precision: the precision of the result
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
                     - If None: default's to -1
                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
@@ -1366,7 +1366,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         if second_date not in canonical.column:
