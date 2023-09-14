@@ -127,6 +127,15 @@ class FeatureBuilderTest(unittest.TestCase):
         result = tools.correlate_column_join(tbl, header='int', others=['-PI-', 'date'], drop_others=False, to_header='compound')
         self.assertEqual(['cat', 'num', 'int', 'bool', 'date', 'string', 'compound'], result.column_names)
 
+    def test_correlate_date_diff(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntent = fb.tools
+        sample_size = 10
+        tbl = tools.get_datetime(start=-30, until=-14, ordered=True, ignore_time=True, size=sample_size, to_header='creationDate')
+        tbl = tools.correlate_dates(tbl, header="creationDate", ignore_time=True, offset={'days': 10}, to_header='processDate')
+        result = tools.correlate_date_diff(tbl, 'creationDate', 'processDate', to_header='diff')
+        self.assertEqual(10, pc.divide(pc.sum(result.column('diff')),tbl.num_rows).as_py())
+
     def test_correlate_dates_jitter(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntent = fb.tools
@@ -135,15 +144,17 @@ class FeatureBuilderTest(unittest.TestCase):
         tbl = tools.correlate_dates(tbl, header="creationDate", ignore_time=True, offset={'days': 10}, jitter=1, jitter_units='D', to_header='processDate')
         tprint(tbl)
 
-    # def test_correlate_dates_choice(self):
-    #     fb = FeatureBuild.from_memory()
-    #     tools: FeatureBuildIntent = fb.tools
-    #     tbl = tools.get_synthetic_data_types(10)
-    #     df['creationDate'] = tools.get_datetime(start=-30, until=-14, ordered=True, ignore_time=True, size=sample_size)
-    #     df['processDate'] = tools.correlate_dates(df, header="creationDate", ignore_time=True, offset={'days': 10},
-    #                                              choice=4, jitter=1, jitter_units='D')
-    #
-    #
+    def test_correlate_dates_choice(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntent = fb.tools
+        tbl = tools.get_synthetic_data_types(10)
+        sample_size = 10
+        tbl = tools.get_datetime(start=-30, until=-14, ordered=True, ignore_time=True, size=sample_size, to_header='creationDate')
+        tbl = tools.correlate_dates(tbl, header="creationDate", ignore_time=True, offset={'days': 10},
+                                                 choice=4, jitter=1, jitter_units='D', to_header='processDate')
+        tbl = tools.correlate_date_diff(tbl, 'creationDate', 'processDate', to_header='diff', precision=0)
+        tprint(tbl)
+
     # def test_correlate_dates(self):
     #     fb = FeatureBuild.from_memory()
     #     tools: FeatureBuildIntent = fb.tools
@@ -170,7 +181,7 @@ class FeatureBuilderTest(unittest.TestCase):
     #     df = pd.DataFrame(columns=['dates'], data=['2019/01/30', np.nan, '2019/03/07', '2019/03/07'])
     #     result = tools.correlate_dates(df, 'dates')
     #     self.assertEqual('NaT', str(result[1]))
-    #
+
     # def test_correlate_date_min_max(self):
     #     fb = FeatureBuild.from_memory()
     #     tools: FeatureBuildIntent = fb.tools

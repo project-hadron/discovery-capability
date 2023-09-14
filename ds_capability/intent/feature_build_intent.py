@@ -1345,7 +1345,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         :param canonical:
         :param first_date: the primary or older date field
         :param second_date: the secondary or newer date field
-        :param units: (optional) The Timedelta units e.g. 'D', 'W', 'M', 'Y'. default is 'D'
+        :param units: (optional) The Timedelta units e.g. 'us', 'ms', 's', 'm', 'h', 'D', 'W', 'M', 'Y'. default is 'D'
         :param to_header: (optional) an optional name to call the column
         :param precision: the precision of the result
         :param seed: (optional) a seed value for the random function: default to None
@@ -1379,9 +1379,9 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         units = units if isinstance(units, str) else 'D'
         selected = Commons.filter_columns(canonical, headers=[first_date, second_date]).to_pandas()
         rename = (selected[second_date].sub(selected[first_date], axis=0) / np.timedelta64(1, units))
-        rtn_list = [np.round(v, precision) for v in rename]
+        rtn_arr = pa.array([np.round(v, precision) for v in rename], pa.int64())
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([rtn_list], names=[to_header]))
+        return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
 
     def correlate_discrete_intervals(self, canonical: pa.Table, header: str, granularity: [int, float, list]=None,
