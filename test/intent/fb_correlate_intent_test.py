@@ -99,6 +99,13 @@ class FeatureBuilderTest(unittest.TestCase):
                                               condition=[(4, 'greater', 'or'), (-2, 'less', None)],
                                               value=0, default="@num", to_header='target')
         self.assertEqual(result.column('target').slice(2, 4), result.column('num').slice(2, 4))
+        # check null
+        tbl = tools.get_synthetic_data_types(1000, inc_nulls=True, seed=101)
+        result = tools.correlate_on_condition(tbl, header='num_null', other='num_null',
+                                              condition=[(None, 'is_null', None)],
+                                              value=0, default="@num_null", to_header='target')
+        self.assertGreater(tbl.column('num_null').null_count, 0)
+        self.assertEqual(0, result.column('target').null_count)
 
     def test_correlate_column_join(self):
         fb = FeatureBuild.from_memory()

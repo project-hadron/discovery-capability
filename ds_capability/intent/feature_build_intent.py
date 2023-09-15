@@ -1449,8 +1449,8 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
 
         The operator and logic are taken from pyarrow.compute and are:
 
-                operator => 'extract_regex','equal','greater','less','greater_equal','less_equal','not_equal','is_in'
-                logic => 'and','or','xor','and_not'
+                operator => extract_regex, equal, greater, less, greater_equal, less_equal, not_equal, is_in, is_null
+                logic => and, or, xor, and_not
 
         :param canonical: a pa.Table as the reference table
         :param header: the header for the target values to change
@@ -1509,6 +1509,8 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                 c_bool = pc.not_qual(o_col, comparison)
             elif op == 'is_in':
                 c_bool = pc.is_in(o_col, comparison)
+            elif op == 'is_null':
+                c_bool = pc.is_null(o_col)
             else:
                 raise NotImplementedError(f"Currently the operation '{op} is not implemented")
             if logic not in ['and', 'or', 'xor', 'and_not', 'and_', 'or_']:
@@ -1584,6 +1586,62 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
             h_col = pc.binary_join_element_wise(h_col, o_col, sep)
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([h_col], names=[to_header]))
+
+    def correlate_custom(self, canonical: pa.Table, code_str: str, seed: int=None, to_header: str=None,
+                         save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                         replace_intent: bool=None, remove_duplicates: bool=None, **kwargs):
+        """ Commonly used for custom list comprehension, takes code string that when evaluated returns a list of values
+        Before using this method, consider the method correlate_selection(...)
+
+        When referencing the canonical in the code_str it should be referenced either by use parameter label 'canonical'
+        or the short cut '@' symbol.
+        for example:
+
+        .. code-block:: py3
+
+            code_str = "[x + 2 for x in @['A']]" # where 'A' is a header in the canonical
+
+        kwargs can also be passed into the code string but must be preceded by a '$' symbol
+        for example:
+
+        .. code-block:: py3
+
+            code_str = "[True if x == $v1 else False for x in @['A']]" # where 'v1' is a kwargs
+
+        :param canonical:
+        :param code_str: an action on those column values. to reference the canonical use '@'
+        :param to_header: (optional) an optional name to call the column
+        :param seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the intent name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :param kwargs: a set of kwargs to include in any executable function
+        :return: value set based on the selection list and the action
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   Intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        _seed = seed if isinstance(seed, int) else self._seed()
+        local_kwargs = locals()
+        for k, v in local_kwargs.pop('kwargs', {}).items():
+            local_kwargs.update({k: v})
+            code_str = code_str.replace(f'${k}', str(v))
+        code_str = code_str.replace('@', 'canonical')
+        rtn_values = eval(code_str, globals(), local_kwargs)
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
 
     def model_sample_link(self, canonical: pa.Table, other: [str, pa.Table], headers: list, replace: bool=None,
                           rename_map: [dict, list]=None, multi_map: dict=None, relative_freq: list=None, seed: int=None,
@@ -1706,8 +1764,8 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         tbl_canonical = canonical.drop_columns(left_diff)
         tbl_other = other.drop_columns(right_diff)
         # pandas
-        df_canonical = tbl_canonical.to_pandas(split_blocks=True)
-        df_other = tbl_other.to_pandas(split_blocks=True)
+        df_canonical = tbl_canonical.to_pandas()
+        df_other = tbl_other.to_pandas()
         # sort
         df_canonical.sort_values(on_key, inplace=True)
         df_other.sort_values(on_key, inplace=True)
@@ -1886,3 +1944,170 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
             return canonical
         return self.get_analysis(canonical.num_rows, columns, canonical=canonical)
 
+    def model_group(self, canonical: Any, group_by: [str, list], headers: [str, list]=None, regex: bool=None,
+                    aggregator: str=None, list_choice: int=None, list_max: int=None, drop_group_by: bool = False,
+                    seed: int=None, include_weighting: bool = False, freq_precision: int=None,
+                    remove_weighting_zeros: bool = False, remove_aggregated: bool = False, save_intent: bool=None,
+                    intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                    remove_duplicates: bool=None) -> pd.DataFrame:
+        """ returns the full column values directly from another connector data source. in addition the the
+        standard groupby aggregators there is also 'list' and 'set' that returns an aggregated list or set.
+        These can be using in conjunction with 'list_choice' and 'list_size' allows control of the return values.
+        if list_max is set to 1 then a single value is returned rather than a list of size 1.
+
+        :param canonical: a direct or generated pd.DataFrame. see context notes below
+        :param headers: the column headers to apply the aggregation too
+        :param group_by: the column headers to group by
+        :param regex: if the column headers is q regex
+        :param aggregator: (optional) the aggregator as a function of Pandas DataFrame 'groupby' or 'list' or 'set'
+        :param list_choice: (optional) used in conjunction with list or set aggregator to return a random n choice
+        :param list_max: (optional) used in conjunction with list or set aggregator restricts the list to a n size
+        :param drop_group_by: (optional) drops the group by headers
+        :param include_weighting: (optional) include a percentage weighting column for each
+        :param freq_precision: (optional) a precision for the relative_freq values
+        :param remove_aggregated: (optional) if used in conjunction with the weighting then drops the aggrigator column
+        :param remove_weighting_zeros: (optional) removes zero values
+        :param seed: (optional) this is a place holder, here for compatibility across methods
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the intent name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pd.DataFrame
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        _seed = self._seed() if seed is None else seed
+        generator = np.random.default_rng(seed=_seed)
+        freq_precision = freq_precision if isinstance(freq_precision, int) else 3
+        aggregator = aggregator if isinstance(aggregator, str) else 'sum'
+        headers = Commons.filter_headers(canonical, regex=headers) if isinstance(regex, bool) and regex else None
+        headers = Commons.list_formatter(headers) if isinstance(headers, (list,str)) else canonical.column_names
+        group_by = Commons.list_formatter(group_by)
+        tbl_sub = Commons.filter_columns(canonical, headers=headers + group_by).drop_null()
+        df_sub = tbl_sub.to_pandas()
+        if aggregator.startswith('set') or aggregator.startswith('list'):
+            df_tmp = df_sub.groupby(group_by)[headers[0]].apply(eval(aggregator)).apply(lambda x: list(x))
+            df_tmp = df_tmp.reset_index()
+            for idx in range(1, len(headers)):
+                result = df_sub.groupby(group_by)[headers[idx]].apply(eval(aggregator)).apply(lambda x: list(x))
+                df_tmp = df_tmp.merge(result, how='left', left_on=group_by, right_index=True)
+            for idx in range(len(headers)):
+                header = headers[idx]
+                if isinstance(list_choice, int):
+                    df_tmp[header] = df_tmp[header].apply(lambda x: generator.choice(x, size=list_choice))
+                if isinstance(list_max, int):
+                    df_tmp[header] = df_tmp[header].apply(lambda x: x[0] if list_max == 1 else x[:list_max])
+            df_sub = df_tmp
+        else:
+            df_sub = df_sub.groupby(group_by, as_index=False).agg(aggregator)
+        if include_weighting:
+            df_sub['sum'] = df_sub.sum(axis=1, numeric_only=True)
+            total = df_sub['sum'].sum()
+            df_sub['weighting'] = df_sub['sum'].\
+                apply(lambda x: round((x / total), freq_precision) if isinstance(x, (int, float)) else 0)
+            df_sub = df_sub.drop(columns='sum')
+            if remove_weighting_zeros:
+                df_sub = df_sub[df_sub['weighting'] > 0]
+            df_sub = df_sub.sort_values(by='weighting', ascending=False)
+        if remove_aggregated:
+            df_sub = df_sub.drop(headers, axis=1)
+        if drop_group_by:
+            df_sub = df_sub.drop(columns=group_by, errors='ignore')
+        return pa.Table.from_pandas(df_sub)
+
+    def model_merge(self, canonical: Any, other: Any, left_on: str=None, right_on: str=None, on: str=None,
+                    how: str=None, headers: list=None, suffixes: tuple=None, indicator: bool=None,
+                    validate: str=None,
+                    replace_nulls: bool=None, seed: int=None, save_intent: bool=None,
+                    intent_level: [int, str]=None,
+                    intent_order: int=None, replace_intent: bool=None,
+                    remove_duplicates: bool=None) -> pd.DataFrame:
+        """ returns the full column values directly from another connector data source.
+
+        :param canonical: a direct or generated pd.DataFrame. see context notes below
+        :param other: a direct or generated pd.DataFrame. see context notes below
+        :param left_on: the canonical key column(s) to join on
+        :param right_on: the merging dataset key column(s) to join on
+        :param on: if th left and right join have the same header name this can replace left_on and right_on
+        :param how: (optional) One of 'left', 'right', 'outer', 'inner'. Defaults to inner. See below for more detailed
+                    description of each method.
+        :param headers: (optional) a filter on the headers included from the right side
+        :param suffixes: (optional) A tuple of string suffixes to apply to overlapping columns. Defaults ('', '_dup').
+        :param indicator: (optional) Add a column to the output DataFrame called _merge with information on the source
+                    of each row. _merge is Categorical-type and takes on a value of left_only for observations whose
+                    merge key only appears in 'left' DataFrame or Series, right_only for observations whose merge key
+                    only appears in 'right' DataFrame or Series, and both if the observation’s merge key is found
+                    in both.
+        :param validate: (optional) validate : string, default None. If specified, checks if merge is of specified type.
+                            “one_to_one” or “1:1”: checks if merge keys are unique in both left and right datasets.
+                            “one_to_many” or “1:m”: checks if merge keys are unique in left dataset.
+                            “many_to_one” or “m:1”: checks if merge keys are unique in right dataset.
+                            “many_to_many” or “m:m”: allowed, but does not result in checks.
+        :param replace_nulls: (optional) replaces nulls with an appropriate value dependent upon the field type
+        :param seed: this is a placeholder, here for compatibility across methods
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the intent name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pd.DataFrame
+
+        The other is a pd.DataFrame, a pd.Series or list, a connector contract str reference or a set of
+        parameter instructions on how to generate a pd.Dataframe. the description of each is:
+
+        - pd.Dataframe -> a deep copy of the pd.DataFrame
+        - pd.Series or list -> creates a pd.DataFrame of one column with the 'header' name or 'default' if not given
+        - str -> instantiates a connector handler with the connector_name and loads the DataFrame from the connection
+        - dict -> use canonical2dict(...) to help construct a dict with a 'method' to build a pd.DataFrame
+            methods:
+                - model_*(...) -> one of the SyntheticBuilder model methods and parameters
+                - @empty -> generates an empty pd.DataFrame where size and headers can be passed
+                    :size sets the index size of the dataframe
+                    :headers any initial headers for the dataframe
+                - @generate -> generate a synthetic file from a remote Domain Contract
+                    :task_name the name of the SyntheticBuilder task to run
+                    :repo_uri the location of the Domain Product
+                    :size (optional) a size to generate
+                    :seed (optional) if a seed should be applied
+                    :run_book (optional) if specific intent should be run only
+
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        other = self._get_canonical(other).slice(0, canonical.num_rows)
+        _seed = self._seed() if seed is None else seed
+        how = how if isinstance(how, str) and how in ['left', 'right', 'outer', 'inner'] else 'inner'
+        indicator = indicator if isinstance(indicator, bool) else False
+        suffixes = suffixes if isinstance(suffixes, tuple) and len(suffixes) == 2 else ('', '_dup')
+        # Filter on the columns
+        df = canonical.to_pandas()
+        df_other = other.to_pandas()
+        if isinstance(headers, list):
+            headers.append(right_on if isinstance(right_on, str) else on)
+            other = Commons.filter_columns(other, headers=headers)
+        df_rtn = df.merge(right=df_other, how=how, left_on=left_on, right_on=right_on, on=on, suffixes=suffixes,
+                          indicator=indicator, validate=validate)
+        return pa.Table.from_pandas(df_rtn)
