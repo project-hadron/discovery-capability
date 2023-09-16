@@ -214,8 +214,9 @@ class FeatureBuilderTest(unittest.TestCase):
             env = os.environ['NoEnvValueTest']
         self.assertTrue("'NoEnvValueTest'" in str(context.exception))
 
-def tprint(t: pa.table, index_header: str=None):
-    print(Commons.table_report(t, index_header=index_header).to_string())
+def tprint(t: pa.table, headers: [str, list]=None, d_type: [str, list]=None, regex: [str, list]=None):
+    _ = Commons.filter_columns(t.slice(0,10), headers=headers, d_types=d_type, regex=regex)
+    print(Commons.table_report(_).to_string())
 
 if __name__ == '__main__':
     unittest.main()

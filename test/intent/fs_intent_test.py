@@ -96,10 +96,27 @@ class FeatureBuilderTest(unittest.TestCase):
         tbl = FeatureBuild.from_memory().tools.get_noise(size=1000, num_columns=5)
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
-        result = fs.tools.auto_projection(tbl, n_components=2)
+        result = tools.auto_projection(tbl, n_components=2)
         control = ['pca_A', 'pca_B']
         self.assertEqual(control, result.column_names)
         self.assertEqual((1000, 2), result.shape)
+
+    def test_auto_append_tables(self):
+        tbl = FeatureBuild.from_memory().tools.get_noise(size=1000, num_columns=5)
+        fs = FeatureSelect.from_memory()
+        tools: FeatureSelectIntent = fs.tools
+        result = tools.auto_append_tables(tbl, None)
+        self.assertTrue(tbl.equals(result))
+        result = tools.auto_append_tables(tbl, tbl)
+        self.assertTrue(tbl.equals(result))
+        tbl_types = FeatureBuild.from_memory().tools.get_synthetic_data_types(1200)
+        result = tools.auto_append_tables(tbl, tbl_types, headers=['A', 'B', 'C'], other_headers=['num', 'int'])
+        self.assertEqual((1000, 5), result.shape)
+        self.assertCountEqual(['A', 'B', 'C', 'num', 'int'], result.column_names)
+        tbl_types = FeatureBuild.from_memory().tools.get_synthetic_data_types(400)
+        result = tools.auto_append_tables(tbl, tbl_types, headers=['A', 'B', 'C'], other_headers=['num', 'int'])
+        self.assertEqual((1000, 5), result.shape)
+        self.assertCountEqual(['A', 'B', 'C', 'num', 'int'], result.column_names)
 
     def test_raise(self):
         startTime = datetime.now()

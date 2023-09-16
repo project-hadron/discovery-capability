@@ -14,7 +14,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
 
     def auto_clean_header(self, canonical: pa.Table, case: str=None, rename_map: [dict, list, str]=None,
                           replace_spaces: str=None, save_intent: bool=None, intent_level: [int, str]=None,
-                          intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
+                          intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ clean the headers of a Table replacing space with underscore. This also allows remapping and case selection
 
         :param canonical: the pandas.DataFrame to drop duplicates from
@@ -74,13 +74,20 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         # return table with new headers
         return pa.table(canonical.columns, names=headers.to_list())
 
-    def auto_cast_types(self, canonical: pa.Table, category_max: int=None, save_intent: bool=None,
+    def auto_cast_types(self, canonical: pa.Table, inc_category: bool=None, category_max: int=None, inc_bool: bool=None,
+                        inc_timestamp: bool=None, tm_units: str=None, tm_tz: str=None, save_intent: bool=None,
                         intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                        remove_duplicates: bool=None):
-        """ attempts to cast the columns of a table to its content type.
+                        remove_duplicates: bool=None) -> pa.Table:
+        """ attempts to cast the columns of a table to its appropriate type. Categories boolean and timestamps
+        are toggled on and of with the inc_ parameters being true or false.
 
         :param canonical: the pandas.DataFrame to drop duplicates from
-        :param category_max:  (optional)
+        :param inc_category: (optional) if categories should be cast.  Default True
+        :param category_max: (optional) the max number of unique values to consider categorical
+        :param inc_bool: (optional) if booleans should be cast. Default True
+        :param inc_timestamp: (optional) if categories should be cast.  Default True
+        :param tm_units: (optional) units to cast timestamp. Options are 's', 'ms', 'us', 'ns'
+        :param tm_tz: (optional) timezone to cast timestamp
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the level name that groups intent by a reference name
         :param intent_order: (optional) the order in which each intent should run.
@@ -100,12 +107,13 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
-        return Commons.table_cast(canonical, cat_max=category_max)
+        return Commons.table_cast(canonical, inc_cat=inc_category, cat_max=category_max, inc_bool=inc_bool,
+                                  inc_time=inc_timestamp, units=tm_units, tz=tm_tz)
 
     def auto_reinstate_nulls(self, canonical: pa.Table, nulls_list=None, headers: [str, list]=None, drop: bool=None,
                              data_type: [str, list]=None, regex: [str, list]=None, save_intent: bool=None,
                              intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                             remove_duplicates: bool=None):
+                             remove_duplicates: bool=None) -> pa.Table:
         """ automatically reinstates nulls that have been masked with alternate values such as space or question-mark.
         By default, the nulls list is ['',' ','NaN','nan','None','null','Null','NULL']
 
@@ -149,7 +157,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
     def auto_drop_columns(self, canonical: pa.Table, nulls_threshold: float=None, nulls_list: [bool, list]=None,
                           drop_predominant: bool=None, drop_empty_row: bool=None, drop_unknown: bool=None,
                           save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                          replace_intent: bool=None, remove_duplicates: bool=None):
+                          replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ auto removes columns that are at least 0.998 percent np.NaN, a single value, std equal zero or have a
         predominant value greater than the default 0.998 percent.
 
@@ -197,7 +205,8 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         return canonical.drop_columns(to_drop)
 
     def auto_drop_duplicates(self, canonical: pa.Table, save_intent: bool=None, intent_level: [int, str]=None, 
-                             intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
+                             intent_order: int=None, replace_intent: bool=None,
+                             remove_duplicates: bool=None) -> pa.Table:
         """ Removes columns that are duplicates of each other
 
         :param canonical:
@@ -230,7 +239,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
 
     def auto_drop_correlated(self, canonical: pa.Table, threshold: float=None, save_intent: bool=None,
                              intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                             remove_duplicates: bool=None) -> [dict, pd.DataFrame]:
+                             remove_duplicates: bool=None) -> pa.Table:
         """ uses 'brute force' techniques to remove's highly correlated numeric columns based on the threshold,
         set by default to 0.998.
 
@@ -270,7 +279,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
 
     def auto_projection(self, canonical: pa.Table, headers: list=None, drop: bool=None, n_components: [int, float]=None,
                         seed: int=None, save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                        replace_intent: bool=None, remove_duplicates: bool=None, **kwargs) -> pd.DataFrame:
+                        replace_intent: bool=None, remove_duplicates: bool=None, **kwargs) -> pa.Table:
         """Principal component analysis (PCA) is a linear dimensionality reduction using Singular Value Decomposition
         of the data to project it to a lower dimensional space.
 
@@ -321,3 +330,57 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         tbl = pa.Table.from_arrays(train.T, names=names)
         canonical = canonical.drop_columns(sample.columns)
         return Commons.table_append(canonical, tbl)
+
+    def auto_append_tables(self, canonical: pa.Table, other: pa.Table=None, headers: [str, list]=None,
+                           data_types: [str, list]=None, regex: [str, list]=None, drop: bool=None,
+                           other_headers: [str, list]=None, other_data_type: [str, list]=None,
+                           other_regex: [str, list]=None, other_drop: bool=None, seed: int=None,
+                           save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                           replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ Appends the canonical table with the other
+
+        :param canonical: a pa.Table defines the number of rows
+        :param other: (optional) the pa.Table or connector to join. This is the dominant table and will replace like named columns
+        :param headers: (optional) headers to select
+        :param data_types: (optional) data types to select. use PyArrow data types eg 'pa.string()'
+        :param regex: (optional) a regular expression
+        :param drop: (optional) if True then drop the headers. False by default
+        :param other_headers: other headers to select
+        :param other_data_type: other data types to select. use PyArrow data types eg 'pa.string()'
+        :param other_regex: other regular expression
+        :param other_drop: if True then drop the other headers
+        :param seed: (optional) placeholder
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the level name that groups intent by a reference name
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pa.Table
+        """
+        # resolve intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        canonical = self._get_canonical(canonical)
+        other = self._get_canonical(other)
+        canonical = Commons.filter_columns(canonical, headers=headers, d_types=data_types, regex=regex, drop=drop)
+        if other is None:
+            return canonical
+        other = Commons.filter_columns(other, headers=other_headers, d_types=other_data_type, regex=other_regex,
+                                       drop=other_drop)
+        df = other.to_pandas()
+        if canonical.num_rows > other.num_rows:
+            df = df.sample(n=canonical.num_rows, random_state=seed, ignore_index=True, replace=True)
+            other = pa.Table.from_pandas(df)
+        else:
+            other = other.slice(0, canonical.num_rows)
+        # append
+        return Commons.table_append(canonical, other)

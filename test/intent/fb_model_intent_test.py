@@ -76,10 +76,23 @@ class FeatureBuilderTest(unittest.TestCase):
     def test_model_missing(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntent = fb.tools
-        canonical = tools.get_synthetic_data_types(100, inc_nulls=True, category_encode=True)
-        result = tools.model_missing(canonical, headers=['num_null', 'string_null'])
-        print(fb.canonical_report())
-
+        tbl = tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
+        self.assertGreater(tbl.column('num_null').null_count, 0)
+        self.assertGreater(tbl.column('string_null').null_count, 0)
+        # default
+        result = tools.model_missing(tbl, headers=['num_null', 'string_null'])
+        self.assertEqual(0, result.column('num_null').null_count)
+        self.assertEqual(0, result.column('string_null').null_count)
+        # knn distance
+        tbl = tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
+        result = tools.model_missing(tbl, headers=['num_null', 'string_null'], strategy='knn_distance')
+        self.assertEqual(0, result.column('num_null').null_count)
+        self.assertEqual(0, result.column('string_null').null_count)
+        # mean
+        tbl = tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
+        result = tools.model_missing(tbl, headers=['num_null', 'string_null'], strategy='mean')
+        self.assertEqual(0, result.column('num_null').null_count)
+        self.assertEqual(0, result.column('string_null').null_count)
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:
@@ -112,6 +125,9 @@ class FeatureBuilderTest(unittest.TestCase):
         ]
         return Commons.table_flatten(pa.Table.from_pylist(document))
 
+def tprint(t: pa.table, headers: [str, list]=None, d_type: [str, list]=None, regex: [str, list]=None):
+    _ = Commons.filter_columns(t.slice(0,10), headers=headers, d_types=d_type, regex=regex)
+    print(Commons.table_report(_).to_string())
 
 
 if __name__ == '__main__':

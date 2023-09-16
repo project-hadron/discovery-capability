@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
+from sklearn.impute import KNNImputer
+
 from ds_capability.components.discovery import DataDiscovery
 from scipy import stats
 from ds_capability.intent.common_intent import CommonsIntentModel
@@ -1683,11 +1685,11 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         seed = self._seed() if seed is None else seed
         # build the distribution sizes
         if isinstance(relative_freq, list) and len(relative_freq) > 1:
-            relative_freq = self._freq_dist_size(relative_freq=relative_freq, size=other.shape[0], seed=seed)
+            relative_freq = self._freq_dist_size(relative_freq=relative_freq, size=other.num_rows, seed=seed)
         else:
             relative_freq = None
         other = Commons.filter_columns(other, headers=headers).to_pandas()
-        other = other.sample(n=canonical.shape[0], weights=relative_freq, random_state=seed, ignore_index=True,
+        other = other.sample(n=canonical.num_rows, weights=relative_freq, random_state=seed, ignore_index=True,
                              replace=replace)
         if isinstance(rename_map, list) and len(rename_map) == len(headers):
             other.columns = rename_map
@@ -1905,14 +1907,15 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
             raise ValueError(f"The connector name {connector_name} has been given but no Connect Contract added")
         return result
 
-    def model_missing(self, canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
-                      regex: [str, list]=None, drop: bool=None, seed: int=None, save_intent: bool=None,
-                      intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                      remove_duplicates: bool=None) -> pa.Table:
-        """ Imputes missing data with a probabilistic value based on the data pattern and the values around it.
+    def model_missing(self, canonical: pa.Table, strategy: str=None, headers: [str, list]=None,
+                      d_types: [str, list]=None, regex: [str, list]=None, drop: bool=None, seed: int=None,
+                      save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                      replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ Imputes missing data with a probabilistic value based on the data pattern and the surrounding values.
         Can be applied to any type. This is the default.
 
         :param canonical:
+        :param strategy: (optional) replace null. By default, probability, or mean, medium, mode, forward, backward
         :param headers: (optional) a filter of headers from the 'other' dataset
         :param drop: (optional) to drop or not drop the headers if specified
         :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
@@ -1939,10 +1942,36 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         # intent action
         canonical = self._get_canonical(canonical)
         _seed = self._seed() if seed is None else seed
-        columns = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
-        if columns.num_columns == 0:
+        strategy = strategy if isinstance(strategy, str) else 'probability'
+        tbl = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
+        if tbl.num_columns == 0:
             return canonical
-        return self.get_analysis(canonical.num_rows, columns, canonical=canonical)
+        rtn_tbl = None
+        for n in tbl.column_names:
+            c = tbl.column(n).combine_chunks()
+            if pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
+                precision = Commons.column_precision(c)
+                if strategy == 'mean':
+                    c = c.fill_null(pc.round(pc.mean(c), precision))
+                elif strategy == 'median':
+                    c = c.fill_null(pc.round(pc.approximate_median(c), precision))
+                elif strategy == 'mode':
+                    c = c.fill_null(pc.round(pc.mode(c), precision))
+                elif strategy == 'knn_uniform' or strategy == 'knn_distance':
+                    weights = strategy[4:]
+                    model = KNNImputer(n_neighbors=5, weights=weights)
+                    np_array = c.to_pandas().to_numpy().reshape(-1, 1)
+                    c = pa.Array.from_pandas(model.fit_transform(np_array).reshape(1, -1)[0])
+            if strategy == 'forward':
+                c = pc.fill_null_forward(c)
+            elif strategy == 'backward':
+                c = c.fill_null_backward(c)
+            else:
+                # get the analysis
+                anal_tbl = self.get_analysis(tbl.num_rows, pa.table([c.drop_null()], names=[n]))
+                c = c.fill_null(anal_tbl.column(n))
+            rtn_tbl = Commons.table_append(rtn_tbl, pa.table([c], names=[n]))
+        return Commons.table_append(canonical, rtn_tbl)
 
     def model_group(self, canonical: Any, group_by: [str, list], headers: [str, list]=None, regex: bool=None,
                     aggregator: str=None, list_choice: int=None, list_max: int=None, drop_group_by: bool = False,
