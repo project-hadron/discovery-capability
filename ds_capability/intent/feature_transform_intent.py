@@ -12,7 +12,7 @@ from ds_capability.intent.abstract_feature_transform_intent import AbstractFeatu
 
 class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentModel):
 
-    def encode_date_integer(self, canonical: pa.Table, headers: [str, list], prefix=None, day_first: bool = True,
+    def encode_date_integer(self, canonical: pa.Table, headers: [str, list]=None, prefix=None, day_first: bool = True,
                             year_first: bool = False, seed: int=None, save_intent: bool=None,
                             intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                             remove_duplicates: bool=None):
@@ -44,19 +44,21 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         # intend code block on the canonical
         canonical = self._get_canonical(canonical)
         prefix = prefix if isinstance(prefix, str) else ''
-        headers = Commons.list_formatter(headers)
+        headers = Commons.list_formatter(headers) if isinstance(headers,(str, list)) else canonical.column_names
         _ = self._seed() if seed is None else seed
         tbl = None
-        for n in canonical.column_names:
-            c = canonical.column(n)
-            if not pa.types.is_timestamp(c.type) or not pa.types.is_time(c.type):
+        for n in headers:
+            c = canonical.column(n).combine_chunks()
+            if not (pa.types.is_timestamp(c.type) or pa.types.is_time(c.type)):
                 continue
             column = pa.array(Commons.date2value(c.to_pylist()), pa.int64())
             new_header = f"{prefix}{n}"
             tbl = Commons.table_append(tbl, pa.table([column], names=[new_header]))
+        if not tbl:
+            return canonical
         return Commons.table_append(canonical, tbl)
 
-    def encode_category_integer(self, canonical: pa.Table, headers: [str, list], ranking: list=None, prefix=None,
+    def encode_category_integer(self, canonical: pa.Table, headers: [str, list]=None, ranking: list=None, prefix=None,
                                 seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
                                 intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
         """ Integer encoding replaces the categories by digits from 1 to n, where n is the number of distinct
@@ -98,7 +100,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         # intend code block on the canonical
         canonical = self._get_canonical(canonical)
         prefix = prefix if isinstance(prefix, str) else ''
-        headers = Commons.list_formatter(headers)
+        headers = Commons.list_formatter(headers) if isinstance(headers, (str, list)) else canonical.column_names
         _ = self._seed() if seed is None else seed
         tbl = None
         for header in headers:
@@ -121,9 +123,11 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                 column = pa.array(column.indicies, pa.int64())
             new_header = f"{prefix}{header}"
             tbl = Commons.table_append(tbl, pa.table([column], names=[new_header]))
+        if not tbl:
+            return canonical
         return Commons.table_append(canonical, tbl)
 
-    def encode_category_one_hot(self, canonical: pa.Table, headers: [str, list], prefix=None, data_type: pa.Table=None,
+    def encode_category_one_hot(self, canonical: pa.Table, headers: [str, list]=None, prefix=None, data_type: pa.Table=None,
                                 prefix_sep: str=None, dummy_na: bool = False, drop_first: bool = False, seed: int=None,
                                 save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                                 replace_intent: bool=None, remove_duplicates: bool=None) -> pd.DataFrame:
@@ -158,7 +162,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # intend code block on the canonical
         canonical = self._get_canonical(canonical)
-        headers = Commons.list_formatter(headers)
+        headers = Commons.list_formatter(headers) if isinstance(headers, (str, list)) else canonical.column_names
         _ = self._seed() if seed is None else seed
         prefix_sep = prefix_sep if isinstance(prefix_sep, str) else "_"
         dummy_na = dummy_na if isinstance(dummy_na, bool) else False
@@ -168,17 +172,25 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                               dummy_na=dummy_na, drop_first=drop_first, dtype=data_type)
         return pa.Table.from_pandas(self, dummies)
 
-    def scale_normalize(self, canonical: pa.Table, headers: [str, list], scalar: tuple=None,
+    def scale_normalize(self, canonical: pa.Table, headers: [str, list]=None, scalar: [tuple, str]=None,
                         prefix: str=None, precision: int=None, seed: int=None, save_intent: bool=None,
                         intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                         remove_duplicates: bool=None):
-        """ encodes categorical data types, One hot encoding, consists in encoding each categorical variable with
-        different boolean variables (also called dummy variables) which take values 0 or 1, indicating if a category
-        is present in an observation.
+        """ Normalization of continuous data using either Min-Max Scaling or Robust Scaling, dependent on the
+        scalar passed.
+
+        Min-Max Scaling: scales the data such that it falls within a specified range, typically (0,1) as default if
+        no value is passed, or (min, max) tuple. This method is suitable when your data should be uniformly
+        distributed across the specified range.
+
+        Robust Scaling: Robust scaling is similar to min-max scaling but is less sensitive to outliers. It uses
+        the interquartile range (0.25, 0.75) to scale the data. This is used if the scalar equals 'robust'.
+        Robust scaling is particularly useful when your dataset contains outliers or when the underlying data
+        distribution is not necessarily Gaussian
 
         :param canonical: pyarrow Table
         :param headers: the header(s) to apply scaling too
-        :param scalar:(optional)
+        :param scalar:(optional) a tuple scalar representing min and max values or 'robust' for interquartile scaling
         :param prefix: (optional) a str prefix for generated headers
         :param precision: (optional) how many decimal places. default to 3
         :param seed: seed: (optional) a seed value for the random function: default to None
@@ -201,34 +213,45 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # intend code block on the canonical
         canonical = self._get_canonical(canonical)
+        headers = Commons.list_formatter(headers) if isinstance(headers, (str, list)) else canonical.column_names
         _seed = seed if isinstance(seed, int) else self._seed()
-        precision = precision if isinstance(precision, int) else 5
+        scalar = scalar if isinstance(scalar, (tuple, str)) else (0, 1)
         tbl = None
-        for n in canonical.column_names:
-            c = canonical.column(n)
-            if not pa.types.is_floating(c.type) or not pa.types.is_integer(c.type):
+        for n in headers:
+            c = canonical.column(n).combine_chunks()
+            if not (pa.types.is_floating(c.type) or pa.types.is_integer(c.type)):
                 continue
+            precision = precision if isinstance(precision, int) else Commons.column_precision(c)+2
             s_values = c.to_pandas()
             null_idx = s_values[s_values.isna()].index
             s_values = s_values.fillna(0)
-            if scalar[0] >= scalar[1] or len(scalar) != 2:
-                raise ValueError("The scalar tuple must be of size two with the first value lower than the second")
-            s_values = pd.Series(Commons.list_normalize(s_values.to_list(), scalar[0], scalar[1]))
+            if isinstance(scalar, str) and scalar == 'robust':
+                if s_values.max() == s_values.min():
+                    s_values = pd.Series([0.5] * canonical.num_rows)
+                else:
+                    s_values = pd.Series(Commons.list_normalize_robust(s_values.to_list(), precision))
+            elif s_values.max() == s_values.min():
+                s_values = pd.Series([np.mean([scalar[0], scalar[1]])] * canonical.num_rows)
+            else:
+                if scalar[0] >= scalar[1] or len(scalar) != 2:
+                    scalar = (0,1)
+                s_values = pd.Series(Commons.list_normalize(s_values.to_list(), scalar[0], scalar[1]))
             s_values = s_values.round(precision)
             if null_idx.size > 0:
                 s_values.iloc[null_idx] = np.nan
-            if precision == 0 and not s_values.isnull().any():
-                s_values = s_values.astype(int)
             new_header = f"{prefix}{n}"
-            tbl = Commons.table_append(tbl, pa.table([c], names=[n]))
+            tbl = Commons.table_append(tbl, pa.table([s_values], names=[n]))
+        if not tbl:
+            return canonical
         return Commons.table_append(canonical, tbl)
 
-    def scale_standardize(self, canonical: pa.Table, headers: [str, list], prefix: str=None, precision: int=None, seed: int=None,
-                          save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+    def scale_standardize(self, canonical: pa.Table, headers: [str, list]=None, prefix: str=None, precision: int=None,
+                          seed: int=None, save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                           replace_intent: bool=None, remove_duplicates: bool=None):
-        """ encodes categorical data types, One hot encoding, consists in encoding each categorical variable with
-        different boolean variables (also called dummy variables) which take values 0 or 1, indicating if a category
-        is present in an observation.
+        """ Z-Score Standardization (Standard Scaling): This method transforms the data to have a mean of 0
+        and a standard deviation of 1. It's particularly useful when your data follows a Gaussian (normal)
+        distribution. This transformation makes it easier to compare and work with features that may have
+        different scales and ensures that they contribute equally to model training.
 
         :param canonical: pyarrow Table
         :param headers: the header(s) to apply scaling too
@@ -254,13 +277,14 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # intend code block on the canonical
         canonical = self._get_canonical(canonical)
+        headers = Commons.list_formatter(headers) if isinstance(headers, (str, list)) else canonical.column_names
         _seed = seed if isinstance(seed, int) else self._seed()
-        precision = precision if isinstance(precision, int) else 5
         tbl = None
-        for n in canonical.column_names:
-            c = canonical.column(n)
-            if not pa.types.is_floating(c.type) or not pa.types.is_integer(c.type):
+        for n in headers:
+            c = canonical.column(n).combine_chunks()
+            if not (pa.types.is_floating(c.type) or pa.types.is_integer(c.type)):
                 continue
+            precision = precision if isinstance(precision, int) else Commons.column_precision(c)+2
             s_values = c.to_pandas()
             null_idx = s_values[s_values.isna()].index
             s_values = s_values.fillna(0)
@@ -268,22 +292,45 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
             s_values = s_values.round(precision)
             if null_idx.size > 0:
                 s_values.iloc[null_idx] = np.nan
-            if precision == 0 and not s_values.isnull().any():
-                s_values = s_values.astype(int)
             new_header = f"{prefix}{n}"
-            tbl = Commons.table_append(tbl, pa.table([c], names=[n]))
+            tbl = Commons.table_append(tbl, pa.table([s_values], names=[n]))
+        if not tbl:
+            return canonical
         return Commons.table_append(canonical, tbl)
 
-    def scale_transform(self, canonical: pa.Table, headers: [str, list], transform: str, prefix: str=None,
+    def scale_transform(self, canonical: pa.Table, transform: str, headers: [str, list]=None, prefix: str=None,
                         precision: int=None, seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
                         intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
-        """ encodes categorical data types, One hot encoding, consists in encoding each categorical variable with
-        different boolean variables (also called dummy variables) which take values 0 or 1, indicating if a category
-        is present in an observation.
+        """ Log, sqrt (square root), cbrt (cube root), Box-Cox, and Yeo-Johnson transformations. These are techniques
+        used to modify the distribution or scale of continuous data to make the data conform more closely to a
+        normal distribution or to stabilize the variance.
+
+        Log Transformation (log): The log transformation involves taking the natural logarithm of each data point.
+        It is particularly useful when dealing with data that follows an exponential distribution or has a
+        right-skewed distribution. The log transformation can help make the data more symmetric and stabilize
+        the variance.
+
+        Square Root Transformation (sqrt): The square root transformation involves taking the square root of
+        each data point. It is often used when dealing with count data or data with a right-skewed distribution.
+        Like the log transformation, the square root transformation can make the data more symmetric and stabilize
+        the variance.
+
+        Cube Root Transformation (cbrt): The cube root transformation involves taking the cube root of each
+        data point. It is another option for stabilizing variance and making data less skewed, especially when
+        dealing with positive data with right-skewed distributions.
+
+        Box-Cox Transformation: The Box-Cox transformation is a family of power transformations that includes
+        both the log and square root transformations as special cases. Can only work with positive values
+
+        Yeo-Johnson Transformation: The Yeo-Johnson transformation is an extension of the Box-Cox transformation
+        that allows for the transformation of data with both positive and negative values.
+
+        These transformations are often applied to address issues like non-normality, heteroscedasticity (unequal variance),
+        and skewed distributions in the data.
 
         :param canonical: pyarrow Table
-        :param headers: the header(s) to apply scaling too
-        :param transform: the transform function, 'log', 'sqrt', 'cbrt', 'boxcox' or 'yeojohnson'
+        :param headers: the header(s) to apply scaling to
+        :param transform: transform function, 'log', 'sqrt', 'cbrt', 'boxcox' or 'yeojohnson'
         :param prefix: (optional) a str prefix for generated headers
         :param precision: (optional) how many decimal places. default to 3
         :param seed: seed: (optional) a seed value for the random function: default to None
@@ -306,13 +353,14 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # intend code block on the canonical
         canonical = self._get_canonical(canonical)
+        headers = Commons.list_formatter(headers) if isinstance(headers, (str, list)) else canonical.column_names
         _seed = seed if isinstance(seed, int) else self._seed()
-        precision = precision if isinstance(precision, int) else 5
         tbl = None
-        for n in canonical.column_names:
-            c = canonical.column(n)
-            if not pa.types.is_floating(c.type) or not pa.types.is_integer(c.type):
+        for n in headers:
+            c = canonical.column(n).combine_chunks()
+            if not (pa.types.is_floating(c.type) or pa.types.is_integer(c.type)):
                 continue
+            precision = precision if isinstance(precision, int) else Commons.column_precision(c)+2
             s_values = c.to_pandas()
             null_idx = s_values[s_values.isna()].index
             s_values = s_values.fillna(0)
@@ -333,13 +381,13 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
             s_values = s_values.round(precision)
             if null_idx.size > 0:
                 s_values.iloc[null_idx] = np.nan
-            if precision == 0 and not s_values.isnull().any():
-                s_values = s_values.astype(int)
             new_header = f"{prefix}{n}"
-            tbl = Commons.table_append(tbl, pa.table([c], names=[n]))
+            tbl = Commons.table_append(tbl, pa.table([s_values], names=[n]))
+        if not tbl:
+            return canonical
         return Commons.table_append(canonical, tbl)
 
-    def scale_activation(self, canonical: pa.Table, headers: [str, list], activation: str, prefix: str=None,
+    def scale_activation(self, canonical: pa.Table, activation: str, headers: [str, list]=None, prefix: str=None,
                          precision: int=None, seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
                          intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
         """ An activation function determines the output of a neuron or a node in a neural network or binary
@@ -383,13 +431,14 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # intend code block on the canonical
         canonical = self._get_canonical(canonical)
+        headers = Commons.list_formatter(headers) if isinstance(headers, (str, list)) else canonical.column_names
         _seed = seed if isinstance(seed, int) else self._seed()
-        precision = precision if isinstance(precision, int) else 5
         tbl = None
-        for n in canonical.column_names:
-            c = canonical.column(n)
-            if not pa.types.is_floating(c.type) or not pa.types.is_integer(c.type):
+        for n in headers:
+            c = canonical.column(n).combine_chunks()
+            if not (pa.types.is_floating(c.type) or pa.types.is_integer(c.type)):
                 continue
+            precision = precision if isinstance(precision, int) else Commons.column_precision(c)+2
             s_values = c.to_pandas()
             null_idx = s_values[s_values.isna()].index
             s_values = s_values.fillna(0)
@@ -406,6 +455,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
             if null_idx.size > 0:
                 s_values.iloc[null_idx] = np.nan
             new_header = f"{prefix}{n}"
-            tbl = Commons.table_append(tbl, pa.table([c], names=[n]))
+            tbl = Commons.table_append(tbl, pa.table([s_values], names=[n]))
+        if not tbl:
+            return canonical
         return Commons.table_append(canonical, tbl)
-

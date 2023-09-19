@@ -245,7 +245,7 @@ class AbstractCommonComponent(AbstractComponent):
         :param catalog: (optional) the catalog to filter on
         :param labels: (optional) s label or list of labels to filter on
         :param regex: (optional) a regular expression on the notes
-        :param re_ignore_case: (optional) if the regular expression should be case sensitive
+        :param re_ignore_case: (optional) if the regular expression should be case-sensitive
         :param stylise: (optional) returns a stylised dataframe with formatting
         :param drop_dates: (optional) excludes the 'date' column from the report
         :return: pa.Table
@@ -256,3 +256,12 @@ class AbstractCommonComponent(AbstractComponent):
         if stylise:
             return Commons.report(df, index_header='section', bold='label')
         return pa.Table.from_pandas(df)
+
+    @classmethod
+    def __dir__(cls):
+        """returns the list of available methods associated with the parameterized intent"""
+        rtn_list = []
+        for m in dir(cls):
+            if not m.startswith('_'):
+                rtn_list.append(m)
+        return rtn_list
