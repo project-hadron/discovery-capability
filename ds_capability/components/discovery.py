@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import pandas as pd
 import numpy as np
 import pyarrow as pa
@@ -7,6 +9,58 @@ from ds_capability.components.commons import Commons
 
 # noinspection PyArgumentList
 class DataDiscovery(object):
+
+    @staticmethod
+    def interquartile_outliers(values: pa.Array, k_factor: float=None) -> Tuple[list, list]:
+        """ The interquartile range (IQR), also called the midspread, middle 50%, or H‑spread, is a measure of
+        statistical dispersion, being equal to the difference between 75th and 25th percentiles, or between upper
+        and lower quartiles
+
+        The IQR can be used to identify outliers by defining limits on the sample values that are a factor k of the
+        IQR below the 25th percentile or above the 75th percentile. The common value for the factor k is the value 1.5.
+        A factor k of 3 or more can be used to identify values that are extreme outliers.
+
+        :param values: the values to be assessed
+        :param k_factor: the k factor to apply beyond the 25th and 75th percentile, defaults to 1.5
+        :return: a tuple of the lower and upper outliers as a list of index of the values
+        """
+        k_factor = k_factor if isinstance(k_factor, float) and 0 < k_factor <= 10 else 1.5
+        values = values.drop_null()
+        # calculate interquartile range
+        q25, q75 = pc.quantile(values, [0.25, 0.75])
+        iqr = pc.subtract(q75, q25).as_py()
+        # calculate the outlier cutoff
+        cut_off = pc.multiply(iqr, k_factor).as_py()
+        lower, upper = pc.subtract(q25, cut_off).as_py(), pc.add(q75, cut_off).as_py()
+        # identify outliers
+        upper_outliers = values.filter(pc.greater_equal(values, upper)).to_pylist()
+        lower_outliers = values.filter(pc.less_equal(values, lower)).to_pylist()
+        return lower_outliers, upper_outliers
+
+    @staticmethod
+    def empirical_outliers(values: pa.Array, std_width: int=None) -> Tuple[list, list]:
+        """ The empirical rule states that for a normal distribution, nearly all of the data will fall within three
+        standard deviations of the mean.
+
+        Given mu and sigma, a simple way to identify outliers is to compute a z-score for every value, which is
+        defined as the number of standard deviations away value is from the mean. The 68–95–99.7 rule, also known as
+        the empirical rule, is a shorthand used to remember the percentage of values that lie within a band around
+        the mean in a normal distribution with a width of two, four and six standard deviations, respectively
+
+        :param values: the values to be assessed
+        :param std_width: (optional) A standard deviation away from the mean. Default is 3
+        :return: a list of index of outliers
+        """
+        values = values.drop_null()
+        std_width = std_width if isinstance(std_width, int) and 2 <= std_width <= 6 else 3
+        data_mean, data_std = pc.mean(values).as_py(), pc.stddev(values).as_py()
+        # identify outliers
+        cut_off = pc.multiply(data_std, std_width).as_py()
+        lower, upper = pc.subtract(data_mean, cut_off).as_py(), pc.add(data_mean, cut_off).as_py()
+        # identify outliers
+        upper_outliers = values.filter(pc.greater_equal(values, upper)).to_pylist()
+        lower_outliers = values.filter(pc.less_equal(values, lower)).to_pylist()
+        return lower_outliers, upper_outliers
 
     @staticmethod
     def data_quality(canonical: pa.Table, nulls_threshold: float=None, dom_threshold: float=None,

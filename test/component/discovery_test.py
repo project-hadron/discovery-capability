@@ -61,6 +61,20 @@ class DiscoveryTest(unittest.TestCase):
         except OSError:
             pass
 
+    def test_interquartile_outliers(self):
+        sb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntent = sb.tools
+        arr = pa.array([1,2,1,34,1,2,3])
+        result = DataDiscovery.interquartile_outliers(arr)
+        self.assertEqual(([],[34]), result)
+
+    def test_empirical_outliers(self):
+        sb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntent = sb.tools
+        arr = pa.array([1,2,1,1,2,3]*100 +[34])
+        result = DataDiscovery.empirical_outliers(arr)
+        self.assertEqual(([],[34]), result)
+
     def test_data_dictionary(self):
         sb = FeatureBuild.from_memory()
         tools: FeatureBuildIntent = sb.tools
