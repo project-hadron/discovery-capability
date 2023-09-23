@@ -66,8 +66,10 @@ class AbstractFeatureIntentModel(AbstractIntentModel):
         mask_null = mask_null if isinstance(mask_null, bool) else False
         if isinstance(condition, tuple):
             condition = [condition]
+        is_cat = False
         if pa.types.is_dictionary(column.type):
             column = column.dictionary_decode()
+            is_cat = True
         cond_list = []
         for (comparison, operator, logic) in condition:
             try:
@@ -104,9 +106,7 @@ class AbstractFeatureIntentModel(AbstractIntentModel):
         final_cond = cond_list[0][0]
         for idx in range(len(cond_list) - 1):
             final_cond = eval(f"pc.{cond_list[idx][1]}(final_cond, cond_list[idx+1][0])", globals(), locals())
-        if mask_null:
-            final_cond = final_cond.fill_null(False)
-        return final_cond
+        return final_cond.fill_null(mask_null)
 
     def _get_canonical(self, data: [pa.Table, str]) -> pa.Table:
         """

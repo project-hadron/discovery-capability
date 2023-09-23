@@ -1,5 +1,5 @@
 import inspect
-import pandas as pd
+import re
 import pyarrow as pa
 import pyarrow.compute as pc
 from sklearn.decomposition import PCA
@@ -51,28 +51,28 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                     rename_map = dict(zip(mapper.iloc[:, 0].values, mapper.iloc[:, 1].values))
             else:
                 mapper=None
-        # get headers as pd Series and map
+        # map the headers
         if isinstance(rename_map, dict):
-            headers = pd.Series(canonical.column_names).replace(rename_map).astype(str)
-        elif isinstance(rename_map, list) and len(rename_map) == canonical.num_columns:
-            headers = pd.Series(rename_map)
-        else:
-            headers = pd.Series(canonical.column_names).astype(str)
+            names = [rename_map.get(item,item)  for item in canonical.column_names]
+            canonical = canonical.rename_columns(names)
+        if isinstance(rename_map, list) and len(rename_map) == canonical.num_columns:
+            tbl = canonical.rename_columns(rename_map)
         # tidy
-        replace_spaces = replace_spaces if isinstance(replace_spaces, str) else '_'
-        headers = headers.str.replace(' ', replace_spaces, regex=False)
-        headers = headers.str.strip()
-        headers = headers.str.replace(r'[^\w\s]', '', regex=True)  # Remove special characters
+        headers = []
+        for s in canonical.column_names:
+            s = re.sub(r"[^\w\s]", '', s)
+            s = re.sub(r"\s+", '_', s)
+            headers.append(s)
         # convert case
         if isinstance(case, str):
             if case.lower() == 'lower':
-                headers = headers.str.lower()
+                headers = pc.ascii_lower(headers)
             elif case.lower() == 'upper':
-                headers = headers.str.lower()
+                headers = pc.ascii_upper(headers)
             elif case.lower() == 'title':
-                headers = headers.str.lower()
+                headers = pc.ascii_title(headers)
         # return table with new headers
-        return pa.table(canonical.columns, names=headers.to_list())
+        return canonical.rename_columns(headers)
 
     def auto_cast_types(self, canonical: pa.Table, inc_category: bool=None, category_max: int=None, inc_bool: bool=None,
                         inc_timestamp: bool=None, tm_units: str=None, tm_tz: str=None, save_intent: bool=None,

@@ -21,6 +21,31 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
     distributive characteristics of its real world counterpart. This component provides a set of actions
     that focuses on building a synthetic data through knowledge and statistical analysis"""
 
+    @property
+    def sample_list(self) -> list:
+        """A list of sample options"""
+        return Sample().__dir__()
+
+    @property
+    def sample_map(self) -> list:
+        """A list of sample options"""
+        return MappedSample().__dir__()
+
+    @staticmethod
+    def sample_inspect(method: str):
+        """"""
+        if method in MappedSample().__dir__():
+            i = inspect.signature(eval(f"MappedSample().{method}")).parameters
+            rtn_lst = []
+            for key, value in i.items():
+                if key in ['size', 'shuffle', 'seed']:
+                    continue
+                rtn_lst.append(str(value)[:-7])
+            return rtn_lst
+        raise ValueError(f"The sample map name '{method}' was not found in the MappedSample class")
+
+
+
     def get_number(self, start: [int, float, str]=None, stop: [int, float, str]=None, canonical: pa.Table=None,
                    relative_freq: list=None, precision: int=None, ordered: str=None, at_most: int=None, size: int=None,
                    quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None, intent_order: int=None,
@@ -783,19 +808,34 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         return Commons.table_append(canonical, pa.table([pa.Array.from_pandas(rtn_list)], names=[to_header]))
 
     def get_sample_map(self, sample_map: str, size: int, canonical: pa.Table=None, selection: list=None,
-                       headers: [str, list]=None, shuffle: bool=None, rename_columns: dict=None, seed: int=None,
-                       save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
-                       replace_intent: bool=None, remove_duplicates: bool=None, **kwargs) -> pa.Table:
+                       mask_null: bool=None, headers: [str, list]=None, shuffle: bool=None,
+                       rename_columns: [dict, list]=None, seed: int=None, save_intent: bool=None,
+                       column_name: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                       remove_duplicates: bool=None, **kwargs) -> pa.Table:
         """ returns a sample table based on sample_map. To see the potential samples call the property 'sample_map'.
         The returned table can be filtered by row (selection) or by column (headers)
 
-        selection is a list of tuples containing 4
+        The selection is a list of triple tuples in the form: [(comparison, operation, logic)] where comparison
+        is the item or column to compare, the operation is what to do when comparing and the logic if you are
+        chaining tuples as in the logic to join to the next boolean flags to the current. An example might be:
+
+                [(comparison, operation, logic)]
+                [(1, 'greater', 'or'), (-1, 'less', None)]
+                [(pa.array(['INACTIVE', 'PENDING']), 'is_in', None)]
+
+        The operator and logic are taken from pyarrow.compute and are:
+
+                operator => extract_regex, equal, greater, less, greater_equal, less_equal, not_equal, is_in, is_null
+                logic => and, or, xor, and_not
+
+                {header: [(comparison, operation, logic)]}
 
         :param sample_map: the sample map name.
         :param size: size of the return table.
         :param canonical: (optional) a pa.Table to append the result table to
-        :param rename_columns: (optional) rename the columns 'City', 'Zipcode', 'State'
-        :param selection: a list of
+        :param rename_columns: (optional) rename the returning sample columns with an exact list or replacement dict
+        :param selection: (optional) a list of
+        :param mask_null: (optional)
         :param headers: a header or list of headers to filter on
         :param shuffle: (optional) if the selection should be shuffled before selection. Default is true
         :param seed: seed: (optional) a seed value for the random function: default to None
@@ -827,15 +867,18 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         _seed = self._seed(seed=seed)
         shuffle = shuffle if isinstance(shuffle, bool) else True
         tbl = eval(f"MappedSample.{sample_map}(size={size}, shuffle={shuffle}, seed={_seed}, **{kwargs})")
-        if isinstance(headers, (list, str)):
-            tbl = Commons.filter_columns(tbl, headers=headers)
-        if isinstance(selection, list):
-            selection = [selection]
-        if isinstance(selection, list):
-            mask = self._extract_mask(tbl)
+        if isinstance(selection, dict):
+            full_mask = pa.array([True]*tbl.num_rows)
+            for header, condition in selection.items():
+                mask = self._extract_mask(tbl.column(header), condition=condition, mask_null=mask_null)
+                full_mask = pc.or_(full_mask, mask)
+            tbl = tbl.filter(full_mask)
         if isinstance(rename_columns, dict):
-            pass
-        return
+            names = [rename_columns.get(item,item)  for item in tbl.column_names]
+            tbl = tbl.rename_columns(names)
+        if isinstance(rename_columns, list) and len(rename_columns) == tbl.num_columns:
+            tbl = tbl.rename_columns(rename_columns)
+        return Commons.table_append(canonical, tbl)
 
     def get_analysis(self, size: int, other: [str, pa.Table], canonical: pa.Table=None, category_limit: int=None,
                      date_jitter: int=None, date_units: str=None, date_ordered: bool=None, seed: int=None,
@@ -1111,17 +1154,6 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                       to_header=f"{name_prefix}{next(label_gen)}", save_intent=False)
             rtn_tbl = Commons.table_append(rtn_tbl, _)
         return Commons.table_append(canonical, rtn_tbl)
-
-    @property
-    def sample_list(self) -> list:
-        """A list of sample options"""
-        return Sample().__dir__()
-
-    @property
-    def sample_map(self) -> list:
-        """A list of sample options"""
-        return MappedSample().__dir__()
-
 
     def correlate_number(self, canonical: pa.Table, header: str, choice: [int, float, str]=None, choice_header: str=None,
                          to_header: str=None, precision: int=None, jitter: [int, float, str]=None, offset: [int, float, str]=None,
@@ -1501,9 +1533,9 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         """ correlates a named header to other header where the condition is met and replaces the header column
         value with a constant or value at the same index of an array.
 
-        The condition is a list of triple tuples in the form: [(comparison, operation, logic)] where comparison
-        is the thing to look for, the operation, what to do with it and the logic if you are chaining tuples,
-        the logic to join them. An example might be:
+        The selection is a list of triple tuples in the form: [(comparison, operation, logic)] where comparison
+        is the item or column to compare, the operation is what to do when comparing and the logic if you are
+        chaining tuples as in the logic to join to the next boolean flags to the current. An example might be:
 
                 [(comparison, operation, logic)]
                 [(1, 'greater', 'or'), (-1, 'less', None)]

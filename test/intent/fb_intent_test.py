@@ -9,6 +9,8 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
+from ds_capability.sample.sample_data import MappedSample
+
 from ds_capability import FeatureBuild
 from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
@@ -144,10 +146,20 @@ class FeatureBuilderTest(unittest.TestCase):
         tbl = tools.get_noise(10, num_columns=3, name_prefix='P_')
         self.assertEqual(['P_A', 'P_B', 'P_C'], tbl.column_names)
 
-    def test_get_sample(self):
+    def test_get_sample_map(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntent = fb.tools
         print(tools.sample_map)
+        # tools.get_sample_map('us_persona', size=10, )
+        i = tools.sample_inspect('us_zipcodes_detail').parameters
+        rtn_lst = []
+        for key, value in i.items():
+            if key in ['size', 'shuffle', 'seed']:
+                continue
+            rtn_lst.append(str(value)[:-7])
+        print(rtn_lst)
+
+
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:
