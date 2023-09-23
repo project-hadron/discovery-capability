@@ -70,3 +70,83 @@ class Commons(CoreCommons):
         """ generates a stylised version of the pyarrow table """
         df = pd.DataFrame(Commons.table_nest(t))
         return Commons.report(df, index_header=index_header, bold=bold, large_font=large_font)
+
+
+# class Condition(object):
+#
+#     def __init__(self, compare: [str, int, float, list, pa.Array, pa.Scalar], operator: str,
+#                  logic: str = None, mask_null: str = None):
+#         self.compare = compare
+#         self.operator = operator
+#         self.logic = logic if isinstance(logic, str) else 'or_'
+#         self.mask_null = mask_null if isinstance(mask_null, str) else False
+#
+#     @classmethod
+#     def from_dict(cls, condition: dict):
+#         c = condition.get('compare')
+#         o = condition.get('operator')
+#         l = condition.get('logic', 'or_')
+#         m = condition.get('mask_null', False)
+#         return cls(compare=c, operator=o, logic=l, mask_null=m)
+#
+#     @classmethod
+#     def from_tuple(cls, condition: tuple):
+#         if len(condition) == 4:
+#             (c, o, l, m) = condition
+#             return cls(compare=c, operator=o, logic=l, mask_null=m)
+#         if len(condition) == 3 and isinstance(condition[3], bool):
+#             (c, o, m) = condition
+#             return cls(compare=c, operator=o, logic='or_', mask_null=m)
+#         if len(condition) == 3:
+#             (c, o, l) = condition
+#             return cls(compare=c, operator=o, logic=l, mask_null=False)
+#         if len(condition) == 3:
+#             (c, o) = condition
+#             return cls(compare=c, operator=o, logic='or_', mask_null=False)
+#         raise ValueError("The tuple must be between two and four elements")
+#
+#     def condition(self) -> tuple:
+#         return self.compare, self.operator, self.logic
+#
+#     def to_dict(self):
+#         if isinstance(self.compare, pa.Array):
+#             compare = self.compare.to_pylist()
+#         elif isinstance(self.compare, pa.Scalar):
+#             compare = self.compare.as_py()
+#         else:
+#             compare = self.compare
+#         return {'compare': compare, 'operator': self.operator, 'logic': self.logic, 'mask_null': self.mask_null}
+#
+#     def __repr__(self):
+#         return f"<class 'Condition({type(self.compare)}, {type(self.operator)}, {type(self.logic)}, " \
+#                f"{type(self.mask_null)})'>"
+#
+#     def __str__(self):
+#         compare = self.compare if isinstance(self.compare, (str, int, float, pa.Scalar)) else type(self.compare)
+#         return f"Selection:\n\tcompare = {compare}\n\toperator = {self.operator}\n\tlogic = {self.logic}" \
+#                f"\n\tmask_null = {self.mask_null}"
+#
+#
+# class Selection(Condition):
+#
+#     def __init__(self, header: str, compare: [str, int, float, list, pa.Array, pa.Scalar], operator: str,
+#                  logic: str = None, mask_null: str = None):
+#         super().__init__(compare=compare, operator=operator, logic=logic, mask_null=mask_null)
+#         self.header = header
+#
+#     def to_dict(self):
+#         if isinstance(self.compare, pa.Array):
+#             compare = self.compare.to_pylist()
+#         elif isinstance(self.compare, pa.Scalar):
+#             compare = self.compare.as_py()
+#         else:
+#             compare = self.compare
+#         return {'header': self.header, 'compare': compare, 'operator': self.operator, 'logic': self.logic,
+#                 'mask_null': self.mask_null}
+#
+#     def __repr__(self):
+#         return f"<class 'Condition({type(self.header)}, {type(self.compare)}, {type(self.operator)}, {type(self.logic)}, {type(self.mask_null)})'>"
+#
+#     def __str__(self):
+#         compare = self.compare if isinstance(self.compare, (str, int, float, pa.Scalar)) else type(self.compare)
+#         return f"Selection:\n\theader = {self.header}\n\tcompare = {compare}\n\toperator = {self.operator}\n\tlogic = {self.logic}\n\tmask_null = {self.mask_null}"

@@ -6,13 +6,12 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 from sklearn.impute import KNNImputer
-
 from ds_capability.components.discovery import DataDiscovery
 from scipy import stats
 from ds_capability.intent.common_intent import CommonsIntentModel
 from ds_capability.intent.abstract_feature_build_intent import AbstractFeatureBuildIntentModel
 from ds_capability.components.commons import Commons
-from ds_capability.sample.sample_data import Sample
+from ds_capability.sample.sample_data import Sample, MappedSample
 
 
 # noinspection PyArgumentList
@@ -741,11 +740,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                    size: int=None, quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None,
                    intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                    remove_duplicates: bool=None) -> pa.Table:
-        """ returns a sample set based on sector and name
-        To see the sample sets available use the Sample class __dir__() method:
-
-            > from ds_capability.sample.sample_data import Sample
-            > Sample().__dir__()
+        """ returns a sample set based on sample_name. To see the potential samples call the property 'sample_list'.
 
         :param sample_name: The name of the Sample method to be used.
         :param canonical: (optional) a pa.Table to append the result table to
@@ -776,7 +771,9 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         canonical = self._get_canonical(canonical)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
-        sample_size = sample_name if isinstance(sample_size, int) else size
+        if sample_name not in self.sample_list:
+            raise ValueError(f"The sample list '{sample_name}' does not exist as a sample list")
+        sample_size = sample_size if isinstance(sample_size, int) else size
         quantity = self._quantity(quantity)
         seed = self._seed(seed=seed)
         shuffle = shuffle if isinstance(shuffle, bool) else True
@@ -784,6 +781,61 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         rtn_list = self._set_quantity(selection, quantity=quantity, seed=seed)
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([pa.Array.from_pandas(rtn_list)], names=[to_header]))
+
+    def get_sample_map(self, sample_map: str, size: int, canonical: pa.Table=None, selection: list=None,
+                       headers: [str, list]=None, shuffle: bool=None, rename_columns: dict=None, seed: int=None,
+                       save_intent: bool=None, column_name: [int, str]=None, intent_order: int=None,
+                       replace_intent: bool=None, remove_duplicates: bool=None, **kwargs) -> pa.Table:
+        """ returns a sample table based on sample_map. To see the potential samples call the property 'sample_map'.
+        The returned table can be filtered by row (selection) or by column (headers)
+
+        selection is a list of tuples containing 4
+
+        :param sample_map: the sample map name.
+        :param size: size of the return table.
+        :param canonical: (optional) a pa.Table to append the result table to
+        :param rename_columns: (optional) rename the columns 'City', 'Zipcode', 'State'
+        :param selection: a list of
+        :param headers: a header or list of headers to filter on
+        :param shuffle: (optional) if the selection should be shuffled before selection. Default is true
+        :param seed: seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param column_name: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :param kwargs: any additional parameters to pass to the sample map
+        :return: pa.Table
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   column_name=column_name, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        canonical = self._get_canonical(canonical)
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
+        if sample_map not in self.sample_map:
+            raise ValueError(f"The sample map '{sample_map}' does not exist as a sample maps")
+        _seed = self._seed(seed=seed)
+        shuffle = shuffle if isinstance(shuffle, bool) else True
+        tbl = eval(f"MappedSample.{sample_map}(size={size}, shuffle={shuffle}, seed={_seed}, **{kwargs})")
+        if isinstance(headers, (list, str)):
+            tbl = Commons.filter_columns(tbl, headers=headers)
+        if isinstance(selection, list):
+            selection = [selection]
+        if isinstance(selection, list):
+            mask = self._extract_mask(tbl)
+        if isinstance(rename_columns, dict):
+            pass
+        return
 
     def get_analysis(self, size: int, other: [str, pa.Table], canonical: pa.Table=None, category_limit: int=None,
                      date_jitter: int=None, date_units: str=None, date_ordered: bool=None, seed: int=None,
@@ -1061,9 +1113,15 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         return Commons.table_append(canonical, rtn_tbl)
 
     @property
-    def sample_lists(self) -> list:
+    def sample_list(self) -> list:
         """A list of sample options"""
         return Sample().__dir__()
+
+    @property
+    def sample_map(self) -> list:
+        """A list of sample options"""
+        return MappedSample().__dir__()
+
 
     def correlate_number(self, canonical: pa.Table, header: str, choice: [int, float, str]=None, choice_header: str=None,
                          to_header: str=None, precision: int=None, jitter: [int, float, str]=None, offset: [int, float, str]=None,
@@ -1436,14 +1494,16 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         return Commons.table_append(canonical, pa.table([rtn_arr.dictionary_encode()], names=[to_header]))
 
     def correlate_on_condition(self, canonical: pa.Table, header: str, other: str, condition: list,
-                               value: [int, float, bool, str], fill_null: [int, float,str]=None,
-                               default: [int, float, bool, str]=None, to_header: str=None, seed: int=None, save_intent: bool=None,
-                               intent_order: int=None, intent_level: [int, str]=None, replace_intent: bool=None,
-                               remove_duplicates: bool=None) -> pa.Table:
+                               value: [int, float, bool, str], mask_null: bool=None,
+                               default: [int, float, bool, str]=None, to_header: str=None, seed: int=None,
+                               save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
+                               replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ correlates a named header to other header where the condition is met and replaces the header column
-        value with a constant or value at the same index of an array. The condition is a list of triple tuples in
-        the form: [(comparison, operation, logic)] where comparison is the thing to look for, the operation, what
-        to do with it and the logic if you are chaining tuples, the logic to join them. An example might be:
+        value with a constant or value at the same index of an array.
+
+        The condition is a list of triple tuples in the form: [(comparison, operation, logic)] where comparison
+        is the thing to look for, the operation, what to do with it and the logic if you are chaining tuples,
+        the logic to join them. An example might be:
 
                 [(comparison, operation, logic)]
                 [(1, 'greater', 'or'), (-1, 'less', None)]
@@ -1461,7 +1521,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         :param value: a constant value. If the value is a string starting @ then a header values are taken
         :param default: (optional) a default constant if not value. A string starting @ then a default name is taken
         :param to_header: (optional) an optional name to call the column
-        :param fill_null: (optional) if nulls in the other they require a value representation.
+        :param mask_null: (optional) if nulls in the other they require a value representation.
         :param seed: (optional) the random seed. defaults to current datetime
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the column name that groups intent to create a column
@@ -1488,43 +1548,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         seed = seed if isinstance(seed, int) else self._seed()
         h_col = canonical.column(header).combine_chunks()
         o_col = canonical.column(other).combine_chunks()
-        if pa.types.is_dictionary(o_col.type):
-            o_col = o_col.dictionary_decode()
-        if fill_null is not None:
-            o_col = o_col.fill_null(fill_null)
-        cond_list = []
-        for (comparison, op, logic) in condition:
-            if op == 'greater':
-                c_bool = pc.greater(o_col, comparison)
-            elif op == 'less':
-                c_bool = pc.less(o_col, comparison)
-            elif op == 'greater_equal':
-                c_bool = pc.greater_equal(o_col, comparison)
-            elif op == 'less_equal':
-                c_bool = pc.less_equal(o_col, comparison)
-            elif op == 'extract_regex':
-                c_bool = pc.extract_regex(o_col, comparison)
-                c_bool = c_bool.is_valid()
-            elif op == 'equal':
-                c_bool = pc.equal(o_col, comparison)
-            elif op == 'not_equal':
-                c_bool = pc.not_qual(o_col, comparison)
-            elif op == 'is_in':
-                c_bool = pc.is_in(o_col, comparison)
-            elif op == 'is_null':
-                c_bool = pc.is_null(o_col)
-            else:
-                raise NotImplementedError(f"Currently the operation '{op} is not implemented")
-            if logic not in ['and', 'or', 'xor', 'and_not', 'and_', 'or_']:
-                logic = 'and_'
-            if logic in ['and', 'or']:
-                logic = logic + '_'
-            if logic not in ['xor', 'and_not', 'and_', 'or_']:
-                raise ValueError(f"The logic '{logic}' is not implemented")
-            cond_list.append((c_bool, logic))
-        final_cond = cond_list[0][0]
-        for idx in range(len(cond_list) - 1):
-            final_cond = eval(f"pc.{cond_list[idx][1]}(final_cond, cond_list[idx+1][0])", globals(), locals())
+        _mask = self._extract_mask(o_col, condition=condition, mask_null=mask_null)
         # check the value
         if isinstance(value, str) and value.startswith('@'):
             value = canonical.column(value[1:]).combine_chunks()
@@ -1534,7 +1558,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
             default = h_col
             # replace and add it back to the original table
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pc.if_else(final_cond, value, default)], names=[to_header]))
+        return Commons.table_append(canonical, pa.table([pc.if_else(_mask, value, default)], names=[to_header]))
 
     def correlate_column_join(self, canonical: pa.Table, header: str, others: [str, list], drop_others: bool=None,
                               sep: str=None, to_header: str=None, seed: int=None, save_intent: bool=None, intent_order: int=None,

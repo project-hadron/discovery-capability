@@ -1,5 +1,8 @@
 import pyarrow as pa
+import pyarrow.compute as pc
 from ds_core.intent.abstract_intent import AbstractIntentModel
+from pyarrow.lib import ArrowNotImplementedError
+
 
 class AbstractFeatureIntentModel(AbstractIntentModel):
 
@@ -54,6 +57,57 @@ class AbstractFeatureIntentModel(AbstractIntentModel):
         PRIVATE METHODS SECTION
     """
 
+    @staticmethod
+    def _extract_mask(column: pa.Array, condition: list, mask_null: bool=None):
+        """Creates a mask of the column based on the condition list of tuples. The condition tuple
+        is made up of a triumvirate of a comparison value or text, an operator such as less or equals and
+        logic of how the result links to the next tuple. mask_null replaces null with False, else null retained
+        """
+        mask_null = mask_null if isinstance(mask_null, bool) else False
+        if isinstance(condition, tuple):
+            condition = [condition]
+        if pa.types.is_dictionary(column.type):
+            column = column.dictionary_decode()
+        cond_list = []
+        for (comparison, operator, logic) in condition:
+            try:
+                if operator == 'greater':
+                    c_bool = pc.greater(column, comparison)
+                elif operator == 'less':
+                    c_bool = pc.less(column, comparison)
+                elif operator == 'greater_equal':
+                    c_bool = pc.greater_equal(column, comparison)
+                elif operator == 'less_equal':
+                    c_bool = pc.less_equal(column, comparison)
+                elif operator == 'extract_regex':
+                    c_bool = pc.extract_regex(column, comparison)
+                    c_bool = c_bool.is_valid()
+                elif operator == 'equal':
+                    c_bool = pc.equal(column, comparison)
+                elif operator == 'not_equal':
+                    c_bool = pc.not_qual(column, comparison)
+                elif operator == 'is_in':
+                    c_bool = pc.is_in(column, comparison)
+                elif operator == 'is_null':
+                    c_bool = pc.is_null(column)
+                else:
+                    raise NotImplementedError(f"Currently the operator '{operator} is not implemented.")
+            except ArrowNotImplementedError:
+                raise ValueError(f"The operator '{operator}' is not supported for data type '{column.type}'.")
+            if logic not in ['and', 'or', 'xor', 'and_not', 'and_', 'or_']:
+                logic = 'or_'
+            if logic in ['and', 'or']:
+                logic = logic + '_'
+            if logic not in ['xor', 'and_not', 'and_', 'or_']:
+                raise ValueError(f"The logic '{logic}' is not implemented")
+            cond_list.append((c_bool, logic))
+        final_cond = cond_list[0][0]
+        for idx in range(len(cond_list) - 1):
+            final_cond = eval(f"pc.{cond_list[idx][1]}(final_cond, cond_list[idx+1][0])", globals(), locals())
+        if mask_null:
+            final_cond = final_cond.fill_null(False)
+        return final_cond
+
     def _get_canonical(self, data: [pa.Table, str]) -> pa.Table:
         """
         :param data: a dataframe or action event to generate a dataframe
@@ -88,29 +142,3 @@ class AbstractFeatureIntentModel(AbstractIntentModel):
             exclude.append('other')
         return super()._intent_builder(method=method, params=params, exclude=exclude)
 
-    # def _set_intend_signature(self, intent_params: dict, column_name: [int, str] = None, intent_order: int = None,
-    #                           replace_intent: bool = None, remove_duplicates: bool = None, save_intent: bool = None):
-    #     """ sets the intent section in the configuration file. Note: by default any identical intent, e.g.
-    #     intent with the same intent (name) and the same parameter values, are removed from any level.
-    #
-    #     :param intent_params: a dictionary type set of configuration representing a intent section contract
-    #     :param save_intent: (optional) if the intent contract should be saved to the property manager
-    #     :param column_name: (optional) the column name that groups intent to create a column
-    #     :param intent_order: (optional) the order in which each intent should run.
-    #                 - If None: default's to -1
-    #                 - if -1: added to a level above any current instance of the intent section, level 0 if not found
-    #                 - if int: added to the level specified, overwriting any that already exist
-    #
-    #     :param replace_intent: (optional) if the intent method exists at the level, or default level
-    #                 - True - replaces the current intent method with the new
-    #                 - False - leaves it untouched, disregarding the new intent
-    #
-    #     :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-    #     """
-    #     if save_intent or (not isinstance(save_intent, bool) and self._default_save_intent):
-    #         if not isinstance(column_name, (str, int)) or not column_name:
-    #             raise ValueError(f"if the intent is to be saved then a column name must be provided")
-    #     super()._set_intend_signature(intent_params=intent_params, intent_level=column_name, intent_order=intent_order,
-    #                                   replace_intent=replace_intent, remove_duplicates=remove_duplicates,
-    #                                   save_intent=save_intent)
-    #     return

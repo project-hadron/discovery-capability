@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 import pandas as pd
 import numpy as np
+import pyarrow as pa
 from abc import ABC, abstractmethod
 from ds_core.handlers.abstract_handlers import HandlerFactory
 
@@ -20,7 +21,7 @@ class AbstractSample(ABC):
         pass
 
     @staticmethod
-    def _get_constant(reference: str, size: int=None, shuffle: bool=True, seed: int=None) -> [pd.DataFrame, list]:
+    def _get_constant(reference: str, size: int=None, shuffle: bool=True, seed: int=None) -> [pa.Table, list]:
         """private method to retrieve data constant"""
         module = HandlerFactory.get_module(module_name=f"ds_capability.sample.{reference}")
         if reference.startswith("lookup_"):
@@ -28,21 +29,20 @@ class AbstractSample(ABC):
         df = pd.DataFrame.from_dict(module.data)
         idx = df.index.to_list()
         selection = AbstractSample._select_list(selection=idx, size=size, seed=seed, shuffle=shuffle)
-        rtn_df: pd.DataFrame = df.iloc[selection].reset_index(drop=True)
-        return rtn_df
+        return pa.Table.from_pandas(df.iloc[selection].reset_index(drop=True))
 
     @staticmethod
-    def _get_dataset(filename: str, size: int=None, shuffle: bool=True, seed: int=None, header: bool=True):
+    def _get_dataset(filename: str, size: int=None, shuffle: bool=True, seed: int=None, header: bool=True) -> [pa.Table, pa.Array]:
         """private method to retrieve a dataset"""
         header = 'infer' if header else None
         _path = Path(AbstractSample._full_path(filename))
         df = pd.read_csv(_path, encoding='latin1', header=header)
         idx = df.index.to_list()
         df = df.iloc[AbstractSample._select_list(selection=idx, size=size, seed=seed, shuffle=shuffle)]
-        return df if df.shape[1] > 1 else df.iloc[:, 0].to_list()
+        return pa.Table.from_pandas(df)
 
     @staticmethod
-    def _select_list(selection: list, size: int=None, shuffle: bool=True, seed: int=None):
+    def _select_list(selection: list, size: int=None, shuffle: bool=True, seed: int=None) -> pa.Array:
         """private method to select from a series
         :param shuffle:
         """
@@ -174,8 +174,8 @@ class MappedSample(AbstractSample):
                                             shuffle=shuffle)
 
     @staticmethod
-    def us_zipcode(size: int=None, shuffle: bool=False, state_filter: list=None, inc_military: bool=None,
-                   seed: int=None) -> pd.DataFrame:
+    def us_zipcodes_detail(size: int=None, shuffle: bool=False, state_filter: list=None, inc_military: bool=None,
+                           seed: int=None) -> pd.DataFrame:
         """returns the first 'size' dataframe
 
         :param size: (optional) the size of the sample. If None then all the names are returned

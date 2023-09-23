@@ -135,7 +135,7 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual(str(20), result.column('summary').slice(7, 1).to_pylist()[0])
 
     #
-    def test_model_noise(self):
+    def test_get_noise(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntent = fb.tools
         tbl = tools.get_noise(10, num_columns=3)
@@ -143,6 +143,11 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual(['A', 'B', 'C'], tbl.column_names)
         tbl = tools.get_noise(10, num_columns=3, name_prefix='P_')
         self.assertEqual(['P_A', 'P_B', 'P_C'], tbl.column_names)
+
+    def test_get_sample(self):
+        fb = FeatureBuild.from_memory()
+        tools: FeatureBuildIntent = fb.tools
+        print(tools.sample_map)
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:

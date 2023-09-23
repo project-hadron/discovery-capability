@@ -135,7 +135,7 @@ class CommonsIntentModel(object):
                 adjust[idx] = int(round(relative_freq[idx] * unit, 0))
         result = [a + b for (a, b) in zip(result, adjust)]
         # rounding can still make us out by 1
-        if sum(result) > size or sum(result) < size:
+        if sum(result) != size:
             gap = sum(result) - size
             result[result.index(max(result))] -= gap
-        return result
+        return result[:size]
