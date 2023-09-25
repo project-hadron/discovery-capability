@@ -3,7 +3,7 @@ from ds_core.properties.abstract_properties import AbstractPropertyManager
 __author__ = 'Darryl Oatridge'
 
 
-class FeatureBuildPropertyManager(AbstractPropertyManager):
+class FeatureEngineerPropertyManager(AbstractPropertyManager):
     """property manager for the Data Builder"""
 
     def __init__(self, task_name: str, creator: str):

@@ -114,8 +114,8 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                              data_type: [str, list]=None, regex: [str, list]=None, save_intent: bool=None,
                              intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                              remove_duplicates: bool=None) -> pa.Table:
-        """ automatically reinstates nulls that have been masked with alternate values such as space or question-mark.
-        By default, the nulls list is ['',' ','NaN','nan','None','null','Null','NULL']
+        """ automatically reinstates nulls in a string that have been masked with alternate values such as space
+        or question-mark. By default, the nulls list is ['',' ','NaN','nan','None','null','Null','NULL']
 
         :param canonical:
         :param nulls_list: (optional) potential null values to replace with a null.
@@ -142,16 +142,17 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
-        drop = drop if isinstance(drop, bool) else False
         nulls_list = nulls_list if isinstance(nulls_list, list) else ['', ' ', 'NaN', 'nan', 'None', 'null', 'Null',
                                                                       'NULL']
 
         selected_headers = Commons.filter_headers(canonical, headers=headers, d_types=data_type, regex=regex, drop=drop)
         rtn_tbl = None
         for n in selected_headers:
-            c = canonical.column(n).to_pandas()
-            c = c.where(~c.isin(nulls_list))
-            canonical = Commons.table_append(canonical, pa.table([c], names=[n]))
+            c = canonical.column(n).combine_chunks()
+            if pa.types.is_string(c.type):
+                mask = pc.is_in(c, pa.array(nulls_list))
+                c = pc.if_else(mask, None, c)
+                canonical = Commons.table_append(canonical, pa.table([c], names=[n]))
         return canonical
 
     def auto_drop_columns(self, canonical: pa.Table, nulls_threshold: float=None, nulls_list: [bool, list]=None,

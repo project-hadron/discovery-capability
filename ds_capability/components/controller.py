@@ -207,7 +207,8 @@ class Controller(AbstractComponent):
     def report_tasks(self, stylise: bool=True):
         """ generates a report for all the current component task"""
         report = pd.DataFrame.from_dict(data=self.pm.report_intent())
-        intent_replace = {'feature_select': 'FeatureSelect', 'feature_build': 'FeatureBuild'}
+        intent_replace = {'feature_select': 'FeatureSelect', 'feature_engineer': 'FeatureEngineer',
+                          'feature_transform': 'FeatureTransform', 'feature_build': 'FeatureBuild'}
         report['component'] = report.intent.replace(to_replace=intent_replace)
         report = report.loc[:, ['level', 'order', 'component', 'parameters', 'creator']]
         if stylise:

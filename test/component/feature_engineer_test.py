@@ -12,10 +12,10 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from ds_core.handlers.event_handlers import EventPersistHandler
 
-from ds_capability.intent.feature_build_intent import FeatureBuildIntent
+from ds_capability.intent.feature_engineer_intent import FeatureEngineerIntent
 from ds_core.properties.property_manager import PropertyManager
 
-from ds_capability import FeatureBuild
+from ds_capability import FeatureEngineer
 
 # Pandas setup
 pd.set_option('max_colwidth', 320)
@@ -24,7 +24,7 @@ pd.set_option('display.max_columns', 99)
 pd.set_option('expand_frame_repr', True)
 
 
-class FeatureBuilderTest(unittest.TestCase):
+class FeatureEngineerTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -66,31 +66,25 @@ class FeatureBuilderTest(unittest.TestCase):
             pass
 
     def test_run_intent_pipeline(self):
-        fb = FeatureBuild.from_env('test', has_contract=False)
-        tools: FeatureBuildIntent = fb.tools
+        fb = FeatureEngineer.from_env('test', has_contract=False)
+        tools: FeatureEngineerIntent = fb.tools
         _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_level='simulator')
         _ = tools.correlate_number(_, header='num', intent_level='data_quality', intent_order=0)
-        _ = tools.model_profiling(_, profiling='quality', intent_level='data_quality', intent_order=1)
         # pprint(pm_view('feature_build', 'test', 'intent'))
         fb.run_component_pipeline(intent_levels=['simulator', 'data_quality'])
         result = fb.load_persist_canonical()
-        self.assertEqual((21, 4), result.shape)
-        # get number of columns from the summary
-        self.assertEqual(str(20), result.column('summary').slice(7, 1).to_pylist()[0])
+        self.assertEqual((10, 20), result.shape)
 
     def test_run_intent_pipeline_event_manager(self):
-        fb = FeatureBuild.from_env('test', has_contract=False)
-        tools: FeatureBuildIntent = fb.tools
+        fb = FeatureEngineer.from_env('test', has_contract=False)
+        tools: FeatureEngineerIntent = fb.tools
         fb.set_persist_uri('event://task')
         _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_level='simulator')
         _ = tools.correlate_number(_, header='num', intent_level='data_quality', intent_order=0)
-        _ = tools.model_profiling(_, profiling='quality', intent_level='data_quality', intent_order=1)
         # pprint(pm_view('feature_build', 'test', 'intent'))
         fb.run_component_pipeline(intent_levels=['simulator', 'data_quality'])
         result = fb.load_persist_canonical()
-        self.assertEqual((21, 4), result.shape)
-        # get number of columns from the summary
-        self.assertEqual(str(20), result.column('summary').slice(7, 1).to_pylist()[0])
+        self.assertEqual((10,20), result.shape)
         h = fb.pm.get_connector_handler(fb.CONNECTOR_PERSIST)
         self.assertIsInstance(h,EventPersistHandler)
 
