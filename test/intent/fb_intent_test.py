@@ -151,15 +151,8 @@ class FeatureBuilderTest(unittest.TestCase):
         tools: FeatureBuildIntent = fb.tools
         print(tools.sample_map)
         # tools.get_sample_map('us_persona', size=10, )
-        i = tools.sample_inspect('us_zipcodes_detail').parameters
-        rtn_lst = []
-        for key, value in i.items():
-            if key in ['size', 'shuffle', 'seed']:
-                continue
-            rtn_lst.append(str(value)[:-7])
-        print(rtn_lst)
-
-
+        i = tools.sample_inspect('us_persona')
+        print(i)
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:

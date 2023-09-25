@@ -44,8 +44,6 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
             return rtn_lst
         raise ValueError(f"The sample map name '{method}' was not found in the MappedSample class")
 
-
-
     def get_number(self, start: [int, float, str]=None, stop: [int, float, str]=None, canonical: pa.Table=None,
                    relative_freq: list=None, precision: int=None, ordered: str=None, at_most: int=None, size: int=None,
                    quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None, intent_order: int=None,
@@ -86,6 +84,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         start = self._extract_value(start)
@@ -192,6 +191,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         if len(selection) < 1:
@@ -243,6 +243,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         prob = probability if isinstance(probability, int) and 0 < probability < 1 else 0.5
@@ -309,6 +310,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         if start is None or until is None:
@@ -389,6 +391,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         precision = precision if isinstance(precision, (float, int)) else 3
@@ -469,6 +472,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed() if seed is None else seed
@@ -515,6 +519,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed() if seed is None else seed
@@ -564,6 +569,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed() if seed is None else seed
@@ -609,6 +615,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         precision = precision if isinstance(precision, int) else 3
@@ -654,6 +661,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed() if seed is None else seed
@@ -720,6 +728,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         choice_only = False if choice_only is None or not isinstance(choice_only, bool) else choice_only
@@ -794,6 +803,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         if sample_name not in self.sample_list:
@@ -860,6 +870,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         if sample_map not in self.sample_map:
@@ -918,6 +929,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         # Code block for intent
         canonical = self._get_canonical(canonical)
         other = self._get_canonical(other)
+        size = self._extract_value(size)
         if other is None or other.num_rows == 0:
             return None
         if not isinstance(size, int):
@@ -1029,6 +1041,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed(seed=seed)
@@ -1138,6 +1151,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
         canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed(seed=seed)
