@@ -14,7 +14,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
     that focuses on building a synthetic data through knowledge and statistical analysis"""
 
 
-    def model_difference(self, canonical: pa.Table, other: [str, pa.Table], on_key: [str, list], drop_zero_sum: bool=None,
+    def build_difference(self, canonical: pa.Table, other: [str, pa.Table], on_key: [str, list], drop_zero_sum: bool=None,
                          summary_connector: bool=None, flagged_connector: str=None, detail_connector: str=None,
                          unmatched_connector: str=None, seed: int=None, save_intent: bool=None,
                          intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
@@ -164,8 +164,8 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
 
         return pa.Table.from_pandas(diff)
 
-    def model_profiling(self, canonical: pa.Table, profiling: str, headers: [str, list]=None, d_types: [str, list]=None,
-                        regex: [str, list]=None, drop: bool=None, connector_name: str=None,  seed: int=None,
+    def build_profiling(self, canonical: pa.Table, profiling: str, headers: [str, list]=None, d_types: [str, list]=None,
+                        regex: [str, list]=None, drop: bool=None, connector_name: str=None, seed: int=None,
                         save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                         replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ Data profiling provides, analyzing, and creating useful summaries of data. The process yields a high-level

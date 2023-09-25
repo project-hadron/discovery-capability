@@ -63,7 +63,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
         fb.set_source_uri('./working/source/hadron_synth_origin.pq')
         fb.add_connector_uri('sample', './working/source/hadron_synth_other.pq')
         tbl = fb.load_source_canonical()
-        result = tools.model_difference(tbl, other='sample', on_key='unique')
+        result = tools.build_difference(tbl, other='sample', on_key='unique')
         for c in result.column_names:
             if c == 'num':
                 self.assertEqual(5, pc.sum(result.column(c)).as_py())
@@ -80,7 +80,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
         fb.set_source_uri('./working/source/hadron_synth_origin.pq')
         fb.add_connector_uri('sample', './working/source/hadron_synth_other.pq')
         tbl = fb.load_source_canonical()
-        _ = tools.model_difference(tbl, other='sample', on_key='unique', intent_level='diff')
+        _ = tools.build_difference(tbl, other='sample', on_key='unique', intent_level='diff')
         fb.run_component_pipeline()
         result = fb.load_persist_canonical()
         self.assertEqual((10,7), result.shape)
@@ -91,7 +91,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
         fb.add_connector_uri('sample', './working/data/sample.parquet')
         tbl = tools.get_synthetic_data_types(10, inc_nulls=False)
         fb.save_canonical('sample', tbl)
-        tbl = tools.model_difference(tbl, other='sample', on_key='int', drop_zero_sum=True)
+        tbl = tools.build_difference(tbl, other='sample', on_key='int', drop_zero_sum=True)
         self.assertEqual(['int'], tbl.column_names)
         self.assertEqual(0, tbl.num_rows)
 
@@ -103,10 +103,10 @@ class FeatueBuildDiffTest(unittest.TestCase):
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
         fb.save_canonical('target', target)
         # normal
-        result = tools.model_difference(df, 'target', on_key='A', drop_zero_sum=False)
+        result = tools.build_difference(df, 'target', on_key='A', drop_zero_sum=False)
         self.assertEqual((7,4), result.shape)
         # drop zero rows
-        result = tools.model_difference(df, 'target', on_key='A', drop_zero_sum=True)
+        result = tools.build_difference(df, 'target', on_key='A', drop_zero_sum=True)
         self.assertEqual((2,3), result.shape)
         self.assertEqual(['A', 'D'], result.column('A').to_pylist())
         self.assertEqual([0,1], result.column('B').to_pylist())
@@ -120,9 +120,9 @@ class FeatueBuildDiffTest(unittest.TestCase):
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
         fb.save_canonical('target', target)
         # tests
-        result = tools.model_difference(df, 'target', on_key='A', drop_zero_sum=False)
+        result = tools.build_difference(df, 'target', on_key='A', drop_zero_sum=False)
         self.assertEqual((7,3), result.shape)
-        result = tools.model_difference(df, 'target', on_key='A', drop_zero_sum=True)
+        result = tools.build_difference(df, 'target', on_key='A', drop_zero_sum=True)
         self.assertEqual((3,3), result.shape)
         self.assertEqual(['B', 'C', 'E'], result.column('A').to_pylist())
         self.assertEqual([0,1,0], result.column('B').to_pylist())
@@ -139,7 +139,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
         # test
         self.assertEqual((9, 4), df.shape)
         self.assertEqual((8, 5), target.shape)
-        result = tools.model_difference(df, 'target', on_key=['X','Y'], drop_zero_sum=True, unmatched_connector='unmatched')
+        result = tools.build_difference(df, 'target', on_key=['X', 'Y'], drop_zero_sum=True, unmatched_connector='unmatched')
         self.assertEqual((3,4), result.shape)
         unmatched = fb.load_canonical('unmatched')
         self.assertEqual((3,4), result.shape)
@@ -157,7 +157,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
         target = fb.load_canonical('target')
         self.assertEqual(((12, 10), (15, 8)), (df.shape, target.shape))
         # test
-        _ = tools.model_difference(df, 'target', on_key=['unique'], drop_zero_sum=True, unmatched_connector='unmatched')
+        _ = tools.build_difference(df, 'target', on_key=['unique'], drop_zero_sum=True, unmatched_connector='unmatched')
         unmatched = fb.load_canonical('unmatched')
         self.assertEqual((7, 12), unmatched.shape)
         column = unmatched.column('found_in')
@@ -174,12 +174,12 @@ class FeatueBuildDiffTest(unittest.TestCase):
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
         fb.save_canonical('target', target)
         # identical
-        result = tools.model_difference(df, 'target', on_key='X')
+        result = tools.build_difference(df, 'target', on_key='X')
         self.assertEqual((7,4), result.shape)
-        result = tools.model_difference(df, 'target', on_key='X', drop_zero_sum=True)
+        result = tools.build_difference(df, 'target', on_key='X', drop_zero_sum=True)
         self.assertEqual((0,1), result.shape)
         self.assertEqual(['X'], result.column_names)
-        result = tools.model_difference(df, 'target', on_key=['X','Y'], drop_zero_sum=True)
+        result = tools.build_difference(df, 'target', on_key=['X', 'Y'], drop_zero_sum=True)
         self.assertEqual((0,2), result.shape)
         self.assertCountEqual(['Y','X'], result.column_names)
 
@@ -191,11 +191,11 @@ class FeatueBuildDiffTest(unittest.TestCase):
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
         fb.save_canonical('target', target)
         # one key
-        result = tools.model_difference(df, 'target', on_key=['X'])
+        result = tools.build_difference(df, 'target', on_key=['X'])
         self.assertTrue(all((v is None) or isinstance(v, str) for v in result.column('X').to_pylist()))
         self.assertFalse(all((v is None) or isinstance(v, str) for v in result.column('Y').to_pylist()))
         # two keys
-        result = tools.model_difference(df, 'target', on_key=['X','Y'])
+        result = tools.build_difference(df, 'target', on_key=['X', 'Y'])
         self.assertTrue(all((v is None) or isinstance(v, str) for v in result.column('X').to_pylist()))
         self.assertTrue(all((v is None) or isinstance(v, str) for v in result.column('Y').to_pylist()))
 
@@ -209,7 +209,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
         target = pa.Table.from_pandas(_)
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
         fb.save_canonical('target', target)
-        result = tools.model_difference(df, 'target', on_key='A', drop_zero_sum=True)
+        result = tools.build_difference(df, 'target', on_key='A', drop_zero_sum=True)
         self.assertEqual((4,3), result.shape)
         self.assertEqual(['A', 'B', 'D'], result.column_names)
 
@@ -220,7 +220,7 @@ class FeatueBuildDiffTest(unittest.TestCase):
         target = pa.table(data={"A": list("ABCDEFG"), "B": list("BBCDCAA"), 'C': list("BCDECFB"), 'D': [0, 2, 0, 4, 1, 2, 1]})
         fb.add_connector_persist('target', uri_file='working/data/target.csv')
         fb.save_canonical('target', target)
-        result = tools.model_difference(df, 'target', on_key='A', drop_zero_sum=True)
+        result = tools.build_difference(df, 'target', on_key='A', drop_zero_sum=True)
         self.assertEqual((4,3), result.shape)
         self.assertEqual(['A', 'B', 'D'], result.column_names)
 
@@ -233,12 +233,12 @@ class FeatueBuildDiffTest(unittest.TestCase):
         fb.save_canonical('target', target)
         # summary connector
         fb.add_connector_persist('summary', uri_file='summary.csv')
-        _ = tools.model_difference(df, 'target', on_key='X', summary_connector='summary')
+        _ = tools.build_difference(df, 'target', on_key='X', summary_connector='summary')
         result = fb.load_canonical('summary')
         self.assertEqual(result.shape, (6,2))
         self.assertEqual(result.column('Attribute').to_pylist(), ['matching','left_only','right_only','B','C','Y'])
         self.assertEqual(result.column('Summary').to_pylist(), [7,0,0,1,2,0])
-        _ = tools.model_difference(df, 'target', on_key='X', summary_connector='summary', drop_zero_sum=True)
+        _ = tools.build_difference(df, 'target', on_key='X', summary_connector='summary', drop_zero_sum=True)
         result = fb.load_canonical('summary')
         self.assertEqual(result.shape, (5,2))
         self.assertEqual(result.column('Attribute').to_pylist(), ['matching','left_only','right_only','B','C'])
@@ -253,12 +253,12 @@ class FeatueBuildDiffTest(unittest.TestCase):
         fb.save_canonical('target', target)
         # detail connector
         fb.add_connector_persist('detail', uri_file='detail.csv')
-        _ = tools.model_difference(df, 'target', on_key='X', detail_connector='detail')
+        _ = tools.build_difference(df, 'target', on_key='X', detail_connector='detail')
         result = fb.load_canonical('detail')
         self.assertEqual(result.shape, (2,5))
         self.assertEqual(result.column_names, ['X', 'B_x', 'B_y', 'C_x', 'C_y'])
         # self.assertEqual(result.loc[0].values.tolist(), ['A', '3', '5', 0, 3])
-        _ = tools.model_difference(df, 'target', on_key=['X','Y'], detail_connector='detail')
+        _ = tools.build_difference(df, 'target', on_key=['X', 'Y'], detail_connector='detail')
         result = fb.load_canonical('detail')
         self.assertEqual(result.shape, (2,6))
         self.assertEqual(result.column_names, ['X', 'Y', 'B_x', 'B_y', 'C_x', 'C_y'])
