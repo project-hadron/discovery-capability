@@ -201,6 +201,8 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # intent action
         canonical = self._get_canonical(canonical)
+        if d_types is None:
+            d_types = []
         columns = Commons.filter_headers(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         _seed = self._seed() if seed is None else seed
         if profiling == 'dictionary':
