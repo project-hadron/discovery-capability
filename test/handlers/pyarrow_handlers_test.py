@@ -80,6 +80,15 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual(tbl.column_names, result.column_names)
         self.assertEqual(tbl.shape, result.shape)
 
+    def test_json(self):
+        tbl = get_table()
+        uri = os.path.join(os.environ['HADRON_DEFAULT_PATH'], 'test.json')
+        cc = ConnectorContract(uri, 'module_name', 'handler')
+        handler = PyarrowPersistHandler(cc)
+        handler.persist_canonical(tbl)
+        result = handler.load_canonical()
+        print(result)
+
     def test_txt(self):
         tbl = get_table()
         uri = os.path.join(os.environ['HADRON_DEFAULT_PATH'], 'test.txt')

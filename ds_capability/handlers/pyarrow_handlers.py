@@ -54,7 +54,8 @@ class PyarrowSourceHandler(AbstractSourceHandler):
             return csv.read_csv(address, parse_options=parse_options)
         # json
         if file_type.lower() in ['json']:
-            return self._json_load(path_file=address, **load_params)
+            rtn_dict = self._json_load(path_file=address, **load_params)
+            return pa.Table.from_pylist([rtn_dict])
         # complex nested
         if file_type.lower() in ['complex', 'nested', 'txt']:
             with open(address) as f:
