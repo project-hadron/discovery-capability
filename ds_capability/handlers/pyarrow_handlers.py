@@ -1,12 +1,13 @@
 import json
 import os
 from contextlib import closing
+import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import pyarrow.feather as feather
 from pyarrow import csv
-from ds_core.components.core_commons import CoreCommons
+from ds_capability.components.commons import Commons
 from ds_core.handlers.abstract_handlers import AbstractSourceHandler, AbstractPersistHandler
 from ds_core.handlers.abstract_handlers import ConnectorContract, HandlerFactory
 
@@ -54,8 +55,7 @@ class PyarrowSourceHandler(AbstractSourceHandler):
             return csv.read_csv(address, parse_options=parse_options)
         # json
         if file_type.lower() in ['json']:
-            rtn_dict = self._json_load(path_file=address, **load_params)
-            return pa.Table.from_pylist([rtn_dict])
+            return  self._json_load(path_file=address, **load_params)
         # complex nested
         if file_type.lower() in ['complex', 'nested', 'txt']:
             with open(address) as f:
@@ -64,7 +64,7 @@ class PyarrowSourceHandler(AbstractSourceHandler):
                 document = document.replace(i, '')
             document = document.replace('null', 'None').replace('true', 'True').replace('false', 'False')
             document = pa.Table.from_pylist(list(eval(document)))
-            return CoreCommons.table_flatten(document)
+            return Commons.table_flatten(document)
         raise LookupError('The source format {} is not currently supported'.format(file_type))
 
     def exists(self) -> bool:
@@ -181,7 +181,7 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
             return True
         # complex nested
         if file_type.lower() in ['complex', 'nested', 'txt']:
-            values = CoreCommons.table_nest(canonical)
+            values = Commons.table_nest(canonical)
             with open(_address, 'w') as f:
                 f.write(str(values))
             return True
@@ -207,20 +207,15 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
 class NpEncoder(json.JSONEncoder):
 
     def default(self, obj):
-        if pa.types.is_integer(obj.type()):
-            return int(obj)
-        elif pa.types.is_floating(obj.type()):
-            return float(obj)
-        elif pa.types.is_list(obj.type()):
-            return obj.tolist()
-        elif pa.types.is_boolean(obj.type()):
-            return bool(obj)
-        elif pa.types.is_timestamp(obj.type()) or pa.types.is_time(obj.type()):
-            return pc.strftime(obj, format='%Y-%m-%dT%H:%M:%S')
-        elif pa.types.is_string(obj.type()):
-            return str(obj)
-        elif pa.types.is_dictionary(obj.type()):
-            obj = obj.decode_dictionary()
-            return str(obj)
+        if isinstance(obj, pa.Table):
+            rtn_obj = None
+            for n in obj.column_names:
+                c = obj.column(n).combine_chunks()
+                if pa.types.is_timestamp(c.type) or pa.types.is_time(c.type):
+                    c =  pc.strftime(obj, format='%Y-%m-%dT%H:%M:%S')
+                elif pa.types.is_dictionary(c.type):
+                    c = str(c.dictionary_decode())
+                rtn_obj = Commons.table_append(rtn_obj, pa.table([c], names=[n]))
+            return rtn_obj
         else:
             return super(NpEncoder, self).default(obj)
