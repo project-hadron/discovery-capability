@@ -43,7 +43,7 @@ class FeatureBuild(AbstractCommonComponent):
          :param has_contract: (optional) indicates the instance should have a property manager domain contract
          :return: the initialised class instance
          """
-        pm_file_type = pm_file_type if isinstance(pm_file_type, str) else 'parquet'
+        pm_file_type = pm_file_type if isinstance(pm_file_type, str) else 'json'
         pm_module = pm_module if isinstance(pm_module, str) else cls.DEFAULT_MODULE
         pm_handler = pm_handler if isinstance(pm_handler, str) else cls.DEFAULT_PERSIST_HANDLER
         _pm = FeatureBuildPropertyManager(task_name=task_name, creator=creator)
