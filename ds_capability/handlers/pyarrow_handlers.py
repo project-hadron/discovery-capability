@@ -2,6 +2,7 @@ import json
 import os
 from contextlib import closing
 import pandas as pd
+import numpy as np
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
@@ -55,7 +56,9 @@ class PyarrowSourceHandler(AbstractSourceHandler):
             return csv.read_csv(address, parse_options=parse_options)
         # json
         if file_type.lower() in ['json']:
-            return  self._json_load(path_file=address, **load_params)
+            data =  self._json_load(path_file=address, **load_params)
+            data = pa.Table.from_pylist([data])
+            return Commons.table_flatten(data)
         # complex nested
         if file_type.lower() in ['complex', 'nested', 'txt']:
             with open(address) as f:
@@ -177,7 +180,8 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
             return True
         # json
         if file_type.lower() in ['json']:
-            self._json_dump(data=canonical, path_file=_address, **write_params)
+            cfg_dict = Commons.table_nest(canonical)[0]
+            self._json_dump(data=cfg_dict, path_file=_address, **write_params)
             return True
         # complex nested
         if file_type.lower() in ['complex', 'nested', 'txt']:
@@ -207,15 +211,17 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
 class NpEncoder(json.JSONEncoder):
 
     def default(self, obj):
-        if isinstance(obj, pa.Table):
-            rtn_obj = None
-            for n in obj.column_names:
-                c = obj.column(n).combine_chunks()
-                if pa.types.is_timestamp(c.type) or pa.types.is_time(c.type):
-                    c =  pc.strftime(obj, format='%Y-%m-%dT%H:%M:%S')
-                elif pa.types.is_dictionary(c.type):
-                    c = str(c.dictionary_decode())
-                rtn_obj = Commons.table_append(rtn_obj, pa.table([c], names=[n]))
-            return rtn_obj
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        elif isinstance(obj, np.datetime64):
+            return np.datetime_as_string(obj, unit='s')
+        elif isinstance(obj, pd.Timestamp):
+            return np.datetime_as_string(obj.to_datetime64(), unit='s')
         else:
             return super(NpEncoder, self).default(obj)
