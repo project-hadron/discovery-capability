@@ -80,7 +80,7 @@ class TemplateTest(unittest.TestCase):
 
 
 def pm_view(capability: str, task: str, section: str = None):
-    uri = os.path.join(os.environ['HADRON_PM_PATH'], f"hadron_pm_{capability}_{task}.parquet")
+    uri = os.path.join(os.environ['HADRON_PM_PATH'], f"hadron_pm_{capability}_{task}.json")
     tbl = pq.read_table(uri)
     tbl = tbl.column(0).combine_chunks()
     result = ast.literal_eval(tbl.to_pylist()[0]).get(capability, {}).get(task, {})

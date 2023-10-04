@@ -1,10 +1,7 @@
 import json
 import os
 from contextlib import closing
-import pandas as pd
-import numpy as np
 import pyarrow as pa
-import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import pyarrow.feather as feather
 from pyarrow import csv
@@ -181,7 +178,8 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
         # json
         if file_type.lower() in ['json']:
             cfg_dict = Commons.table_nest(canonical)[0]
-            self._json_dump(data=cfg_dict, path_file=_address, **write_params)
+            with closing(open(_address, mode='w')) as f:
+                json.dump(cfg_dict, f, **write_params)
             return True
         # complex nested
         if file_type.lower() in ['complex', 'nested', 'txt']:
@@ -203,25 +201,3 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
             return True
         return False
 
-    def _json_dump(self, data, path_file: str, **kwargs) -> None:
-        """ dumps a pickle file"""
-        with closing(open(path_file, mode='w')) as f:
-            json.dump(data, f, cls=NpEncoder, **kwargs)
-
-class NpEncoder(json.JSONEncoder):
-
-    def default(self, obj):
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif isinstance(obj, np.bool_):
-            return bool(obj)
-        elif isinstance(obj, np.datetime64):
-            return np.datetime_as_string(obj, unit='s')
-        elif isinstance(obj, pd.Timestamp):
-            return np.datetime_as_string(obj.to_datetime64(), unit='s')
-        else:
-            return super(NpEncoder, self).default(obj)
