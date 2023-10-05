@@ -1,6 +1,7 @@
-import json
+import requests
 import os
 from contextlib import closing
+import json
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pyarrow.feather as feather
@@ -70,16 +71,12 @@ class PyarrowSourceHandler(AbstractSourceHandler):
     def exists(self) -> bool:
         """ Returns True is the file exists """
         if not isinstance(self.connector_contract, ConnectorContract):
-            raise ValueError("The Pandas Connector Contract has not been set")
+            raise ValueError("The Connector Contract has not been set")
         _cc = self.connector_contract
-        if _cc.schema.startswith('http') or _cc.schema.startswith('git'):
-            module_name = 'requests'
-            _address = _cc.address.replace("git://", "https://")
-            if HandlerFactory.check_module(module_name=module_name):
-                module = HandlerFactory.get_module(module_name=module_name)
-                return module.get(_address).status_code == 200
-            raise ModuleNotFoundError(f"The required module {module_name} has not been installed. "
-                                      f"Please pip install the appropriate package in order to complete this action")
+        if _cc.schema.startswith('http'):
+            r = requests.get(_cc.address)
+            if r.status_code == 200:
+                return True
         if os.path.exists(_cc.address):
             return True
         return False
@@ -115,16 +112,13 @@ class PyarrowSourceHandler(AbstractSourceHandler):
 
     @staticmethod
     def _json_load(path_file: str, **kwargs) -> [dict, pa.Table]:
-        """ loads a pickle file """
+        """ loads a json file """
         if path_file.startswith('http'):
-            module_name = 'requests'
-            if HandlerFactory.check_module(module_name=module_name):
-                module = HandlerFactory.get_module(module_name=module_name)
-                username = kwargs.get('username', None)
-                password = kwargs.get('password', None)
-                auth = (username, password) if username and password else None
-                r = module.get(path_file, auth=auth)
-                return r.json()
+            username = kwargs.get('username', None)
+            password = kwargs.get('password', None)
+            auth = (username, password) if username and password else None
+            r = requests.get(path_file, auth=auth)
+            return r.json()
         with closing(open(path_file, mode='r')) as f:
             return json.load(f, **kwargs)
 

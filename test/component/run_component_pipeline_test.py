@@ -60,6 +60,16 @@ class TemplateTest(unittest.TestCase):
         except OSError:
             pass
 
+    def test_run_remote_runbook(self):
+        os.environ['HADRON_PROFILING_SOURCE_URI'] = 'working/source/hadron_synth_other.pq'
+        os.environ['HADRON_DATA_QUALITY_URI'] = 'working/data/quality.parquet'
+        os.environ['HADRON_DATA_DICTIONARY_URI'] = 'working/data/dictionary.parquet'
+        os.environ['HADRON_DATA_SCHEMA_URI'] = 'working/data/schema.parquet'
+
+        remote_uri = 'https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/contracts/pyarrow/data_profiling'
+        c = Controller.from_env(uri_pm_repo=remote_uri)
+        c.run_controller()
+
     def test_run_feature_select(self):
         fe = FeatureEngineer.from_memory()
         fe.set_persist('synthetic_data.parquet')

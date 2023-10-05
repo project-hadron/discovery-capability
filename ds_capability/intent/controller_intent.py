@@ -76,7 +76,7 @@ class ControllerIntentModel(AbstractIntentModel):
 
     def feature_build(self, task_name: str, source: str=None, persist: [str, list]=None, columns: [str, list]=None,
                       seed: int=None, save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
-                      replace_intent: bool=None, remove_duplicates: bool=None):
+                      replace_intent: bool=None, remove_duplicates: bool=None, **kwargs):
         """ register a Transition component task pipeline
 
         :param persist:
@@ -101,7 +101,7 @@ class ControllerIntentModel(AbstractIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # create the event book
         fb: FeatureBuild = eval(f"FeatureBuild.from_env(task_name=task_name, default_save=False, "
-                                f"has_contract=True)", globals(), locals())
+                                f"has_contract=True, **{kwargs})", globals(), locals())
         if source and fb.pm.has_connector(source):
             canonical = fb.load_canonical(source)
         elif fb.pm.has_connector(fb.CONNECTOR_SOURCE):
@@ -119,7 +119,7 @@ class ControllerIntentModel(AbstractIntentModel):
 
     def feature_transform(self, task_name: str, source: str=None, persist: [str, list]=None, columns: [str, list]=None,
                           seed: int=None, save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
-                          replace_intent: bool=None, remove_duplicates: bool=None):
+                          replace_intent: bool=None, remove_duplicates: bool=None, **kwargs):
         """ register a Transition component task pipeline
 
         :param persist:
@@ -144,7 +144,7 @@ class ControllerIntentModel(AbstractIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # create the event book
         ft: FeatureTransform = eval(f"FeatureTransform.from_env(task_name=task_name, default_save=False, "
-                                f"has_contract=True)", globals(), locals())
+                                f"has_contract=True), **{kwargs}", globals(), locals())
         if source and ft.pm.has_connector(source):
             canonical = ft.load_canonical(source)
         elif ft.pm.has_connector(ft.CONNECTOR_SOURCE):
@@ -162,7 +162,7 @@ class ControllerIntentModel(AbstractIntentModel):
 
     def feature_select(self, task_name: str, source: str=None, persist: [str, list]=None, columns: [str, list]=None,
                        seed: int=None, save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
-                       replace_intent: bool=None, remove_duplicates: bool=None):
+                       replace_intent: bool=None, remove_duplicates: bool=None, **kwargs):
         """ register a select component task pipeline
 
         :param persist:
@@ -187,7 +187,7 @@ class ControllerIntentModel(AbstractIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # create the event book
         fs: FeatureSelect = eval(f"FeatureSelect.from_env(task_name=task_name, default_save=False, "
-                                 f"has_contract=True)", globals(), locals())
+                                 f"has_contract=True), **{kwargs}", globals(), locals())
         if source and fs.pm.has_connector(source):
             canonical = fs.load_canonical(source)
         elif fs.pm.has_connector(fs.CONNECTOR_SOURCE):
