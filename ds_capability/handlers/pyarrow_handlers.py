@@ -167,6 +167,14 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
             return True
         # csv
         if file_type.lower() in ['csv', 'gz', 'bz2']:
+            for n in canonical.column_names:
+                c = canonical.column(n).combine_chunks()
+                if pa.types.is_dictionary(c.type):
+                    dc = c.dictionary_decode()
+                    canonical = Commons.table_append(canonical, pa.table([dc], names=[n]))
+                if pa.types.is_nested(c.type):
+                    sc = pa.Array.from_pandas(pa.Array.to_pandas(c).astype(str))
+                    canonical = Commons.table_append(canonical, pa.table([sc], names=[n]))
             csv.write_csv(canonical, _address, **write_params)
             return True
         # json
