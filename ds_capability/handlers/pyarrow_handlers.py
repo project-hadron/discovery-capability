@@ -55,7 +55,9 @@ class PyarrowSourceHandler(AbstractSourceHandler):
         # json
         if file_type.lower() in ['json']:
             data =  self._json_load(path_file=address, **load_params)
-            data = pa.Table.from_pylist([data])
+            if isinstance(data, dict):
+                data = [data]
+            data = pa.Table.from_pylist(data)
             return Commons.table_flatten(data)
         # complex nested
         if file_type.lower() in ['complex', 'nested', 'txt']:

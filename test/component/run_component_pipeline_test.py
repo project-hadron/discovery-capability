@@ -60,15 +60,30 @@ class TemplateTest(unittest.TestCase):
         except OSError:
             pass
 
-    def test_run_remote_runbook(self):
+    def test_run_data_tyoe_runbook(self):
         os.environ['HADRON_PROFILING_SOURCE_URI'] = 'working/source/hadron_synth_other.pq'
         os.environ['HADRON_DATA_QUALITY_URI'] = 'working/data/quality.parquet'
         os.environ['HADRON_DATA_DICTIONARY_URI'] = 'working/data/dictionary.parquet'
         os.environ['HADRON_DATA_SCHEMA_URI'] = 'working/data/schema.parquet'
 
-        remote_uri = 'https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/contracts/pyarrow/data_profiling'
-        c = Controller.from_env(uri_pm_repo=remote_uri)
-        c.run_controller()
+        from ds_capability import FeatureBuild
+        from ds_capability.components.commons import Commons
+
+        # feature builder
+        fb = FeatureBuild.from_env('data_profiling', has_contract=False)
+        tbl = fb.set_source_uri('${HADRON_PROFILING_SOURCE_URI}').load_source_canonical()
+        _ = fb.set_persist_uri('event://profiling')
+        _ = fb.add_connector_uri('quality', '${HADRON_DATA_QUALITY_URI}')
+        _ = fb.add_connector_uri('dictionary', '${HADRON_DATA_DICTIONARY_URI}')
+        _ = fb.add_connector_uri('schema', '${HADRON_DATA_SCHEMA_URI}')
+        tbl = fb.tools.build_profiling(tbl, profiling='quality', connector_name='quality', intent_order=0)
+        tbl = fb.tools.build_profiling(tbl, profiling='dictionary', connector_name='dictionary', intent_order=1)
+        tbl = fb.tools.build_profiling(tbl, profiling='schema', connector_name='schema', intent_order=2)
+        fb.run_component_pipeline()
+
+        # c = Controller.from_env()
+        # print(pm_view('controller', 'master'))
+        # c.run_controller()
 
     def test_run_feature_select(self):
         fe = FeatureEngineer.from_memory()
@@ -87,14 +102,6 @@ class TemplateTest(unittest.TestCase):
             env = os.environ['NoEnvValueTest']
         self.assertTrue("'NoEnvValueTest'" in str(context.exception))
         print(f"Duration - {str(datetime.now() - startTime)}")
-
-
-def pm_view(capability: str, task: str, section: str = None):
-    uri = os.path.join(os.environ['HADRON_PM_PATH'], f"hadron_pm_{capability}_{task}.json")
-    tbl = pq.read_table(uri)
-    tbl = tbl.column(0).combine_chunks()
-    result = ast.literal_eval(tbl.to_pylist()[0]).get(capability, {}).get(task, {})
-    return result.get(section, {}) if isinstance(section, str) and section in result.keys() else result
 
 
 def tprint(t: pa.table, headers: [str, list] = None, d_type: [str, list] = None, regex: [str, list] = None):

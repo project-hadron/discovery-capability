@@ -7,7 +7,7 @@ import pandas as pd
 import pyarrow as pa
 
 import pyarrow.compute as pc
-from ds_core.handlers.pyarrow_handlers import PyarrowPersistHandler
+from ds_capability.handlers.pyarrow_handlers import PyarrowSourceHandler, PyarrowPersistHandler
 from ds_core.handlers.abstract_handlers import ConnectorContract
 from ds_core.properties.property_manager import PropertyManager
 
