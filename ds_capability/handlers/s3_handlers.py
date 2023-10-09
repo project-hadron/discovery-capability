@@ -132,7 +132,7 @@ class S3SourceHandler(AbstractSourceHandler):
         cc_params.update(kwargs)     # Update with any passed though the call
         # pop all the extra params
         encoding = cc_params.pop('encoding', 'utf-8')
-        file_type = cc_params.pop('file_type', _ext if len(_ext) > 0 else 'pickle')
+        file_type = cc_params.pop('file_type', _ext if len(_ext) > 0 else 'parquet')
         s3_get_params = cc_params.pop('s3_get_params', {})
         read_params = cc_params.pop('read_params', {})
         if file_type.lower() not in self.supported_types():
@@ -153,7 +153,7 @@ class S3SourceHandler(AbstractSourceHandler):
         with self._lock:
             if file_type.lower() in ['parquet', 'pq', 'pqt']:
                 results = pq.read_table(BytesIO(resource_body), **read_params)
-            if file_type.lower() in ['feather']:
+            elif file_type.lower() in ['feather']:
                 return feather.read_table(BytesIO(resource_body), **read_params)
             elif file_type.lower() in ['csv', 'tsv', 'txt']:
                 results = csv.read_csv(StringIO(resource_body.decode(encoding)), **read_params)
