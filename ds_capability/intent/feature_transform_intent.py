@@ -12,8 +12,8 @@ from ds_capability.intent.abstract_feature_transform_intent import AbstractFeatu
 
 class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentModel):
 
-    def encode_date_integer(self, canonical: pa.Table, headers: [str, list]=None, prefix=None, day_first: bool = True,
-                            year_first: bool = False, seed: int=None, save_intent: bool=None,
+    def encode_date_integer(self, canonical: pa.Table, headers: [str, list]=None, prefix=None, day_first: bool=None,
+                            year_first: bool=None, seed: int=None, save_intent: bool=None,
                             intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                             remove_duplicates: bool=None):
         """ date encoding to integer replaces dates for integer values.

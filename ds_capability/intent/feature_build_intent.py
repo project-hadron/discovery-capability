@@ -201,6 +201,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # intent action
         canonical = self._get_canonical(canonical)
+        connector_name = self._extract_value(connector_name)
         if d_types is None:
             d_types = []
         columns = Commons.filter_headers(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
