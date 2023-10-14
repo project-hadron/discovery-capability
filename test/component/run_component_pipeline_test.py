@@ -80,6 +80,8 @@ class TemplateTest(unittest.TestCase):
         tbl = fb.tools.build_profiling(tbl, profiling='dictionary', connector_name='dictionary', intent_order=1)
         tbl = fb.tools.build_profiling(tbl, profiling='schema', connector_name='schema', intent_order=2)
         fb.run_component_pipeline()
+        print(fb.pm.get_all())
+
 
         # c = Controller.from_env()
         # print(pm_view('controller', 'master'))

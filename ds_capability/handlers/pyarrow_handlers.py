@@ -181,9 +181,10 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
             return True
         # json
         if file_type.lower() in ['json']:
-            cfg_dict = Commons.table_nest(canonical)[0] if isinstance(canonical, list) else canonical
+            cfg_str_dict = canonical.to_pandas().to_json()
+            cfg_dict = json.loads(cfg_str_dict)
             with closing(open(_address, mode='w')) as f:
-                json.dump(cfg_dict, f, **write_params)
+                f.write(str(cfg_dict))
             return True
         # complex nested
         if file_type.lower() in ['complex', 'nested', 'txt']:
