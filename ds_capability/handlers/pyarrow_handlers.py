@@ -2,6 +2,8 @@ import requests
 import os
 from contextlib import closing
 import json
+import pandas as pd
+import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pyarrow.feather as feather
@@ -181,10 +183,9 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
             return True
         # json
         if file_type.lower() in ['json']:
-            cfg_str_dict = canonical.to_pandas().to_json()
-            cfg_dict = json.loads(cfg_str_dict)
+            cfg_dict = Commons.table_nest(canonical)
             with closing(open(_address, mode='w')) as f:
-                f.write(str(cfg_dict))
+                json.dump(cfg_dict, f, cls=NpEncoder, **kwargs)
             return True
         # complex nested
         if file_type.lower() in ['complex', 'nested', 'txt']:
@@ -206,3 +207,21 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
             return True
         return False
 
+
+class NpEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        elif isinstance(obj, np.datetime64):
+            return np.datetime_as_string(obj, unit='s')
+        elif isinstance(obj, pd.Timestamp):
+            return np.datetime_as_string(obj.to_datetime64(), unit='s')
+        else:
+            return super(NpEncoder, self).default(obj)

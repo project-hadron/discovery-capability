@@ -7,6 +7,8 @@ import pandas as pd
 import pyarrow as pa
 
 import pyarrow.compute as pc
+from ds_capability.components.commons import Commons
+
 from ds_capability.handlers.pyarrow_handlers import PyarrowSourceHandler, PyarrowPersistHandler
 from ds_core.handlers.abstract_handlers import ConnectorContract
 from ds_core.properties.property_manager import PropertyManager
@@ -85,9 +87,26 @@ class FeatureBuilderTest(unittest.TestCase):
         uri = os.path.join(os.environ['HADRON_DEFAULT_PATH'], 'test.json')
         cc = ConnectorContract(uri, 'module_name', 'handler')
         handler = PyarrowPersistHandler(cc)
+        # tbl
         handler.persist_canonical(tbl)
         result = handler.load_canonical()
-        print(result)
+        print(result.shape)
+        # properties
+        cfg = {'feature_build': {'data_profiling': {'description': '', 'version': '0.0.1', 'status': 'discovery', 'connectors': {'pm_feature_build_data_profiling': {'raw_uri': 'working/contracts/hadron_pm_feature_build_data_profiling.json', 'raw_module_name': 'ds_capability.handlers.pyarrow_handlers', 'raw_handler': 'PyarrowPersistHandler', 'raw_version': '0.0.1', 'raw_kwargs': {}, 'aligned': False}, 'template_source': {'raw_uri': 'working/data', 'raw_module_name': 'ds_capability.handlers.pyarrow_handlers', 'raw_handler': 'PyarrowSourceHandler', 'raw_version': '0.0.1', 'raw_kwargs': {}, 'aligned': False}, 'template_persist': {'raw_uri': 'working/data', 'raw_module_name': 'ds_capability.handlers.pyarrow_handlers', 'raw_handler': 'PyarrowPersistHandler', 'raw_version': '0.0.1', 'raw_kwargs': {}, 'aligned': False}, 'primary_source': {'raw_uri': '${HADRON_PROFILING_SOURCE_URI}', 'raw_module_name': 'ds_capability.handlers.pyarrow_handlers', 'raw_handler': 'PyarrowPersistHandler', 'raw_version': '0.0.1', 'raw_kwargs': {}, 'aligned': False}, 'primary_persist': {'raw_uri': 'event://profiling', 'raw_module_name': 'ds_core.handlers.event_handlers', 'raw_handler': 'EventPersistHandler', 'raw_version': '0.0.1', 'raw_kwargs': {}, 'aligned': False}, 'quality': {'raw_uri': '${HADRON_DATA_QUALITY_URI}', 'raw_module_name': 'ds_capability.handlers.pyarrow_handlers', 'raw_handler': 'PyarrowPersistHandler', 'raw_version': '0.0.1', 'raw_kwargs': {}, 'aligned': False}, 'dictionary': {'raw_uri': '${HADRON_DATA_DICTIONARY_URI}', 'raw_module_name': 'ds_capability.handlers.pyarrow_handlers', 'raw_handler': 'PyarrowPersistHandler', 'raw_version': '0.0.1', 'raw_kwargs': {}, 'aligned': False}, 'schema': {'raw_uri': '${HADRON_DATA_SCHEMA_URI}', 'raw_module_name': 'ds_capability.handlers.pyarrow_handlers', 'raw_handler': 'PyarrowPersistHandler', 'raw_version': '0.0.1', 'raw_kwargs': {}, 'aligned': False}}, 'intent': {'primary': {'0': {'build_profiling': {'profiling': 'quality', 'connector_name': 'quality', 'save_intent': False}}, '1': {'build_profiling': {'profiling': 'dictionary', 'connector_name': 'dictionary', 'save_intent': False}}, '2': {'build_profiling': {'profiling': 'schema', 'connector_name': 'schema', 'save_intent': False}}}}, 'snapshot': {}, 'run_book': {}, 'meta': {'module': ['ds_capability', 'managers', 'feature_build_property_manager'], 'class': 'FeatureBuildPropertyManager'}, 'knowledge': {'describe': {}, 'intent': {}, 'schema': {}}}}, 'config_meta': {'uid': 'c18ffafd-f28d-4835-81f8-bd5d580fb54a', 'create': '2023-10-14 13:33:59.006304', 'modify': '2023-10-14 13:33:59.151534', 'release': '0.8.8'}}
+        tbl = pa.Table.from_pylist([cfg])
+        tbl = Commons.table_flatten(tbl)
+        handler.persist_canonical(tbl)
+        result = handler.load_canonical()
+        print(result.shape)
+        # swagger
+        cfg = {'columnProfile': [{'customMetricsProfile': [{'name': 'string', 'value': 0}], 'distinctCount': 0, 'distinctProportion': 0, 'duplicateCount': 0, 'firstQuartile': 0, 'histogram': {'boundaries': [{}], 'frequencies': [{}]}, 'interQuartileRange': 0, 'max': {}, 'maxLength': 0, 'mean': 0, 'median': 0, 'min': {}, 'minLength': 0, 'missingCount': 0, 'missingPercentage': 0, 'name': 'string', 'nonParametricSkew': 0, 'nullCount': 0, 'nullProportion': 0, 'stddev': 0, 'sum': 0, 'thirdQuartile': 0, 'timestamp': 0, 'uniqueCount': 0, 'uniqueProportion': 0, 'validCount': 0, 'valuesCount': 0, 'valuesPercentage': 0, 'variance': 0}], 'systemProfile': [{'operation': 'UPDATE', 'rowsAffected': 0, 'timestamp': 0}], 'tableProfile': {'columnCount': 0, 'createDateTime': '2019-08-24T14:15:22Z', 'profileSample': 0, 'profileSampleType': 'PERCENTAGE', 'rowCount': 0, 'sizeInByte': 0, 'timestamp': 0}}
+        tbl = pa.Table.from_pylist([cfg])
+        tbl = Commons.table_flatten(tbl)
+        handler.persist_canonical(tbl)
+        result = handler.load_canonical()
+        print(result.shape)
+
+
 
     def test_txt(self):
         tbl = get_table()
