@@ -337,9 +337,12 @@ class DataDiscovery(object):
                 record.append([n, 'oldest', pc.min(c).as_py()])
                 record.append([n, 'newest', pc.max(c).as_py()])
             elif pa.types.is_string(c.type):
+                record.append([n, 'string', ''])
+                record.append([n, 'frequency', ''])
                 record.append([n, 'type', c.type])
+                record.append([n, 'measure', ''])
                 record.append([n, 'nulls', c.null_count])
-                record.append([n, 'sample', pc.sum(c.is_valid()).as_py()])
+                record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
         df = pd.DataFrame(record, columns=['attributes', 'elements', 'values'])
         df['values'] = df['values'].astype(str)
         if stylise:
