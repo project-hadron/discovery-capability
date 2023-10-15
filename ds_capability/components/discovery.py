@@ -149,7 +149,7 @@ class DataDiscovery(object):
         _tot_mem = f"{mem_usage >> 20} Mb" if mem_usage >> 20 > 0 else f"{mem_usage} bytes"
         report = {
             'timestamp': {'readable': _dt_today.strftime('%d %B %Y %I:%M %p'),
-                          'semantic': _dt_today.strftime('%Y-%m-%d %H:%M:%S')},
+                          'semantic': _dt_today.strftime('%Y-%m-%dT%H:%M:%SZ')},
             'score': {'quality_avg': f"{_quality_avg}%", 'usability_avg': f"{_usable}%"},
             'data_shape': {'tbl_memory': _tbl_mem, 'total_allocated': _tot_mem,
                            'rows': canonical.num_rows, 'columns': canonical.num_columns},
