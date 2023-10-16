@@ -1,5 +1,5 @@
 from typing import Tuple
-
+import ast
 import pandas as pd
 import numpy as np
 import pyarrow as pa
@@ -284,7 +284,7 @@ class DataDiscovery(object):
                 intervals = DataDiscovery.to_discrete_intervals(column=c, granularity=5, categories=['A','B','C','D','E'])
                 vc = intervals.dictionary_encode().drop_null().value_counts()
                 t = pa.table([vc.field(1), vc.field(0).dictionary], names=['v','n']).sort_by([("n", "ascending")])
-                record.append([n, 'intervals', "['lower','low','mid','high','higher']"])
+                record.append([n, 'intervals', ['lower','low','mid','high','higher']])
                 _ = pc.round(pc.divide_checked(t.column('v').cast(pa.float64()), pc.sum(t.column('v'))),3).to_pylist()
                 record.append([n, 'frequency', _])
                 record.append([n, 'type', c.type])
@@ -327,7 +327,7 @@ class DataDiscovery(object):
                 intervals = DataDiscovery.to_discrete_intervals(column=_, granularity=5, categories=['A','B','C','D','E'])
                 vc = intervals.dictionary_encode().drop_null().value_counts()
                 t = pa.table([vc.field(1), vc.field(0).dictionary], names=['v','n']).sort_by([("n", "ascending")])
-                record.append([n, 'intervals', "['older','old','mid','new','newer']"])
+                record.append([n, 'intervals', ['older','old','mid','new','newer']])
                 _ = pc.round(pc.divide_checked(t.column('v').cast(pa.float64()), pc.sum(t.column('v'))),3).to_pylist()
                 record.append([n, 'frequency', _])
                 record.append([n, 'type', c.type])
@@ -337,8 +337,8 @@ class DataDiscovery(object):
                 record.append([n, 'oldest', pc.min(c).as_py()])
                 record.append([n, 'newest', pc.max(c).as_py()])
             elif pa.types.is_string(c.type):
-                record.append([n, 'string', ''])
-                record.append([n, 'frequency', ''])
+                record.append([n, 'string', '[]'])
+                record.append([n, 'frequency', '[]'])
                 record.append([n, 'type', c.type])
                 record.append([n, 'measure', ''])
                 record.append([n, 'nulls', c.null_count])
@@ -357,8 +357,8 @@ class DataDiscovery(object):
         granularity = granularity if isinstance(granularity, (int, float, list)) or granularity == 0 else 5
         granularity = len(categories) if isinstance(categories, list) else granularity
         precision = precision if isinstance(precision, int) else 5
-        # firstly get the granularity
         lower = lower if isinstance(lower, (int, float)) else pc.min(column).as_py()
+        # firstly get the granularity
         upper = upper if isinstance(upper, (int, float)) else pc.max(column).as_py()
         s_values = column.to_pandas()
         if lower >= upper:
