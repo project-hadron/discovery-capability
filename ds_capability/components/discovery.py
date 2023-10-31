@@ -300,7 +300,6 @@ class DataDiscovery(object):
                 record.append([n, 'measure', 'temporal' if pa.types.is_temporal(c.type) else 'continuous'])
                 record.append([n, 'nulls', c.null_count])
                 record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
-                record.append([n, 'value_counts', vc])
                 record.append([n, 'null_proportions', (c.null_count/vc)])
                 record.append([n, 'valid_proportions', ((pc.sum(c.is_valid()).as_py())/vc)])
                 unique_count =  sum(1 for _, count in collections.Counter(c.to_pylist()).items() if count == 1)
