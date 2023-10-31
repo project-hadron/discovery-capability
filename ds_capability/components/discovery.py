@@ -1,5 +1,6 @@
 from typing import Tuple
 import ast
+import collections
 import pandas as pd
 import numpy as np
 import pyarrow as pa
@@ -279,6 +280,11 @@ class DataDiscovery(object):
                 record.append([n, 'measure', 'discrete'])
                 record.append([n, 'nulls', c.null_count])
                 record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
+                record.append([n, 'value_counts', vc])
+                record.append([n, 'null_proportions', (c.null_count/vc)])
+                record.append([n, 'valid_proportions', ((pc.sum(c.is_valid()).as_py())/vc)])
+                record.append([n, 'unique', sum(1 for _, count in collections.Counter(c.to_pylist()).items() if count == 1)])
+                record.append([n, 'distinct', (c.unique().value_counts())])
             elif pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
                 precision = Commons.column_precision(c)
                 intervals = DataDiscovery.to_discrete_intervals(column=c, granularity=5, categories=['A','B','C','D','E'])
@@ -291,6 +297,11 @@ class DataDiscovery(object):
                 record.append([n, 'measure', 'temporal' if pa.types.is_temporal(c.type) else 'continuous'])
                 record.append([n, 'nulls', c.null_count])
                 record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
+                record.append([n, 'value_counts', vc])
+                record.append([n, 'null_proportions', (c.null_count/vc)])
+                record.append([n, 'valid_proportions', ((pc.sum(c.is_valid()).as_py())/vc)])
+                record.append([n, 'unique', sum(1 for _, count in collections.Counter(c.to_pylist()).items() if count == 1)])
+                record.append([n, 'distinct', (c.unique().value_counts())])
                 record.append([n, 'mean', pc.round(pc.mean(c),precision).as_py()])
                 record.append([n, 'std', pc.round(pc.sqrt(pc.variance(c)),precision).as_py()])
                 record.append([n, 'max', pc.round(pc.max(c),precision).as_py()])
