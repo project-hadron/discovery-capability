@@ -7,8 +7,9 @@ from pprint import pprint
 import pyarrow as pa
 import pyarrow.compute as pc
 import pandas as pd
-from ds_capability import FeatureBuild
-from ds_capability.intent.feature_build_intent import FeatureBuildIntent
+from ds_capability.intent.feature_engineer_intent import FeatureEngineerIntent
+
+from ds_capability import FeatureEngineer, FeatureEngineer
 from ds_core.properties.property_manager import PropertyManager
 
 from ds_capability.components.discovery import DataDiscovery
@@ -62,43 +63,43 @@ class DiscoveryTest(unittest.TestCase):
             pass
 
     def test_interquartile_outliers(self):
-        sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = sb.tools
+        sb = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = sb.tools
         arr = pa.array([1,2,1,34,1,2,3])
         result = DataDiscovery.interquartile_outliers(arr)
         self.assertEqual(([],[34]), result)
 
     def test_empirical_outliers(self):
-        sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = sb.tools
+        sb = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = sb.tools
         arr = pa.array([1,2,1,1,2,3]*100 +[34])
         result = DataDiscovery.empirical_outliers(arr)
         self.assertEqual(([],[34]), result)
 
     def test_data_dictionary(self):
-        sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = sb.tools
-        tbl = tools.get_synthetic_data_types(1_000_000, inc_nulls=True)
+        sb = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = sb.tools
+        tbl = tools.get_synthetic_data_types(1_000, inc_nulls=True)
         result = DataDiscovery.data_dictionary(tbl, stylise=True)
         pprint(result.to_string())
 
     def test_data_quality(self):
-        sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = sb.tools
+        sb = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = sb.tools
         tbl = tools.get_synthetic_data_types(100_000, inc_nulls=True)
         result = DataDiscovery.data_quality(tbl, stylise=True)
         pprint(result.to_string())
 
     def test_data_quality_ref(self):
-        sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = sb.tools
+        sb = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = sb.tools
         tbl = tools.get_synthetic_data_types(100_000, inc_nulls=True)
         result = DataDiscovery.data_quality(tbl, stylise=False)
         pprint(result.schema)
 
     def test_data_schema(self):
-        sb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = sb.tools
+        sb = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = sb.tools
         tbl = tools.get_synthetic_data_types(600_000, inc_nulls=True)
         result = DataDiscovery.data_schema(tbl, stylise=True)
         pprint(result.to_string())

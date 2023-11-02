@@ -237,11 +237,11 @@ class DataDiscovery(object):
             style = [{'selector': 'th', 'props': [('font-size', "120%"), ("text-align", "center")]},
                      {'selector': '.row_heading, .blank', 'props': [('display', 'none;')]}]
             df_style = df.style.set_table_styles(style)
-            _ = df_style.applymap(DataDiscovery._highlight_null_dom, subset=['Nulls', 'Dominate'])
-            _ = df_style.applymap(lambda x: 'color: white' if x > 0.98 else 'color: black', subset=['Nulls', 'Dominate'])
-            _ = df_style.applymap(DataDiscovery._dtype_color, subset=['DataType'])
-            _ = df_style.applymap(DataDiscovery._color_unique, subset=['Unique'])
-            _ = df_style.applymap(lambda x: 'color: white' if x < 2 else 'color: black', subset=['Unique'])
+            _ = df_style.map(DataDiscovery._highlight_null_dom, subset=['Nulls', 'Dominate'])
+            _ = df_style.map(lambda x: 'color: white' if x > 0.98 else 'color: black', subset=['Nulls', 'Dominate'])
+            _ = df_style.map(DataDiscovery._dtype_color, subset=['DataType'])
+            _ = df_style.map(DataDiscovery._color_unique, subset=['Unique'])
+            _ = df_style.map(lambda x: 'color: white' if x < 2 else 'color: black', subset=['Unique'])
             _ = df_style.format({'Nulls': "{:.1%}", 'Dominate': '{:.1%}'})
             _ = df_style.set_caption(f"dataset has {canonical.num_columns} columns")
             _ = df_style.set_properties(subset=['Attributes'],  **{'font-weight': 'bold', 'font-size': "120%"})
