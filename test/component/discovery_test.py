@@ -7,6 +7,8 @@ from pprint import pprint
 import pyarrow as pa
 import pyarrow.compute as pc
 import pandas as pd
+from ds_capability.components.commons import Commons
+
 from ds_capability.intent.feature_engineer_intent import FeatureEngineerIntent
 
 from ds_capability import FeatureEngineer, FeatureEngineer
@@ -100,7 +102,7 @@ class DiscoveryTest(unittest.TestCase):
     def test_data_schema(self):
         sb = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = sb.tools
-        tbl = tools.get_synthetic_data_types(600_000, inc_nulls=True)
+        tbl = tools.get_synthetic_data_types(1_000, inc_nulls=True)
         result = DataDiscovery.data_schema(tbl, stylise=True)
         pprint(result.to_string())
 

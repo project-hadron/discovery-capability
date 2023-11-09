@@ -347,7 +347,7 @@ class DataDiscovery(object):
                 distinct_count = len(c.unique())
                 record.append([n, 'distinct', distinct_count])
                 record.append([n, 'distinct_proportions', (distinct_count/len(c))])
-            elif pa.types.is_timestamp(c.type) or pa.types.is_time(c.type):
+            elif pa.types.is_timestamp(c.type) or pa.types.is_time(c.type) or pa.types.is_date(c.type):
                 _ = pa.array(Commons.date2value(c.to_pylist()))
                 intervals = DataDiscovery.to_discrete_intervals(column=_, granularity=5, categories=['A','B','C','D','E'])
                 vc = intervals.dictionary_encode().drop_null().value_counts()

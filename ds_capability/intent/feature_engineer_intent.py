@@ -1063,7 +1063,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         canonical = self.get_boolean(size=size, probability=0.7, canonical=canonical, seed=seed, to_header='bool',
                                      save_intent=False)
         # date
-        canonical = self.get_datetime(start='2022-12-01', until='2023-03-31', ordered=True, canonical=canonical,
+        canonical = self.get_datetime(start='2022-12-01T13:01:07', until='2023-03-31T23:47:00', ordered=True, canonical=canonical,
                                       size=size, seed=seed, to_header='date', save_intent=False)
         # string
         canonical = self.get_sample(sample_name='us_street_names', canonical=canonical, size=size, seed=seed,
