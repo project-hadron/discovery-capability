@@ -320,7 +320,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         precision = precision if isinstance(precision, int) else 3
         if action == 'list':
             rtn_values = df.loc[:, headers].values.tolist()
-            rtn_values = [x for x in rtn_values if x is not None]
+            rtn_values = [[x for x in y if x is not None] for y in rtn_values]
         else:
             rtn_values = eval(f"df.loc[:, headers].{action}(axis=1)", globals(), locals()).round(precision).to_list()
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
