@@ -96,7 +96,7 @@ class FeatureBuilderTest(unittest.TestCase):
         tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(5, inc_nulls=False)
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
-        result = tools.auto_aggregate(tbl, action='list', headers=['cat', 'string'], to_header='agg')
+        result = tools.auto_aggregate(tbl, action='list_last', headers=['cat', 'string'], to_header='agg')
         print(result.column('agg').to_pylist())
         # self.assertEqual([2, 2, 2, 2, 2], result.column('agg').to_pylist())
 

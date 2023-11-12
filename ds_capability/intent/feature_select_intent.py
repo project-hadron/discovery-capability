@@ -314,13 +314,17 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         tbl = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         df = tbl.to_pandas()
         agg_choice = ['sum', 'prod', 'count', 'min', 'max', 'mean']
-        if action not in ['sum', 'prod', 'count', 'min', 'max', 'mean', 'list']:
-            raise ValueError("The only allowed func values are 'sum', 'prod', 'count', 'min', 'max', 'mean', 'list'")
+        if action not in ['sum', 'prod', 'count', 'min', 'max', 'mean', 'list', 'list_first', 'list_last']:
+            raise ValueError("The only values are 'sum','prod','count','min','max','mean','list','list_first','list_last'")
         # Code block for intent
         precision = precision if isinstance(precision, int) else 3
-        if action == 'list':
+        if action.startswith('list'):
             rtn_values = df.loc[:, headers].values.tolist()
             rtn_values = [[x for x in y if x is not None] for y in rtn_values]
+            if action.endswith('_first'):
+                rtn_values = [x[0] if len(x) > 0 else None for x in rtn_values]
+            if action.endswith('_last'):
+                rtn_values = [x[-1] if len(x) > 0 else None for x in rtn_values]
         else:
             rtn_values = eval(f"df.loc[:, headers].{action}(axis=1)", globals(), locals()).round(precision).to_list()
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
