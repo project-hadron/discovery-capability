@@ -11,7 +11,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
-from ds_capability import FeatureBuild
+from ds_capability import FeatureBuild, FeatureEngineer
 from ds_capability.components.commons import Commons
 from ds_core.properties.property_manager import PropertyManager
 from ds_capability.intent.feature_select_intent import FeatureSelectIntent
@@ -91,6 +91,13 @@ class FeatureBuilderTest(unittest.TestCase):
         result = tools.auto_drop_correlated(tbl)
         self.assertEqual(18, result.num_columns)
         self.assertNotIn('dup_num', result.column_names)
+
+    def test_aggrigate(self):
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(5, inc_nulls=False)
+        fs = FeatureSelect.from_memory()
+        tools: FeatureSelectIntent = fs.tools
+        result = tools.auto_aggregate(tbl, action='count', headers=['cat', 'string'], to_header='agg')
+        self.assertEqual([2, 2, 2, 2, 2], result.column('agg').to_pylist())
 
     def test_auto_projection(self):
         tbl = FeatureBuild.from_memory().tools.get_noise(size=1000, num_columns=5)
