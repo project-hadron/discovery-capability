@@ -97,6 +97,7 @@ class FeatureBuilderTest(unittest.TestCase):
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
         result = tools.auto_aggregate(tbl, action='count', headers=['cat', 'string'], to_header='agg')
+        # print(result.column('agg').to_pylist())
         self.assertEqual([2, 2, 2, 2, 2], result.column('agg').to_pylist())
 
     def test_auto_projection(self):
