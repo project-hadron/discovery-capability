@@ -314,6 +314,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         # Code block for intent
         drop_aggregated = drop_aggregated if isinstance(drop_aggregated, bool) else False
         tbl = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
+        headers = tbl.column_names
         df = tbl.to_pandas()
         agg_choice = ['sum', 'prod', 'count', 'min', 'max', 'mean']
         if action not in ['sum', 'prod', 'count', 'min', 'max', 'mean', 'list', 'list_first', 'list_last']:
