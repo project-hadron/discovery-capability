@@ -278,8 +278,8 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                     to_drop.add(col_name)
         return canonical.drop_columns(to_drop)
 
-    def auto_aggregate(self, canonical: pa.Table, action: str, headers: [str, list]=None,
-                       d_types: [str, list]=None, regex: [str, list]=None, drop: bool=None, to_header: str=None,
+    def auto_aggregate(self, canonical: pa.Table, action: str, headers: [str, list]=None,  d_types: [str, list]=None,
+                       regex: [str, list]=None, drop: bool=None, to_header: str=None, drop_aggregated: bool=None,
                        precision: int=None, save_intent: bool=None, intent_level: [int, str]=None,
                        intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ Removes columns that are duplicates of each other
@@ -291,6 +291,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
         :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
         :param to_header: (optional) an optional name to call the column
+        :param drop_aggregated: (optional) drop the aggregation headers
         :param precision: the value precision of the return values
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the level name that groups intent by a reference name
@@ -311,6 +312,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
+        drop_aggregated = drop_aggregated if isinstance(drop_aggregated, bool) else False
         tbl = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         df = tbl.to_pandas()
         agg_choice = ['sum', 'prod', 'count', 'min', 'max', 'mean']
@@ -328,6 +330,8 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         else:
             rtn_values = eval(f"df.loc[:, headers].{action}(axis=1)", globals(), locals()).round(precision).to_list()
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        if drop_aggregated:
+            canonical = canonical.drop_columns(headers)
         return Commons.table_append(canonical, pa.table([pa.array(rtn_values)], names=[to_header]))
 
     def auto_projection(self, canonical: pa.Table, headers: list=None, drop: bool=None, n_components: [int, float]=None,
