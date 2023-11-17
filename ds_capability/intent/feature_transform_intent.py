@@ -12,6 +12,141 @@ from ds_capability.intent.abstract_feature_transform_intent import AbstractFeatu
 
 class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentModel):
 
+    def activate_sigmoid(self, canonical: pa.Table, header: str, precision: int=None, seed: int=None,
+                         save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                         replace_intent: bool=None, remove_duplicates: bool=None):
+        """Activation functions play a crucial role in the backpropagation algorithm, which is the primary
+        algorithm used for training neural networks. During backpropagation, the error of the output is
+        propagated backwards through the network, and the weights of the network are updated based on this
+        error. The activation function is used to introduce non-linearity into the output of a neural network
+        layer.
+
+        Logistic Sigmoid a.k.a logit, tmaps any input value to a value between 0 and 1, making it useful for
+        binary classification problems and is defined as f(x) = 1/(1+exp(-x))
+
+        :param canonical: a pd.DataFrame as the reference dataframe
+        :param header: the header in the DataFrame to correlate
+        :param precision: (optional) how many decimal places. default to 3
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the intent level that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pa.Table
+        """
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # intend code block on the canonical
+        canonical = self._get_canonical(canonical)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical table")
+        if canonical.column(header).null_count > 0:
+            raise ValueError(f"The values in '{header}' can not contain nulls")
+        _seed = seed if isinstance(seed, int) else self._seed()
+        precision = precision if isinstance(precision, int) else 5
+        npv = canonical.column(header).to_numpy()
+        arr = pa.array(np.round(1 / (1 + np.exp(-npv)), precision))
+        return Commons.table_append(canonical, pa.table([arr], names=[header]))
+
+    def activate_tanh(self, canonical: pa.Table, header: str, precision: int=None, seed: int=None,
+                      save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                      replace_intent: bool=None, remove_duplicates: bool=None):
+        """Activation functions play a crucial role in the backpropagation algorithm, which is the primary
+        algorithm used for training neural networks. During backpropagation, the error of the output is
+        propagated backwards through the network, and the weights of the network are updated based on this
+        error. The activation function is used to introduce non-linearity into the output of a neural network
+        layer.
+
+        Tangent Hyperbolic (tanh) function is a shifted and stretched version of the Sigmoid function but maps
+        the input values to a range between -1 and 1. and is defined as f(x) = (exp(x)-exp(-x))/(exp(x)+exp(-x))
+
+        :param canonical: a pd.DataFrame as the reference dataframe
+        :param header: the header in the DataFrame to correlate
+        :param precision: (optional) how many decimal places. default to 3
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the intent level that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pa.Table
+        """
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # intend code block on the canonical
+        canonical = self._get_canonical(canonical)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical table")
+        if canonical.column(header).null_count > 0:
+            raise ValueError(f"The values in '{header}' can not contain nulls")
+        _seed = seed if isinstance(seed, int) else self._seed()
+        precision = precision if isinstance(precision, int) else 5
+        npv = canonical.column(header).to_numpy()
+        arr = pa.array(np.round((np.exp(npv) - np.exp(-npv)) / (np.exp(npv) + np.exp(-npv)), precision))
+        return Commons.table_append(canonical, pa.table([arr], names=[header]))
+
+    def activate_relu(self, canonical: pa.Table, header: str, precision: int=None, seed: int=None,
+                      save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                      replace_intent: bool=None, remove_duplicates: bool=None):
+        """Activation functions play a crucial role in the backpropagation algorithm, which is the primary
+        algorithm used for training neural networks. During backpropagation, the error of the output is
+        propagated backwards through the network, and the weights of the network are updated based on this
+        error. The activation function is used to introduce non-linearity into the output of a neural network
+        layer.
+
+        Rectified Linear Unit (ReLU) function. is the most popular activation function, which replaces negative
+        values with zero and keeps the positive values unchanged. and is defined as f(x) = x * (x > 0)
+
+        :param canonical: a pd.DataFrame as the reference dataframe
+        :param header: the header in the DataFrame to correlate
+        :param precision: (optional) how many decimal places. default to 3
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the intent level that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pa.Table
+        """
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # intend code block on the canonical
+        canonical = self._get_canonical(canonical)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical table")
+        if canonical.column(header).null_count > 0:
+            raise ValueError(f"The values in '{header}' can not contain nulls")
+        _seed = seed if isinstance(seed, int) else self._seed()
+        precision = precision if isinstance(precision, int) else 5
+        npv = canonical.column(header).to_numpy()
+        arr = pa.array(np.round(npv * (npv > 0), precision))
+        return Commons.table_append(canonical, pa.table([arr], names=[header]))
+
     def encode_date_integer(self, canonical: pa.Table, headers: [str, list]=None, prefix=None, day_first: bool=None,
                             year_first: bool=None, seed: int=None, save_intent: bool=None,
                             intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
