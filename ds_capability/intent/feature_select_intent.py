@@ -17,7 +17,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                           intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ clean the headers of a Table replacing space with underscore. This also allows remapping and case selection
 
-        :param canonical: the pandas.DataFrame to drop duplicates from
+        :param canonical: the pa.Table
         :param rename_map: (optional) a dict of name value pairs, a fixed length list of column names or connector name
         :param case: (optional) changes the headers to lower, upper, title. if none of these then no change
         :param replace_spaces: (optional) character to replace spaces with. Default is '_' (underscore)
@@ -33,7 +33,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: pandas.DataFrame.
+        :return: pa.Table.
         """
         # resolve intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
@@ -81,7 +81,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         """ attempts to cast the columns of a table to its appropriate type. Categories boolean and timestamps
         are toggled on and of with the inc_ parameters being true or false.
 
-        :param canonical: the pandas.DataFrame to drop duplicates from
+        :param canonical: the pa.Table
         :param inc_category: (optional) if categories should be cast.  Default True
         :param category_max: (optional) the max number of unique values to consider categorical
         :param inc_bool: (optional) if booleans should be cast. Default True
@@ -100,7 +100,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: pandas.DataFrame.
+        :return: pa.Table.
         """
         # resolve intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
@@ -117,7 +117,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         """ automatically reinstates nulls in a string that have been masked with alternate values such as space
         or question-mark. By default, the nulls list is ['',' ','NaN','nan','None','null','Null','NULL']
 
-        :param canonical:
+        :param canonical: the pa.Table
         :param nulls_list: (optional) potential null values to replace with a null.
         :param headers: a list of headers to drop or filter on type
         :param drop: to drop or not drop the headers
@@ -135,7 +135,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: pandas.DataFrame.
+        :return: pa.Table.
         """
         # resolve intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
@@ -162,13 +162,13 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         """ auto removes columns that are at least 0.998 percent np.NaN, a single value, std equal zero or have a
         predominant value greater than the default 0.998 percent.
 
-        :param canonical:
-        :param nulls_threshold: The threshold limit of a nulls value. Default 0.95
-        :param nulls_list: can be boolean or a list:
+        :param canonical: the pa.Table
+        :param nulls_threshold:  (optional) The threshold limit of a nulls value. Default 0.95
+        :param nulls_list:  (optional) can be boolean or a list:
                     if boolean and True then null_list equals ['NaN', 'nan', 'null', '', 'None', ' ']
                     if list then this is considered potential null values.
-        :param drop_predominant: drop columns that have a predominant value of the given predominant max
-        :param drop_empty_row: also drop any rows where all the values are empty
+        :param drop_predominant:  (optional) drop columns that have a predominant value of the given predominant max
+        :param drop_empty_row:  (optional) also drop any rows where all the values are empty
         :param drop_unknown:  (optional) drop objects that are not string types such as binary
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the level name that groups intent by a reference name
@@ -182,7 +182,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: pandas.DataFrame.
+        :return: pa.Table.
         """
         # resolve intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
@@ -210,7 +210,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                              remove_duplicates: bool=None) -> pa.Table:
         """ Removes columns that are duplicates of each other
 
-        :param canonical:
+        :param canonical: the pa.Table
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the level name that groups intent by a reference name
         :param intent_order: (optional) the order in which each intent should run.
@@ -241,11 +241,11 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
     def auto_drop_correlated(self, canonical: pa.Table, threshold: float=None, save_intent: bool=None,
                              intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                              remove_duplicates: bool=None) -> pa.Table:
-        """ uses 'brute force' techniques to remove's highly correlated numeric columns based on the threshold,
-        set by default to 0.998.
+        """ uses 'brute force' techniques to remove highly correlated numeric columns based on the threshold,
+        set by default to 0.95.
 
-        :param canonical:
-        :param threshold: (optional) threshold correlation between columns. default 0.998
+        :param canonical: the pa.Table
+        :param threshold: (optional) threshold correlation between columns. default 0.95
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the level name that groups intent by a reference name
         :param intent_order: (optional) the order in which each intent should run.
@@ -265,7 +265,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
-        threshold = threshold if isinstance(threshold, float) and 0 < threshold < 1 else 0.998
+        threshold = threshold if isinstance(threshold, float) and 0 < threshold < 1 else 0.95
         # extract numeric columns
         tbl_filter = Commons.filter_columns(canonical, d_types=[pa.int64(), pa.int32(), pa.float64(), pa.float32()])
         df_filter = tbl_filter.to_pandas()
@@ -282,10 +282,12 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                        regex: [str, list]=None, drop: bool=None, to_header: str=None, drop_aggregated: bool=None,
                        precision: int=None, save_intent: bool=None, intent_level: [int, str]=None,
                        intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
-        """ Removes columns that are duplicates of each other
+        """ given a set of columns, aggregates those columns based upon the aggregation action given.
+        The actions are 'sum', 'prod', 'count', 'min', 'max', 'mean', 'list', 'list_first', 'list_last'.
+        'list_first' and 'list_last' return the first or last value in a list.
 
-        :param canonical:
-        :param action: an aggregation action such as count or first.
+        :param canonical: the pa.Table
+        :param action: an aggregation action such as count or list_first.
         :param headers: (optional) a filter of headers from the 'other' dataset
         :param drop: (optional) to drop or not drop the headers if specified
         :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
@@ -316,7 +318,6 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         tbl = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         headers = tbl.column_names
         df = tbl.to_pandas()
-        agg_choice = ['sum', 'prod', 'count', 'min', 'max', 'mean']
         if action not in ['sum', 'prod', 'count', 'min', 'max', 'mean', 'list', 'list_first', 'list_last']:
             raise ValueError("The only values are 'sum','prod','count','min','max','mean','list','list_first','list_last'")
         # Code block for intent
@@ -341,7 +342,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         """Principal component analysis (PCA) is a linear dimensionality reduction using Singular Value Decomposition
         of the data to project it to a lower dimensional space.
 
-        :param canonical:
+        :param canonical: the pa.Table
         :param headers: (optional) a list of headers to select (default) or drop from the dataset
         :param drop: (optional) if True then srop the headers. False by default
         :param n_components: (optional) Number of components to keep.
@@ -395,9 +396,9 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                            other_regex: [str, list]=None, other_drop: bool=None, seed: int=None,
                            save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                            replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
-        """ Appends the canonical table with the other
+        """ Appends the canonical table with other
 
-        :param canonical: a pa.Table defines the number of rows
+        :param canonical: a pa.Table
         :param other: (optional) the pa.Table or connector to join. This is the dominant table and will replace like named columns
         :param headers: (optional) headers to select
         :param data_types: (optional) data types to select. use PyArrow data types eg 'pa.string()'
@@ -434,8 +435,8 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
             return canonical
         other = Commons.filter_columns(other, headers=other_headers, d_types=other_data_type, regex=other_regex,
                                        drop=other_drop)
-        df = other.to_pandas()
         if canonical.num_rows > other.num_rows:
+            df = other.to_pandas()
             df = df.sample(n=canonical.num_rows, random_state=seed, ignore_index=True, replace=True)
             other = pa.Table.from_pandas(df)
         else:
