@@ -5,9 +5,7 @@ import pyarrow.parquet as pq
 import pyarrow.feather as feather
 from pyarrow import csv
 import os
-import boto3
-from botocore.exceptions import ClientError
-from ds_core.handlers.abstract_handlers import AbstractSourceHandler, AbstractPersistHandler
+from ds_core.handlers.abstract_handlers import AbstractSourceHandler, AbstractPersistHandler, HandlerFactory
 from ds_core.handlers.abstract_handlers import ConnectorContract
 
 __author__ = 'Darryl Oatridge'
@@ -30,6 +28,9 @@ class S3SourceHandler(AbstractSourceHandler):
             - region_name (optional) session region name
             - profile_name (optional) session shared credentials file profile name
         """
+        # required module import
+        self.boto3 = HandlerFactory.get_module('boto3')
+        self.botocore_exceptions = HandlerFactory.get_module('botocore.exceptions')
         super().__init__(connector_contract)
         cc_params = connector_contract.kwargs
         cc_params.update(connector_contract.query)  # Update kwargs with those in the uri query
@@ -38,7 +39,7 @@ class S3SourceHandler(AbstractSourceHandler):
         aws_secret_access_key = cc_params.pop('aws_secret_access_key', os.environ.get('AWS_SECRET_ACCESS_KEY'))
         aws_session_token = cc_params.pop('aws_session_token', os.environ.get('AWS_SESSION_TOKEN'))
         profile_name = cc_params.pop('profile_name', None)
-        self._session = boto3.Session(region_name=region_name, aws_access_key_id=aws_access_key_id,
+        self._session = self.boto3.Session(region_name=region_name, aws_access_key_id=aws_access_key_id,
                                       aws_secret_access_key=aws_secret_access_key, profile_name=profile_name,
                                       aws_session_token=aws_session_token)
         self._file_state = 0
@@ -92,7 +93,7 @@ class S3SourceHandler(AbstractSourceHandler):
         s3_client = self._session.client(_cc.schema)
         try:
             s3_object = s3_client.get_object(Bucket=_cc.netloc, Key=_cc.path[1:], **s3_get_params)
-        except ClientError as e:
+        except self.botocore_exceptions.ClientError as e:
             code = e.response["Error"]["Code"]
             raise ConnectionError("Failed to retrieve the object from region '{}', bucket '{}' "
                                   "Key '{}' with error code '{}'".format(self._session.region_name, _cc.netloc,
@@ -144,7 +145,7 @@ class S3SourceHandler(AbstractSourceHandler):
         s3_client = self._session.client(_cc.schema)
         try:
             s3_object = s3_client.get_object(Bucket=_cc.netloc, Key=_cc.path[1:], **s3_get_params)
-        except ClientError as e:
+        except self.botocore_exceptions.ClientError as e:
             code = e.response["Error"]["Code"]
             raise ConnectionError("Failed to retrieve the object from region '{}', bucket '{}' "
                                   "Key '{}' with error code '{}'".format(self._session.region_name, _cc.netloc,

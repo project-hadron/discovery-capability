@@ -159,7 +159,7 @@ class MongodbHandlerTest(unittest.TestCase):
             {'$limit':2000}
         ]
         """
-        uri = "mongodb://admin:admin@localhost:27017/?database=hadron_docs&collection=records&aggregate=${HADRON_AGG}"
+        uri = "mongodb://admin:admin@localhost:27017/path1/path2/file.parquet?database=hadron_docs&collection=records&aggregate=${HADRON_AGG}"
         cc = ConnectorContract(uri=uri, module_name='', handler='', addition='${HADRON_ADDITION}')
         print(f"raw_uri = {cc.raw_uri}")
         print(f"uri = {cc.uri}")

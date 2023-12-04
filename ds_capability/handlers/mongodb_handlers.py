@@ -18,7 +18,7 @@ class MongodbSourceHandler(AbstractSourceHandler):
         self.bson = HandlerFactory.get_module('bson')
         super().__init__(connector_contract)
 
-        _kwargs = {**self.connector_contract.kwargs, **self.connector_contract.query}
+        _kwargs = {**self.connector_contract.query, **self.connector_contract.query}
         database = _kwargs.pop('database', "hadron_db")
         self.collection_name = _kwargs.pop('collection', "records")
         self._mongo_find = ast.literal_eval(_kwargs.pop('find').replace("'", '"')) if _kwargs.get('find') else {}

@@ -24,8 +24,13 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         Logistic Sigmoid a.k.a logit, tmaps any input value to a value between 0 and 1, making it useful for
         binary classification problems and is defined as f(x) = 1/(1+exp(-x))
 
-        :param canonical: a pd.DataFrame as the reference dataframe
-        :param header: the header in the DataFrame to correlate
+        The sigmoid function has an S-shaped curve, and it asymptotically approaches 0 as z approaches
+        negative infinity and approaches 1 as z approaches positive infinity. This property makes it
+        useful for binary classification problems, where the goal is to classify inputs into one of
+        two categories.
+
+        :param canonical: a pa.Table as the reference dataframe
+        :param header: the header in the Table to correlate
         :param precision: (optional) how many decimal places. default to 3
         :param seed: (optional) the random seed. defaults to current datetime
         :param save_intent: (optional) if the intent contract should be saved to the property manager
@@ -69,8 +74,13 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         Tangent Hyperbolic (tanh) function is a shifted and stretched version of the Sigmoid function but maps
         the input values to a range between -1 and 1. and is defined as f(x) = (exp(x)-exp(-x))/(exp(x)+exp(-x))
 
-        :param canonical: a pd.DataFrame as the reference dataframe
-        :param header: the header in the DataFrame to correlate
+        Similar to the logistic sigmoid function, the hyperbolic tangent function has an S-shaped curve,
+        but it maps its input to values between -1 and 1. This function is advantageous because it has
+        desirable properties, such as being zero-centered (meaning that the average of its output is
+        close to zero), which can help with the convergence of optimization algorithms during training.
+
+        :param canonical: a pa.Table as the reference dataframe
+        :param header: the header in the Table to correlate
         :param precision: (optional) how many decimal places. default to 3
         :param seed: (optional) the random seed. defaults to current datetime
         :param save_intent: (optional) if the intent contract should be saved to the property manager
@@ -114,8 +124,8 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         Rectified Linear Unit (ReLU) function. is the most popular activation function, which replaces negative
         values with zero and keeps the positive values unchanged. and is defined as f(x) = x * (x > 0)
 
-        :param canonical: a pd.DataFrame as the reference dataframe
-        :param header: the header in the DataFrame to correlate
+        :param canonical: a pa.Table as the reference dataframe
+        :param header: the header in the Table to correlate
         :param precision: (optional) how many decimal places. default to 3
         :param seed: (optional) the random seed. defaults to current datetime
         :param save_intent: (optional) if the intent contract should be saved to the property manager
@@ -171,7 +181,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: a pd.DataFrame
+        :return: a pa.Table
         """
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
@@ -227,7 +237,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: a pd.DataFrame
+        :return: a pa.Table
         """
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
@@ -265,14 +275,14 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
     def encode_category_one_hot(self, canonical: pa.Table, headers: [str, list]=None, prefix=None, data_type: pa.Table=None,
                                 prefix_sep: str=None, dummy_na: bool = False, drop_first: bool = False, seed: int=None,
                                 save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                                replace_intent: bool=None, remove_duplicates: bool=None) -> pd.DataFrame:
+                                replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ encodes categorical data types, One hot encoding, consists in encoding each categorical variable with
         different boolean variables (also called dummy variables) which take values 0 or 1, indicating if a category
         is present in an observation.
 
         :param canonical: pyarrow Table
         :param headers: the header(s) to apply encoding too
-        :param prefix: str, list of str, or dict of str, String to append DataFrame intent levels, with equal length.
+        :param prefix: str, list of str, or dict of str, String to append Table intent levels, with equal length.
         :param prefix_sep: str separator, default '_'
         :param dummy_na: Add a column to indicate null values, if False nullss are ignored.
         :param drop_first:  Whether to get k-1 dummies out of k categorical levels by removing the first level.
@@ -290,7 +300,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: a pd.DataFrame
+        :return: a pa.Table
         """
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
@@ -341,7 +351,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: a pd.DataFrame
+        :return: a pa.Table
         """
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
@@ -405,7 +415,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: a pd.DataFrame
+        :return: a pa.Table
         """
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
@@ -481,7 +491,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: a pd.DataFrame
+        :return: a pa.Table
         """
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
@@ -559,7 +569,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: a pd.DataFrame
+        :return: a pa.Table
         """
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,

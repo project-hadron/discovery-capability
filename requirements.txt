@@ -2,8 +2,8 @@ setuptools
 # Hadron foundation
 discovery-core
 # Data Science packages
-pyarrow>=12.0
-pandas>=2.0
+pyarrow
+pandas
 numpy
 scikit-learn
 matplotlib
@@ -12,9 +12,9 @@ scipy
 # structure packages
 requests
 # S3 packages
-boto3
-botocore
-fsspec
-s3fs
+# boto3
+# botocore
+# fsspec
+# s3fs
 # others
 
