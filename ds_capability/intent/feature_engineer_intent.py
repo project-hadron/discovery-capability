@@ -891,10 +891,49 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             tbl = tbl.rename_columns(rename_columns)
         return Commons.table_append(canonical, tbl)
 
+    def get_group_analysis(self, size: int, other: [str, pa.Table], group_by: [str, list], order_by: [str, list],
+                           canonical: pa.Table=None, category_limit: int=None, date_jitter: int=None,
+                           date_units: str=None, offset: [int, float]=None, seed: int=None, save_intent: bool=None,
+                           intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                           remove_duplicates: bool=None) -> pa.Table:
+        """"""
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        other = self._get_canonical(other)
+        if other is None or other.num_rows == 0:
+            raise ValueError(f"The data sample given is None or is empty")
+        group_by = Commons.list_formatter(group_by)
+        # change to pandas
+        df = other.to_pandas()
+        user_group = df.groupby(group_by)
+        rtn_df = pd.DataFrame()
+        count = 0
+        for one_group in user_group:
+            #size of new group
+            grp_len = one_group[0][0] if isinstance(one_group[0], tuple) else one_group[0]
+            if int(grp_len) == len(user_group) - 1:
+                sub_size = size - count
+            else:
+                p = len(one_group[1]) / len(df)
+                sub_size = int(round(size * p, 0))
+                count += sub_size
+            # get the synthetic sub set
+            result = self.get_analysis(size=sub_size, other=pa.Table.from_pandas(one_group[1]), category_limit=category_limit,
+                                       date_jitter=date_jitter, date_units=date_units, offset=offset, seed=seed,
+                                       save_intent=False)
+            result = result.to_pandas()
+            rtn_df = pd.concat([rtn_df, result], axis=0, ignore_index=True)
+        rtn_df = rtn_df.sort_values(order_by, ascending=False).reset_index(drop=True)
+        rtn_tbl = pa.Table.from_pandas(rtn_df)
+        return Commons.table_append(canonical, rtn_tbl)
+
     def get_analysis(self, size: int, other: [str, pa.Table], canonical: pa.Table=None, category_limit: int=None,
-                     date_jitter: int=None, date_units: str=None, date_ordered: bool=None, seed: int=None,
-                     save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                     replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+                     date_jitter: int=None, date_units: str=None, dates_ordered: [str, list]=None,
+                     offset: [int, float]=None, seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
+                     intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ builds a set of columns based on another (see analyse_association)
         if a reference DataFrame is passed then as the analysis is run if the column already exists the row
         value will be taken as the reference to the sub category and not the random value. This allows already
@@ -906,7 +945,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         :param category_limit: (optional) a global cap on categories captured. zero value returns no limits
         :param date_jitter: (optional) The size of the jitter. Default to 2
         :param date_units: (optional) The date units. Options ['W', 'D', 'h', 'm', 's', 'milli', 'micro']. Default 'D'
-        :param date_ordered: (optional) if the dates are shuffled or in order
+        :param dates_ordered: (optional) sort the data by the given columns
+        :param offset: (optional) an offset value of a numeric column
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the column name that groups intent to create a column
@@ -937,7 +977,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         date_jitter = date_jitter if isinstance(date_jitter, int) else 2
         units_allowed = ['W', 'D', 'h', 'm', 's', 'milli', 'micro']
         date_units = date_units if isinstance(date_units, str) and date_units in units_allowed else 'D'
-        date_ordered = date_ordered if isinstance(date_ordered, bool) else False
+        dates_ordered = Commons.list_formatter(dates_ordered)
+        offset = offset if isinstance(offset, (int, float)) else 0
         seed = self._seed(seed=seed)
         rtn_tbl = None
         gen = np.random.default_rng(seed)
@@ -956,6 +997,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                            quantity=1-nulls, save_intent=False)
             elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
                 s_values = column.to_pandas()
+                if offset is not 0:
+                    s_values = s_values.add(offset)
                 precision = 0 if pa.types.is_integer(column.type) else 5
                 jitter = pc.round(pc.multiply(pc.stddev(column), 0.1), 5).as_py()
                 result = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
@@ -997,10 +1040,10 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                     _ = pd.Series(pd.to_timedelta(_, unit='micro'), index=s_values.index)
                     result = pd.concat([result, s_values.add(_)], axis=0)
                 result = result.iloc[:size].astype(column.type.to_pandas_dtype())
-                if date_ordered:
-                    result = result.sample(frac=1).reset_index(drop=True)
-                else:
+                if c in dates_ordered:
                     result = result.sort_values(ascending=False).reset_index(drop=True)
+                else:
+                    result = result.sample(frac=1).reset_index(drop=True)
                 result = pd.Series(self._set_quantity(result, quantity=self._quantity(1-nulls), seed=seed))
                 result = pa.table([pa.TimestampArray.from_pandas(result)], names=[c])
             else:

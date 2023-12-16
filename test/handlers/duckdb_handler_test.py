@@ -100,11 +100,11 @@ class DuckdbTest(unittest.TestCase):
         tbl = fe.tools.get_synthetic_data_types(100)
         s3_uri = 's3://project-hadron-cs-repo/domain/synthetic/source/duckdb_tbl_100.parquet'
         persist_uri = f"duckdb://{s3_uri}"
-        # persist_uri = f"duckdb://?database={s3_uri}&sql={persist_sql}"
+        # persist_uri = f"duckdb://?table={s3_uri}&sql={persist_sql}"
         fe.set_persist_uri(persist_uri)
         fe.save_persist_canonical(tbl)
         s3_uri = 's3://project-hadron-cs-repo/domain/synthetic/source/synthetic_sample.parquet'
-        source_uri = f"duckdb:///?database={s3_uri}"
+        source_uri = f"duckdb:///?table={s3_uri}"
         fe.set_source_uri(source_uri)
         result = fe.load_source_canonical()
         print(result.shape)

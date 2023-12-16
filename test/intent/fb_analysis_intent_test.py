@@ -4,9 +4,10 @@ from pathlib import Path
 import shutil
 import pandas as pd
 import pyarrow as pa
-from ds_capability import FeatureBuild
+import pyarrow.compute as pc
+from ds_capability import FeatureEngineer
 from ds_capability.components.commons import Commons
-from ds_capability.intent.feature_build_intent import FeatureBuildIntent
+from ds_capability.intent.feature_engineer_intent import FeatureEngineerIntent
 from ds_core.properties.property_manager import PropertyManager
 
 # Pandas setup
@@ -58,34 +59,47 @@ class SyntheticTest(unittest.TestCase):
             pass
 
     def test_for_smoke(self):
-        fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = fb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         tbl = tools.get_synthetic_data_types(100, inc_nulls=True)
-        fb.add_connector_uri('sample', './working/source/data_type.parquet')
-        fb.save_canonical('sample', tbl)
+        fe.add_connector_uri('sample', './working/source/data_type.parquet')
+        fe.save_canonical('sample', tbl)
         self.assertEqual((100, 17), tbl.shape)
         result = tools.get_analysis(1000, 'sample')
         self.assertEqual((1000, 17), result.shape)
 
+    def test_group_analysis(self):
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        tbl = tools.get_synthetic_data_types(10)
+        arr = pa.array(list('0000111222'))
+        tbl = Commons.table_append(pa.table([arr], ['User']), tbl)
+        fe.add_connector_uri('sample', './working/source/data_type.parquet')
+        fe.save_canonical('sample', tbl)
+        result = tools.get_group_analysis(15, 'sample', 'User', 'date')
+        # print(Commons.table_report(result).to_string())
+        self.assertEqual((15, 8), result.shape)
+        self.assertCountEqual([4, 5, 6], pc.value_counts(result.column('User')).field(1).to_pylist())
+
     def test_direct_other(self):
-        fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = fb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         tbl = tools.get_synthetic_data_types(10, inc_nulls=True)
         result = tools.get_analysis(100, tbl)
         self.assertEqual((100, 17), result.shape)
 
     def test_flattened_sample(self):
-        fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = fb.tools
-        fb.add_connector_uri('sample', './working/source/complex_flatten_records.parquet')
-        tbl = fb.load_canonical('sample')
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        fe.add_connector_uri('sample', './working/source/complex_flatten_records.parquet')
+        tbl = fe.load_canonical('sample')
         self.assertEqual((4, 20), tbl.shape)
         result = tools.get_analysis(6, 'sample')
         self.assertEqual((6, 20), result.shape)
 
     def test_complex_nested(self):
-        fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = fb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         document = [
             {"_id": "I35138",
              "contactMedium": [
