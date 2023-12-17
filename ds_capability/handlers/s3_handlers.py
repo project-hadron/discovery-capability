@@ -157,7 +157,7 @@ class S3SourceHandler(AbstractSourceHandler):
             elif file_type.lower() in ['feather']:
                 return feather.read_table(BytesIO(resource_body), **read_params)
             elif file_type.lower() in ['csv', 'tsv', 'txt']:
-                results = csv.read_csv(StringIO(resource_body.decode(encoding)), **read_params)
+                results = csv.read_csv(BytesIO(resource_body), **read_params)
             else:
                 raise LookupError('The source format {} is not currently supported'.format(file_type))
         s3_client.close()

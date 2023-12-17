@@ -60,7 +60,7 @@ class TemplateTest(unittest.TestCase):
         except OSError:
             pass
 
-    def test_for_smoke(self):
+    def test_parquet(self):
         s3_in = 's3://project-hadron-cs-repo/domain/synthetic/source/synthetic_sample.parquet'
         s3_out = 's3://project-hadron-cs-repo/domain/synthetic/persist/synthetic_sample.parquet'
         fe = FeatureEngineer.from_memory()
@@ -70,6 +70,15 @@ class TemplateTest(unittest.TestCase):
         tprint(tbl)
         fe.save_persist_canonical(tbl)
 
+    def test_csv(self):
+        s3_in = 's3://project-hadron-cs-repo/downloads/data/NYPD_year_2022.csv'
+        s3_out = 's3://project-hadron-cs-repo/downloads/data/NYPD_year_2022.parquet'
+        fe = FeatureEngineer.from_memory()
+        _ = fe.set_source_uri(s3_in)
+        _ = fe.set_persist_uri(s3_out)
+        tbl = fe.load_source_canonical()
+        tprint(tbl)
+        fe.save_persist_canonical(tbl)
 
     def test_raise(self):
         startTime = datetime.now()
