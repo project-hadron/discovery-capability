@@ -71,13 +71,13 @@ class TemplateTest(unittest.TestCase):
         fe.save_persist_canonical(tbl)
 
     def test_csv(self):
-        s3_in = 's3://project-hadron-cs-repo/downloads/data/NYPD_year_2022.csv'
-        s3_out = 's3://project-hadron-cs-repo/downloads/data/NYPD_year_2022.parquet'
+        s3_in = 's3://project-hadron-cs-repo/downloads/data/NYPD_month_2023-11.csv'
+        s3_out = 's3://project-hadron-cs-repo/downloads/data/NYPD_month_2023-11.parquet'
         fe = FeatureEngineer.from_memory()
         _ = fe.set_source_uri(s3_in)
         _ = fe.set_persist_uri(s3_out)
         tbl = fe.load_source_canonical()
-        tprint(tbl)
+        # tprint(tbl)
         fe.save_persist_canonical(tbl)
 
     def test_raise(self):

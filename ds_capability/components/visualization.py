@@ -14,9 +14,9 @@ class Visualisation(object):
         """Chi-square is one of the most widely used supervised feature selection methods. It selects each feature
          independently in accordance with their scores against a target or label then ranks them by their importance.
          This score should be used to evaluate categorical variables in a classification task."""
-        cap = capped_at if isinstance(capped_at, int) else 10
-        if canonical.num_rows > cap > 0:
-            sample = random.sample(range(canonical.num_rows), k=cap)
+        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        if canonical.num_rows*canonical.num_columns > cap > 0:
+            sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
         control = canonical.to_pandas()
         # separate train and test sets
