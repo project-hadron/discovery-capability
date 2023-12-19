@@ -1,3 +1,5 @@
+import io
+
 import requests
 import os
 from contextlib import closing
@@ -46,13 +48,19 @@ class PyarrowSourceHandler(AbstractSourceHandler):
         self.reset_changed()
         # parquet
         if file_type.lower() in ['parquet', 'pqt', 'pq']:
+            if _cc.schema.startswith('http'):
+                address = io.BytesIO(requests.get(address).content)
             return pq.read_table(address, **load_params)
         # feathers
         if file_type.lower() in ['feather']:
+            if _cc.schema.startswith('http'):
+                address = io.BytesIO(requests.get(address).content)
             return feather.read_table(address, **load_params)
         # csv
         if file_type.lower() in ['csv', 'gz', 'bz2']:
             parse_options = csv.ParseOptions(**load_params)
+            if _cc.schema.startswith('http'):
+                address = io.BytesIO(requests.get(address).content)
             return csv.read_csv(address, parse_options=parse_options)
         # json
         if file_type.lower() in ['json']:

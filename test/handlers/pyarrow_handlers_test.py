@@ -82,6 +82,14 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual(tbl.column_names, result.column_names)
         self.assertEqual(tbl.shape, result.shape)
 
+    def test_csv_https(self):
+        tbl = get_table()
+        uri = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv"
+        cc = ConnectorContract(uri, 'module_name', 'handler')
+        handler = PyarrowPersistHandler(cc)
+        result = handler.load_canonical()
+        self.assertEqual((891, 15), result.shape)
+
     def test_json(self):
         tbl = get_table()
         uri = os.path.join(os.environ['HADRON_DEFAULT_PATH'], 'test.json')
@@ -105,8 +113,6 @@ class FeatureBuilderTest(unittest.TestCase):
         handler.persist_canonical(tbl)
         result = handler.load_canonical()
         print(result.shape)
-
-
 
     def test_txt(self):
         tbl = get_table()
