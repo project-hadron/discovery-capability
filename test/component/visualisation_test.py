@@ -11,6 +11,7 @@ import pyarrow.parquet as pq
 from ds_core.properties.property_manager import PropertyManager
 from ds_capability import *
 from ds_capability.components.commons import Commons
+from ds_capability.components.visualization import Visualisation as viz
 
 # Pandas setup
 pd.set_option('max_colwidth', 320)
@@ -19,7 +20,7 @@ pd.set_option('display.max_columns', 99)
 pd.set_option('expand_frame_repr', True)
 
 
-class TemplateTest(unittest.TestCase):
+class VisualisationTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -60,26 +61,12 @@ class TemplateTest(unittest.TestCase):
         except OSError:
             pass
 
-    def test_parquet(self):
-        s3_in = 's3://project-hadron-cs-repo/domain/synthetic/source/synthetic_sample.parquet'
-        s3_out = 's3://project-hadron-cs-repo/domain/synthetic/persist/synthetic_sample.parquet'
+    def test_for_smoke(self):
         fe = FeatureEngineer.from_memory()
-        _ = fe.set_source_uri(s3_in)
-        _ = fe.set_persist_uri(s3_out)
-        tbl = fe.load_source_canonical()
-        tprint(tbl)
-        fe.save_persist_canonical(tbl)
+        tbl = fe.tools.get_synthetic_data_types(100000)
+        result = viz.show_chi_square(tbl, target='bool', capped_at=100*tbl.num_columns)
+        print(result)
 
-    def test_csv(self):
-        s3_in = 's3://project-hadron-cs-repo/downloads/data/STOCK_ORDERS.csv'
-        s3_out = 's3://project-hadron-cs-repo/downloads/data/STOCK_ORDERs.parquet'
-        fe = FeatureEngineer.from_memory()
-        _ = fe.set_source_uri(s3_in)
-        _ = fe.set_persist_uri(s3_out)
-        tbl = fe.load_source_canonical(delimiter=u"\u0009")
-        tprint(tbl[:3])
-        print(tbl.shape)
-        fe.save_persist_canonical(tbl)
 
     def test_raise(self):
         startTime = datetime.now()
@@ -87,6 +74,7 @@ class TemplateTest(unittest.TestCase):
             env = os.environ['NoEnvValueTest']
         self.assertTrue("'NoEnvValueTest'" in str(context.exception))
         print(f"Duration - {str(datetime.now() - startTime)}")
+
 
 def tprint(t: pa.table, headers: [str, list] = None, d_type: [str, list] = None, regex: [str, list] = None):
     _ = Commons.filter_columns(t.slice(0, 10), headers=headers, d_types=d_type, regex=regex)

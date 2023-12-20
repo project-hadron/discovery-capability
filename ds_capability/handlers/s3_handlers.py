@@ -135,7 +135,6 @@ class S3SourceHandler(AbstractSourceHandler):
         encoding = cc_params.pop('encoding', 'utf-8')
         file_type = cc_params.pop('file_type', _ext if len(_ext) > 0 else 'parquet')
         s3_get_params = cc_params.pop('s3_get_params', {})
-        read_params = cc_params.pop('read_params', {})
         if file_type.lower() not in self.supported_types():
             raise ValueError("The file type {} is not recognised. "
                              "Set file_type parameter to a recognised source type".format(file_type))
@@ -153,11 +152,12 @@ class S3SourceHandler(AbstractSourceHandler):
         resource_body = s3_object['Body'].read()
         with self._lock:
             if file_type.lower() in ['parquet', 'pq', 'pqt']:
-                results = pq.read_table(BytesIO(resource_body), **read_params)
+                results = pq.read_table(BytesIO(resource_body), **cc_params)
             elif file_type.lower() in ['feather']:
-                return feather.read_table(BytesIO(resource_body), **read_params)
+                return feather.read_table(BytesIO(resource_body), **cc_params)
             elif file_type.lower() in ['csv', 'tsv', 'txt']:
-                results = csv.read_csv(BytesIO(resource_body), **read_params)
+                parse_options = csv.ParseOptions(**cc_params)
+                results = csv.read_csv(BytesIO(resource_body), parse_options=parse_options)
             else:
                 raise LookupError('The source format {} is not currently supported'.format(file_type))
         s3_client.close()

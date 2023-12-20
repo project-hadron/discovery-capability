@@ -1,6 +1,8 @@
 import random
 import pyarrow as pa
+import pyarrow.compute as pc
 import pandas as pd
+from ds_capability.components.commons import Commons
 from scipy import stats
 from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
@@ -10,10 +12,21 @@ class Visualisation(object):
     """ a set of data components methods to Visualise pandas.Dataframe"""
 
     @staticmethod
-    def show_chi_square(canonical: pa.Table, target: [str, list], capped_at: int=None, seed: int=None):
-        """Chi-square is one of the most widely used supervised feature selection methods. It selects each feature
+    def show_chi_square(canonical: pa.Table, target: str, capped_at: int=None, seed: int=None):
+        """ Chi-square is one of the most widely used supervised feature selection methods. It selects each feature
          independently in accordance with their scores against a target or label then ranks them by their importance.
-         This score should be used to evaluate categorical variables in a classification task."""
+         This score should be used to evaluate categorical variables in a classification task.
+
+        :param canonical: The canonical to apply
+        :param target: the str header that constitute a binary target.
+        :param capped_at: a cap on the size of elements (columns x rows) to process. default at 5,000,000
+        :param seed: a seed value
+        :return: plt 2d graph
+        """
+        if target not in canonical.column_names():
+            raise ValueError(f"The target '{target}' can't be found in the canonical")
+        if pc.count(pc.unique(canonical.column(target))).as_py() != 2:
+            raise ValueError(f"The target '{target}' must only be two unique values")
         cap = capped_at if isinstance(capped_at, int) else 5_000_000
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
@@ -36,3 +49,10 @@ class Visualisation(object):
         plt.show()
         plt.clf()
 
+    @staticmethod
+    def show_missing(canonical: pa.Table, **kwargs):
+        sns.heatmap(df.isnull(), yticklabels=False, cbar=False, cmap='viridis', **kwargs)
+        plt.title('missing_data', fontdict={'size': 20})
+        plt.tight_layout()
+        plt.show()
+        plt.clf()
