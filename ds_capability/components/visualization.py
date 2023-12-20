@@ -69,6 +69,7 @@ class Visualisation(object):
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
+        canonical = Commons.filter_columns(canonical, d_types=['int', 'float', 'date'])
         control = canonical.to_pandas()
         sns.heatmap(control.corr(), annot=True, cmap='BuGn', robust=True, **kwargs)
         plt.title('correlated data', fontdict={'size': 20})
