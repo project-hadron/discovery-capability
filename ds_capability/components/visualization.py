@@ -51,11 +51,13 @@ class Visualisation(object):
         plt.clf()
 
     @staticmethod
-    def show_missing(canonical: pa.Table, capped_at: int=None, **kwargs):
+    def show_missing(canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
+                     regex: [str, list]=None, drop: bool=None, capped_at: int=None, **kwargs):
         cap = capped_at if isinstance(capped_at, int) else 5_000_000
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
+        canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         control = canonical.to_pandas()
         sns.heatmap(control.isnull(), yticklabels=False, cbar=False, cmap='viridis', **kwargs)
         plt.title('missing data', fontdict={'size': 20})
@@ -64,13 +66,16 @@ class Visualisation(object):
         plt.clf()
 
     @staticmethod
-    def show_correlated(canonical: pa.Table, capped_at: int=None, **kwargs):
+    def show_correlated(canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
+                        regex: [str, list]=None, drop: bool=None, capped_at: int=None, **kwargs):
         cap = capped_at if isinstance(capped_at, int) else 5_000_000
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
+        canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         canonical = Commons.filter_columns(canonical, d_types=[pa.int64(),pa.int32(),pa.int16(),pa.int8(),
-                                                               pa.float64(),pa.float32(),pa.float16()])
+                                                               pa.float64(),pa.float32(),pa.float16(),
+                                                               pa.date64(),pa.date32()])
         control = canonical.to_pandas()
         sns.heatmap(control.corr(), annot=True, cmap='BuGn', robust=True, **kwargs)
         plt.title('correlated data', fontdict={'size': 20})
