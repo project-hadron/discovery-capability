@@ -6,6 +6,7 @@ from ds_capability.components.commons import Commons
 from scipy import stats
 from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
+import seaborn as sns
 
 
 class Visualisation(object):
@@ -50,8 +51,13 @@ class Visualisation(object):
         plt.clf()
 
     @staticmethod
-    def show_missing(canonical: pa.Table, **kwargs):
-        sns.heatmap(df.isnull(), yticklabels=False, cbar=False, cmap='viridis', **kwargs)
+    def show_missing(canonical: pa.Table, capped_at: int=None, **kwargs):
+        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        if canonical.num_rows*canonical.num_columns > cap > 0:
+            sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
+            canonical = canonical.take(sample)
+        control = canonical.to_pandas()
+        sns.heatmap(control.isnull(), yticklabels=False, cbar=False, cmap='viridis', **kwargs)
         plt.title('missing_data', fontdict={'size': 20})
         plt.tight_layout()
         plt.show()
