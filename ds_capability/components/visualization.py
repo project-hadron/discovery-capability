@@ -126,7 +126,7 @@ class Visualisation(object):
         dates = pd.date_range(start=control[target].min(), end=control[target].max())
         n_categories = len(col_names)
         cbar_kws = {'orientation': 'horizontal', 'shrink': 0.5}
-        n_subplot_rows = np.ceil(control[target].nunique(dropna=True).divide(param_scale))
+        n_subplot_rows = np.ceil(control[target].nunique(dropna=True) / param_scale)
         n_subplot_rows[-1] += 1
         n_rows = int(n_subplot_rows.sum())
         grid_weights = {'height_ratios': n_subplot_rows.values}
