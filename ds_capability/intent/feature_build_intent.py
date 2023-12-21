@@ -176,9 +176,9 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         :param canonical: a direct or generated pd.DataFrame. see context notes below
         :param profiling: The profiling name. Options are 'dictionary', 'schema' or 'quality'
         :param headers: (optional) a filter of headers from the 'other' dataset
-        :param drop: (optional) to drop or not drop the headers if specified
         :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
         :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
+        :param drop: (optional) to drop or not drop the headers if specified
         :param connector_name::(optional) a connector name where the outcome is sent
         :param seed:(optional) this is a placeholder, here for compatibility across methods
         :param save_intent: (optional) if the intent contract should be saved to the property manager
