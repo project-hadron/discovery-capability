@@ -121,12 +121,13 @@ class Visualisation(object):
         canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         canonical = Commons.filter_columns(canonical, d_types=[pa.string()])
         col_names = canonical.column_names
+
         control = canonical.to_pandas()
 
         dates = pd.date_range(start=control[target].min(), end=control[target].max())
         n_categories = len(col_names)
         cbar_kws = {'orientation': 'horizontal', 'shrink': 0.5}
-        n_subplot_rows = np.ceil(control[target].dropna().unique().divide(param_scale))
+        n_subplot_rows = np.ceil(control[col_names].nunique(dropna=True).divide(param_scale))
         n_subplot_rows[-1] += 1
         n_rows = int(n_subplot_rows.sum())
         grid_weights = {'height_ratios': n_subplot_rows.values}
