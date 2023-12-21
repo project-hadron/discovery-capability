@@ -139,7 +139,7 @@ class Visualisation(object):
             axes = [axes]
         for ii in range(n_categories):
             cc = col_names[ii]
-            df_single_cat = control[[col_names, cc]]
+            df_single_cat = control[[target, cc]]
             df_single_cat = df_single_cat.loc[df_single_cat[target].notnull(), ]
             df_single_cat['Index'] = df_single_cat[target].dt.date
             df_pivot = df_single_cat.pivot_table(index='Index', columns=cc, aggfunc=len, dropna=True)
