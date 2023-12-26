@@ -68,6 +68,14 @@ class VisualisationTest(unittest.TestCase):
         print(result)
 
 
+    def test_cat_time_index(self):
+        fs = FeatureSelect.from_memory()
+        _ = fs.add_connector_uri('orders', uri='s3://project-hadron-cs-repo/downloads/data/STOCK_ORDERS.csv')
+        orders = fs.load_canonical('orders', delimiter=u"\u0009")
+        orders = fs.tools.auto_reinstate_nulls(orders, nulls_list=['?'])
+        result = viz.show_percent_cat_time_index(orders[:10], target='ORD_DTS')
+        print(result)
+
     def test_raise(self):
         startTime = datetime.now()
         with self.assertRaises(KeyError) as context:

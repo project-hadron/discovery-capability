@@ -15,12 +15,61 @@
 
 import math
 from typing import Dict, List, Tuple
-
+import pyarrow as pa
+import pyarrow.compute as pc
 import numpy as np
 from numpy import ndarray
 from sklearn.preprocessing import PowerTransformer, QuantileTransformer, RobustScaler
 
-__all__ = ["IntCode", "FloatCode", "CategoryCode", "ColumnCodes"]
+__all__ = ["IntCode", "FloatCode", "CategoryCode", "ColumnCodes", 'code_schema']
+
+
+def code_schema(canonical : pa.Table, target: str):
+    canonical.drop_columns(target)
+    tab_structure = []
+    for n in canonical.column_names:
+        c = canonical.column(n)
+        if pa.types.is_floating(c.type):
+            item = {
+                "name": c,
+                "code_type": "float",
+                "args": {
+                    "code_len": 3,  # number of tokens used to code the column
+                    "base": 32,  # the positional base number. ie. it uses 32 tokens for one digit
+                    "fillall": True,  # whether to use full base number for each token or derive it from the data.
+                    "hasnan": False,  # can it handles nan or not
+                    "transform": "yeo-johnson",  # can be ['yeo-johnson', 'quantile', 'robust'],
+                }
+            }
+        elif pa.types.is_integer(c.type):
+            item = {
+                "name": c,
+                "code_type": "int",
+                "args": {
+                    "code_len": 3,  # number of tokens used to code the column
+                    "base": 47,  # the positional base number. ie. it uses 32 tokens for one digit
+                    "fillall": True,  # whether to use full base number for each token or derive it from the data.
+                    "hasnan": True,  # can it handles nan or not
+                }
+            }
+        elif pa.types.is_string(c.type) or pa.types.is_dictionary(c.type):
+            item = {
+                "name": c,
+                "code_type": "category",
+            }
+        else:
+            raise ValueError(f"The column '{n}' of type '{c.type}' is not supported")
+        tab_structure.append(item)
+        # example tabs
+        example_arrays = {}
+        for col in tab_structure:
+            col_name = col['name']
+            if col_name in category_columns:
+                example_arrays[col_name] = [i.strip() for i in pc.unique(c)]
+            else:
+                example_arrays[col_name] = df[col_name].dropna().unique()
+
+    return tab_structure
 
 
 class Code(object):
