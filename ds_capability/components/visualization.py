@@ -120,6 +120,7 @@ class Visualisation(object):
                                                                pa.float64(),pa.float32(),pa.float16()])
         control = canonical.to_pandas()
         # Define figure size.
+        fig = plt.figure(figsize=(16,4))
         _ = plt.suptitle('Show Distribution', fontdict={'size': 20})
         # histogram
         plt.subplot(1, 3, 1)
