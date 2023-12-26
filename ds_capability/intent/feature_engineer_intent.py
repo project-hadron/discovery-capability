@@ -1744,7 +1744,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   Intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
@@ -1755,6 +1755,57 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             code_str = code_str.replace(f'${k}', str(v))
         code_str = code_str.replace('@', 'canonical')
         rtn_values = eval(code_str, globals(), local_kwargs)
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
+
+    def correlate_replace(self, canonical: pa.Table, target: str, pattern: str, replacement: str, is_regex: bool=None,
+                          max_replacements: int=None, seed: int=None, to_header: str=None, save_intent: bool=None,
+                          intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                          remove_duplicates: bool=None):
+        """ For each string in target, replace non-overlapping substrings that match the given literal pattern
+        with the given replacement. If max_replacements is given and not equal to -1, it limits the maximum
+        amount replacements per input, counted from the left. Null values emit null.
+
+        :param canonical:
+        :param target: The name of the target string column
+        :param pattern: Substring pattern to look for inside input values.
+        :param replacement: What to replace the pattern with.
+        :param is_regex: (optional) if the pattern is a regex. Default False
+        :param max_replacements: (optional) The maximum number of strings to replace in each input value.
+        :param to_header: (optional) an optional name to call the column
+        :param seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the intent name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        is_regex = is_regex if isinstance(is_regex, bool) else False
+        _seed = seed if isinstance(seed, int) else self._seed()
+        c = canonical.column(target).combine_chunks()
+        is_dict = False
+        if pa.types.is_dictionary(c.type):
+            is_dict = True
+            c = c.dictionary_decode()
+        if is_regex:
+            rtn_values = pc.replace_substring_regex(c, pattern, replacement, max_replacements=max_replacements)
+        else:
+            rtn_values = pc.replace_substring(c, pattern, replacement, max_replacements=max_replacements)
+        if is_dict:
+            rtn_values = rtn_values.dictionary_encode()
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
 
