@@ -68,13 +68,25 @@ class VisualisationTest(unittest.TestCase):
         print(result)
 
 
-    def test_cat_time_index(self):
+    def test_show_category_appearance(self):
+        fs = FeatureSelect.from_memory()
+        fe = FeatureEngineer.from_memory()
+        _ = fs.add_connector_uri('orders', uri='s3://project-hadron-cs-repo/downloads/data/STOCK_ORDERS.csv')
+        orders = fs.load_canonical('orders', delimiter=u"\u0009")
+        orders = fs.tools.auto_reinstate_nulls(orders, nulls_list=['?'])
+        orders = fs.tools.auto_cast_types(orders, inc_category=False, tm_format="%m/%d/%Y %H:%M:%S.000000")
+        result = viz.show_category_appearance(orders, target_dt='ORD_DTS', headers=['ORD_NBR', 'EXTRNL_COMB_HIER_CD'], drop=True)
+        print(result)
+
+    def test_show_category_frequency(self):
         fs = FeatureSelect.from_memory()
         _ = fs.add_connector_uri('orders', uri='s3://project-hadron-cs-repo/downloads/data/STOCK_ORDERS.csv')
         orders = fs.load_canonical('orders', delimiter=u"\u0009")
         orders = fs.tools.auto_reinstate_nulls(orders, nulls_list=['?'])
-        result = viz.show_percent_cat_time_index(orders[:10], target='ORD_DTS')
+        orders = fs.tools.auto_cast_types(orders, inc_category=False, tm_format="%m/%d/%Y %H:%M:%S.000000")
+        result = viz.show_category_frequency(orders, target_dt='ORD_DTS', headers=['ORD_NBR', 'EXTRNL_COMB_HIER_CD'], drop=True)
         print(result)
+
 
     def test_raise(self):
         startTime = datetime.now()

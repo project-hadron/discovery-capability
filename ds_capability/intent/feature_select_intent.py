@@ -75,7 +75,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         return canonical.rename_columns(headers)
 
     def auto_cast_types(self, canonical: pa.Table, inc_category: bool=None, category_max: int=None, inc_bool: bool=None,
-                        inc_timestamp: bool=None, tm_units: str=None, tm_tz: str=None, save_intent: bool=None,
+                        inc_timestamp: bool=None, tm_format: str=None, tm_units: str=None, tm_tz: str=None, save_intent: bool=None,
                         intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                         remove_duplicates: bool=None) -> pa.Table:
         """ attempts to cast the columns of a table to its appropriate type. Categories boolean and timestamps
@@ -86,6 +86,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         :param category_max: (optional) the max number of unique values to consider categorical
         :param inc_bool: (optional) if booleans should be cast. Default True
         :param inc_timestamp: (optional) if categories should be cast.  Default True
+        :param tm_format: (optional) if not standard, the format of the dates, example '%m-%d-%Y %H:%M:%S'
         :param tm_units: (optional) units to cast timestamp. Options are 's', 'ms', 'us', 'ns'
         :param tm_tz: (optional) timezone to cast timestamp
         :param save_intent: (optional) if the intent contract should be saved to the property manager
@@ -108,7 +109,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
         return Commons.table_cast(canonical, inc_cat=inc_category, cat_max=category_max, inc_bool=inc_bool,
-                                  inc_time=inc_timestamp, units=tm_units, tz=tm_tz)
+                                  inc_time=inc_timestamp, dt_format=tm_format, units=tm_units, tz=tm_tz)
 
     def auto_reinstate_nulls(self, canonical: pa.Table, nulls_list=None, headers: [str, list]=None, drop: bool=None,
                              data_type: [str, list]=None, regex: [str, list]=None, save_intent: bool=None,
@@ -278,7 +279,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                     to_drop.add(col_name)
         return canonical.drop_columns(to_drop)
 
-    def auto_aggregate(self, canonical: pa.Table, action: str, headers: [str, list]=None,  d_types: [str, list]=None,
+    def auto_aggregate(self, canonical: pa.Table, action: str, headers: [str, list]=None, d_types: [str, list]=None,
                        regex: [str, list]=None, drop: bool=None, to_header: str=None, drop_aggregated: bool=None,
                        precision: int=None, save_intent: bool=None, intent_level: [int, str]=None,
                        intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
