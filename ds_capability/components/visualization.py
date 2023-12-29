@@ -285,3 +285,98 @@ class Visualisation(object):
         plt.show()
         plt.clf()
 
+    @staticmethod
+    def show_numeric_density(canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
+                             regex: [str, list]=None, drop: bool=None, capped_at: int=None):
+        """"""
+        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        if canonical.num_rows*canonical.num_columns > cap > 0:
+            sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
+            canonical = canonical.take(sample)
+        canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
+        num_cols = Commons.filter_headers(canonical, d_types=[pa.int64(),pa.int32(),pa.int16(),pa.int8(),
+                                                               pa.float64(),pa.float32(),pa.float16()])
+        control = canonical.to_pandas()
+        depth = int(round(len(num_cols) / 2, 0) + len(num_cols) % 2)
+        _figsize = (20, 5 * depth)
+        fig = plt.figure(figsize=_figsize)
+        right = False
+        line = 0
+        for c in num_cols:
+            col = control[c]
+            #     print("{}, {}, {}, {}".format(c, depth, line, right))
+            ax = plt.subplot2grid((depth, 2), (line, int(right)))
+            g = col.dropna().plot.kde(ax=ax, title=str.title(c))
+            g.get_xaxis().tick_bottom()
+            g.get_yaxis().tick_left()
+            if right:
+                line += 1
+            right = not right
+        plt.tight_layout()
+        plt.show()
+        plt.clf()
+
+    @staticmethod
+    def show_categories(canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
+                         regex: [str, list]=None, drop: bool=None, capped_at: int=None, top=None):
+        """"""
+        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        if canonical.num_rows*canonical.num_columns > cap > 0:
+            sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
+            canonical = canonical.take(sample)
+        canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
+        cat_cols = Commons.filter_headers(canonical, d_types=[pa.string()])
+        control = canonical.to_pandas()
+        sns.set(style='darkgrid', color_codes=True)
+        if len(cat_cols) == 1:
+            c = cat_cols[0]
+            width = control[c].nunique() + 1
+            if width > 20:
+                width = 20
+            _ = plt.subplots(1, 1, figsize=(width, 6))
+            _ = sns.countplot(c)
+            _ = sns.countplot(x=c, data=control, palette="summer")
+            _ = plt.xticks(rotation=-90)
+            _ = plt.xlabel(str.title(c))
+            _ = plt.ylabel('Count')
+            title = "{} Categories".format(str.title(c))
+            _ = plt.title(title, fontsize=16)
+        else:
+            wide_col, thin_col = [], []
+            for c in cat_cols:
+                if control[c].nunique() > 10:
+                    wide_col += [c]
+                else:
+                    thin_col += [c]
+            depth = len(wide_col) + int(round(len(thin_col) / 2, 0))
+            _ = plt.figure(figsize=(20, 5 * depth))
+            sns.set(style='darkgrid', color_codes=True)
+            for c, i in zip(wide_col, range(len(wide_col))):
+                ax = plt.subplot2grid((depth, 2), (i, 0), colspan=2)
+                order = list(control[c].value_counts().index.values)
+                if isinstance(top, int):
+                    order = order[:top]
+                _ = sns.countplot(x=c, data=control, ax=ax, order=order)
+                _ = plt.xticks(rotation=-90)
+                _ = plt.xlabel(str.title(c))
+                _ = plt.ylabel('Count')
+                title = "{} Categories".format(str.title(c))
+                _ = plt.title(title, fontsize=16)
+            right = False
+            line = len(wide_col)
+            for c in thin_col:
+                ax = plt.subplot2grid((depth, 2), (line, int(right)))
+                order = list(control[c].value_counts().index.values)
+                _ = sns.countplot(x=c, data=control, ax=ax, order=order)
+                _ = plt.xticks(rotation=-90)
+                _ = plt.xlabel(str.title(c))
+                _ = plt.ylabel('Count')
+                title = "{} Categories".format(str.title(c))
+                _ = plt.title(title, fontsize=16)
+                if right:
+                    line += 1
+                right = not right
+
+        _ = plt.tight_layout()
+        _ = plt.show()
+        _ = plt.clf()

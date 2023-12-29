@@ -86,6 +86,25 @@ class VisualisationTest(unittest.TestCase):
         result = viz.show_category_frequency(orders, target_dt='ORD_DTS', headers=['ORD_NBR', 'EXTRNL_COMB_HIER_CD'], drop=True)
         print(result)
 
+    def test_show_num_density(self):
+        fs = FeatureSelect.from_memory()
+        _ = fs.add_connector_uri('orders', uri='s3://project-hadron-cs-repo/downloads/data/STOCK_ORDERS.csv')
+        orders = fs.load_canonical('orders', delimiter=u"\u0009")
+        orders = fs.tools.auto_reinstate_nulls(orders, nulls_list=['?'])
+        orders = fs.tools.auto_cast_types(orders, inc_category=False, tm_format="%m/%d/%Y %H:%M:%S.000000")
+        result = viz.show_numeric_density(orders)
+        print(result)
+
+    def test_show_categories(self):
+        fs = FeatureSelect.from_memory()
+        _ = fs.add_connector_uri('titanic', uri='s3://project-hadron-cs-repo/downloads/data/titanic_kaggle_train.csv')
+        titanic = fs.load_canonical('titanic')
+        titanic = fs.tools.auto_drop_selected(titanic, headers=['PassengerId', 'Name'])
+        titanic = fs.tools.auto_reinstate_nulls(titanic)
+        titanic = fs.tools.auto_cast_types(titanic, inc_category=False)
+        result = viz.show_categories(titanic, headers=['Ticket', 'Cabin'], drop=True)
+        print(result)
+
 
     def test_raise(self):
         startTime = datetime.now()
