@@ -11,11 +11,10 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
-from ds_capability import FeatureBuild, FeatureEngineer
+from ds_capability import FeatureEngineer, FeatureSelect
 from ds_capability.components.commons import Commons
 from ds_core.properties.property_manager import PropertyManager
 from ds_capability.intent.feature_select_intent import FeatureSelectIntent
-from ds_capability.components.feature_select import FeatureSelect
 
 # Pandas setup
 pd.set_option('max_colwidth', 320)
@@ -24,7 +23,7 @@ pd.set_option('display.max_columns', 99)
 pd.set_option('expand_frame_repr', True)
 
 
-class FeatureBuilderTest(unittest.TestCase):
+class FeatureEngineererTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -73,8 +72,8 @@ class FeatureBuilderTest(unittest.TestCase):
         result = tools.auto_reinstate_nulls(tbl)
         self.assertEqual(2, result.column('string').null_count)
 
-    def test_auto_drop_columns(self):
-        tbl = FeatureBuild.from_memory().tools.get_synthetic_data_types(1000, inc_nulls=True)
+    def test_auto_drop_noise(self):
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, inc_nulls=True)
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
         self.assertEqual(19, tbl.num_columns)
@@ -82,8 +81,15 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual(13, result.num_columns)
         print(result.column_names)
 
+    def test_auto_to_string(self):
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100)
+        fs = FeatureSelect.from_memory()
+        tools: FeatureSelectIntent = fs.tools
+        result = tools.auto_to_string(tbl)
+        print(result.schema)
+
     def test_auto_drop_correlated(self):
-        tbl = FeatureBuild.from_memory().tools.get_synthetic_data_types(1000, inc_nulls=True)
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, inc_nulls=True)
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
         self.assertEqual(19, tbl.num_columns)
@@ -103,7 +109,7 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual(['num', 'int', 'bool', 'date', 'agg'], result.column_names)
 
     def test_auto_projection(self):
-        tbl = FeatureBuild.from_memory().tools.get_noise(size=1000, num_columns=5)
+        tbl = FeatureEngineer.from_memory().tools.get_noise(size=1000, num_columns=5)
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
         result = tools.auto_projection(tbl, n_components=2)
@@ -112,18 +118,18 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual((1000, 2), result.shape)
 
     def test_auto_append_tables(self):
-        tbl = FeatureBuild.from_memory().tools.get_noise(size=1000, num_columns=5)
+        tbl = FeatureEngineer.from_memory().tools.get_noise(size=1000, num_columns=5)
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
         result = tools.auto_append_tables(tbl, None)
         self.assertTrue(tbl.equals(result))
         result = tools.auto_append_tables(tbl, tbl)
         self.assertTrue(tbl.equals(result))
-        tbl_types = FeatureBuild.from_memory().tools.get_synthetic_data_types(1200)
+        tbl_types = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1200)
         result = tools.auto_append_tables(tbl, tbl_types, headers=['A', 'B', 'C'], other_headers=['num', 'int'])
         self.assertEqual((1000, 5), result.shape)
         self.assertCountEqual(['A', 'B', 'C', 'num', 'int'], result.column_names)
-        tbl_types = FeatureBuild.from_memory().tools.get_synthetic_data_types(400)
+        tbl_types = FeatureEngineer.from_memory().tools.get_synthetic_data_types(400)
         result = tools.auto_append_tables(tbl, tbl_types, headers=['A', 'B', 'C'], other_headers=['num', 'int'])
         self.assertEqual((1000, 5), result.shape)
         self.assertCountEqual(['A', 'B', 'C', 'num', 'int'], result.column_names)
