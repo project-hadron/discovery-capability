@@ -70,7 +70,6 @@ class VisualisationTest(unittest.TestCase):
 
     def test_show_category_appearance(self):
         fs = FeatureSelect.from_memory()
-        fe = FeatureEngineer.from_memory()
         _ = fs.add_connector_uri('orders', uri='s3://project-hadron-cs-repo/downloads/data/STOCK_ORDERS.csv')
         orders = fs.load_canonical('orders', delimiter=u"\u0009")
         orders = fs.tools.auto_reinstate_nulls(orders, nulls_list=['?'])

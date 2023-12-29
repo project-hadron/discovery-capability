@@ -78,7 +78,7 @@ class FeatureBuilderTest(unittest.TestCase):
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
         self.assertEqual(19, tbl.num_columns)
-        result = tools.auto_drop_columns(tbl)
+        result = tools.auto_drop_noise(tbl)
         self.assertEqual(13, result.num_columns)
         print(result.column_names)
 
