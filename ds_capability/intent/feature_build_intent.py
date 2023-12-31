@@ -204,7 +204,7 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         connector_name = self._extract_value(connector_name)
         if d_types is None:
             d_types = []
-        columns = Commons.filter_headers(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
+        canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         _seed = self._seed() if seed is None else seed
         if profiling == 'dictionary':
             result =  DataDiscovery.data_dictionary(canonical=canonical, table_cast=True, stylise=False)

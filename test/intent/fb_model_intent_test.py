@@ -5,7 +5,7 @@ import shutil
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
-from ds_capability import FeatureBuild
+from ds_capability import *
 from ds_capability.components.commons import Commons
 from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
@@ -57,14 +57,14 @@ class FeatureBuilderTest(unittest.TestCase):
     def test_for_smoke(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntent = fb.tools
-        tbl = tools.get_synthetic_data_types(100)
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100)
         self.assertEqual(100, tbl.num_rows)
 
     def test_model_sample_link(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntent = fb.tools
-        canonical = tools.get_synthetic_data_types(10, category_encode=False)
-        other = tools.get_synthetic_data_types(5, category_encode=False)
+        canonical = FeatureEngineer.from_memory().tools.get_synthetic_data_types(10, category_encode=False)
+        other = FeatureEngineer.from_memory().tools.get_synthetic_data_types(5, category_encode=False)
         result = tools.model_sample_link(canonical=canonical, other=other, headers=['int'], rename_map=['key'])
         self.assertCountEqual(result.column_names, canonical.column_names+['key'])
         result = tools.model_sample_link(canonical=canonical, other=other, headers=['int', 'num'], rename_map={'int': 'key', 'num': 'prob'})
@@ -76,7 +76,7 @@ class FeatureBuilderTest(unittest.TestCase):
     def test_model_missing(self):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntent = fb.tools
-        tbl = tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
+        tbl = FeatureEngineer.from_memory().FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
         self.assertGreater(tbl.column('num_null').null_count, 0)
         self.assertGreater(tbl.column('string_null').null_count, 0)
         # default
@@ -84,12 +84,12 @@ class FeatureBuilderTest(unittest.TestCase):
         self.assertEqual(0, result.column('num_null').null_count)
         self.assertEqual(0, result.column('string_null').null_count)
         # knn distance
-        tbl = tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
         result = tools.model_missing(tbl, headers=['num_null', 'string_null'], strategy='knn_distance')
         self.assertEqual(0, result.column('num_null').null_count)
         self.assertEqual(0, result.column('string_null').null_count)
         # mean
-        tbl = tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
         result = tools.model_missing(tbl, headers=['num_null', 'string_null'], strategy='mean')
         self.assertEqual(0, result.column('num_null').null_count)
         self.assertEqual(0, result.column('string_null').null_count)
