@@ -258,9 +258,9 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
             canonical = Commons.table_append(canonical, pa.table([c], names=[n]))
         return canonical
 
-    def auto_drop_rows(self, canonical: pa.Table, size: int, save_intent: bool=None, intent_level: [int, str]=None,
-                       intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
-        """ auto removes rows of a canonical returning a randomly selected subset of the canonical.
+    def auto_sample_rows(self, canonical: pa.Table, size: int, save_intent: bool=None, intent_level: [int, str]=None,
+                         intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ auto samples rows of a canonical returning a randomly selected subset of the canonical based on size.
 
         :param canonical: the pa.Table
         :param size: the randomly selected subset size of the canonical

@@ -17,22 +17,25 @@ class Visualisation(object):
     """ a set of data components methods to Visualise pandas.Dataframe"""
 
     @staticmethod
-    def show_chi_square(canonical: pa.Table, target: str, capped_at: int=None, seed: int=None):
+    def show_chi_square(canonical: pa.Table, target: str, capped_at: int=None, seed: int=None, width: float=None, height: float=None):
         """ Chi-square is one of the most widely used supervised feature selection methods. It selects each feature
          independently in accordance with their scores against a target or label then ranks them by their importance.
          This score should be used to evaluate categorical variables in a classification task.
 
         :param canonical: The canonical to apply
         :param target: the str header that constitute a binary target.
-        :param capped_at: a cap on the size of elements (columns x rows) to process. default at 5,000,000
-        :param seed: a seed value
-        :return: plt 2d graph
+        :param capped_at: (optional) a cap on the size of elements (columns x rows) to process. default at 5,000,000
+        :param seed: (optional) a seed value for the test train dataset
+        :param width: (optional) the figure size width
+        :param height: (optional) the figure size height
         """
         if target not in canonical.column_names:
             raise ValueError(f"The target '{target}' can't be found in the canonical")
         if pc.count(pc.unique(canonical.column(target))).as_py() != 2:
             raise ValueError(f"The target '{target}' must only be two unique values")
-        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        width = width if isinstance(width, float) else 6
+        height = height if isinstance(height, float) else 4
+        cap = capped_at if isinstance(capped_at, int) else 1_000_000
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
@@ -47,6 +50,7 @@ class Visualisation(object):
             # chi_test
             p_value = stats.chi2_contingency(c)[1]
             chi_ls.append(p_value)
+        plt.figure(figsize=(width, height))
         pd.Series(chi_ls, index=X_train.columns).sort_values(ascending=True).plot.bar(rot=45)
         plt.ylabel('p value')
         plt.title('Feature importance based on chi-square test', fontdict={'size': 20})
@@ -56,7 +60,7 @@ class Visualisation(object):
 
     @staticmethod
     def show_missing(canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
-                     regex: [str, list]=None, drop: bool=None, capped_at: int=None, **kwargs):
+                     regex: [str, list]=None, drop: bool=None, capped_at: int=None, width: float=None, height: float=None):
         """ A heatmap of missing data. Each column shows missing values and where in the column the missing data is.
 
         :param canonical: a canonical to apply
@@ -65,16 +69,19 @@ class Visualisation(object):
         :param regex: (optional) a regular expression to search the headers.
         :param drop: (optional) to drop or not drop the resulting headers.
         :param capped_at: (optional) a cap on the size of elements (columns x rows) to process. default at 5,000,000
-        :param kwargs: passed to the seaborn heatmap
-        :return: pa.Table
+        :param width: (optional) the figure size width
+        :param height: (optional) the figure size height
         """
-        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        width = width if isinstance(width, float) else 6
+        height = height if isinstance(height, float) else 5
+        cap = capped_at if isinstance(capped_at, int) else 1_000_000
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
         canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         control = canonical.to_pandas()
-        sns.heatmap(control.isnull(), yticklabels=False, cbar=False, cmap='viridis', **kwargs)
+        sns.set(rc={'figure.figsize': (width, height)})
+        sns.heatmap(control.isnull(), yticklabels=False, cbar=False, cmap='viridis')
         plt.title('missing data', fontdict={'size': 20})
         plt.tight_layout()
         plt.show()
@@ -82,7 +89,7 @@ class Visualisation(object):
 
     @staticmethod
     def show_correlated(canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
-                        regex: [str, list]=None, drop: bool=None, capped_at: int=None, **kwargs):
+                        regex: [str, list]=None, drop: bool=None, capped_at: int=None, width: float=None, height: float=None):
         """ shows correlation as a grid of values for each column pair where correlation is represented by a value
         moving towards 100. This only applies to int and float.
 
@@ -92,10 +99,13 @@ class Visualisation(object):
         :param regex: (optional) a regular expression to search the headers.
         :param drop: (optional) to drop or not drop the resulting headers.
         :param capped_at: (optional) a cap on the size of elements (columns x rows) to process. default at 5,000,000
-        :param kwargs: passed to the seaborn heatmap
+        :param width: (optional) the figure size width
+        :param height: (optional) the figure size height
         :return: pa.Table
         """
-        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        width = width if isinstance(width, float) else 16
+        height = height if isinstance(height, float) else 4
+        cap = capped_at if isinstance(capped_at, int) else 1_000_000
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
@@ -103,16 +113,19 @@ class Visualisation(object):
         canonical = Commons.filter_columns(canonical, d_types=[pa.int64(),pa.int32(),pa.int16(),pa.int8(),
                                                                pa.float64(),pa.float32(),pa.float16()])
         control = canonical.to_pandas()
-        sns.heatmap(control.corr(), annot=True, cmap='BuGn', robust=True, **kwargs)
+        sns.set(rc={'figure.figsize': (width, height)})
+        sns.heatmap(control.corr(), annot=True, cmap='BuGn', robust=True)
         plt.title('correlated data', fontdict={'size': 20})
         plt.tight_layout()
         plt.show()
         plt.clf()
 
     @staticmethod
-    def show_distributions(canonical: pa.Table, target: str, capped_at: int=None):
+    def show_distributions(canonical: pa.Table, target: str, capped_at: int=None, width: float=None, height: float=None):
         """ Shows three key distributions for a target sample array."""
-        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        width = width if isinstance(width, float) else 16
+        height = height if isinstance(height, float) else 4
+        cap = capped_at if isinstance(capped_at, int) else 1_000_000
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
@@ -120,7 +133,7 @@ class Visualisation(object):
                                                                pa.float64(),pa.float32(),pa.float16()])
         control = canonical.to_pandas()
         # Define figure size.
-        fig = plt.figure(figsize=(16,4))
+        _ = plt.figure(figsize=(width, height))
         _ = plt.suptitle('Show Distribution', fontdict={'size': 20})
         # histogram
         plt.subplot(1, 3, 1)
@@ -152,15 +165,14 @@ class Visualisation(object):
         :param regex: (optional) a regular expression to search the headers.
         :param drop: (optional) to drop or not drop the resulting headers.
         :param capped_at: (optional) a cap on the size of elements (columns x rows) to process. default at 5,000,000
-        :param log_scale:
-        :param subplot_h:
-        :param subplot_w:
-        :param param_scale:
-        :param rotation:
-        :param hspace:
-        :return:
+        :param log_scale: (optional)
+        :param subplot_h: (optional)
+        :param subplot_w: (optional)
+        :param param_scale: (optional)
+        :param rotation: (optional)
+        :param hspace: (optional)
         """
-        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        cap = capped_at if isinstance(capped_at, int) else 1_000_000
         log_scale = log_scale if isinstance(log_scale, bool) else False
         subplot_h = subplot_h if isinstance(subplot_h, int) else 2
         subplot_w = subplot_w if isinstance(subplot_w, int) else 15
@@ -243,12 +255,11 @@ class Visualisation(object):
         :param regex: (optional) a regular expression to search the headers.
         :param drop: (optional) to drop or not drop the resulting headers.
         :param capped_at: (optional) a cap on the size of elements (columns x rows) to process. default at 5,000,000
-        :param subplot_h:
-        :param subplot_w:
-        :param rotation:
-        :return:
+        :param subplot_h: (optional)
+        :param subplot_w: (optional)
+        :param rotation: (optional)
         """
-        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        cap = capped_at if isinstance(capped_at, int) else 1_000_000
         subplot_h = subplot_h if isinstance(subplot_h, int) else 6
         subplot_w = subplot_w if isinstance(subplot_w, int) else 10
         rotation = rotation if isinstance(rotation, int) else 360
@@ -287,9 +298,11 @@ class Visualisation(object):
 
     @staticmethod
     def show_numeric_density(canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
-                             regex: [str, list]=None, drop: bool=None, capped_at: int=None):
+                             regex: [str, list]=None, drop: bool=None, capped_at: int=None, width: float=None, height: float=None):
         """"""
-        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        width = width if isinstance(width, float) else 16
+        height = height if isinstance(height, float) else 4
+        cap = capped_at if isinstance(capped_at, int) else 1_000_000
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
@@ -298,7 +311,7 @@ class Visualisation(object):
                                                                pa.float64(),pa.float32(),pa.float16()])
         control = canonical.to_pandas()
         depth = int(round(len(num_cols) / 2, 0) + len(num_cols) % 2)
-        _figsize = (20, 5 * depth)
+        _figsize = (16, 4 * depth)
         fig = plt.figure(figsize=_figsize)
         right = False
         line = 0
@@ -320,7 +333,7 @@ class Visualisation(object):
     def show_categories(canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
                          regex: [str, list]=None, drop: bool=None, capped_at: int=None, top=None):
         """"""
-        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        cap = capped_at if isinstance(capped_at, int) else 1_000_000
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
@@ -331,9 +344,9 @@ class Visualisation(object):
         if len(cat_cols) == 1:
             c = cat_cols[0]
             width = control[c].nunique() + 1
-            if width > 20:
-                width = 20
-            _ = plt.subplots(1, 1, figsize=(width, 6))
+            if width > 16:
+                width = 16
+            _ = plt.subplots(1, 1, figsize=(width, 4))
             _ = sns.countplot(c)
             _ = sns.countplot(x=c, data=control, palette="summer")
             _ = plt.xticks(rotation=-90)
