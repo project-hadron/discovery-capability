@@ -1,4 +1,5 @@
 import inspect
+import random
 import re
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -257,10 +258,40 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
             canonical = Commons.table_append(canonical, pa.table([c], names=[n]))
         return canonical
 
-    def auto_drop_selected(self, canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
-                           regex: [str, list]=None, drop: bool=None, save_intent: bool=None,
-                           intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                           remove_duplicates: bool=None) -> pa.Table:
+    def auto_drop_rows(self, canonical: pa.Table, size: int, save_intent: bool=None, intent_level: [int, str]=None,
+                       intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ auto removes rows of a canonical returning a randomly selected subset of the canonical.
+
+        :param canonical: the pa.Table
+        :param size: the randomly selected subset size of the canonical
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the level name that groups intent by a reference name
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table.
+        """
+        # resolve intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        if canonical.num_rows > size > 0:
+            sample = random.sample(range(canonical.num_rows), k=int(size))
+            canonical = canonical.take(sample)
+        return canonical
+
+    def auto_drop_columns(self, canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
+                          regex: [str, list]=None, drop: bool=None, save_intent: bool=None,
+                          intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                          remove_duplicates: bool=None) -> pa.Table:
         """ auto removes columns that are selected.
 
         :param canonical: the pa.Table

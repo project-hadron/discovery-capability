@@ -99,7 +99,7 @@ class VisualisationTest(unittest.TestCase):
         fs = FeatureSelect.from_memory()
         _ = fs.add_connector_uri('titanic', uri='s3://project-hadron-cs-repo/downloads/data/titanic_kaggle_train.csv')
         titanic = fs.load_canonical('titanic')
-        titanic = fs.tools.auto_drop_selected(titanic, headers=['PassengerId', 'Name'])
+        titanic = fs.tools.auto_drop_columns(titanic, headers=['PassengerId', 'Name'])
         titanic = fs.tools.auto_reinstate_nulls(titanic)
         titanic = fs.tools.auto_cast_types(titanic, inc_category=False)
         result = viz.show_categories(titanic, headers=['Ticket', 'Cabin'], drop=True)
