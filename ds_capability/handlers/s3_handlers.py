@@ -216,7 +216,7 @@ class S3PersistHandler(S3SourceHandler, AbstractPersistHandler):
         s3_client = self._session.client(_cc.schema)
         # csv
         if file_type.lower() in ['csv', 'tsv', 'txt']:
-            byte_obj = StringIO()
+            byte_obj = BytesIO()
             with self._lock:
                 csv.write_csv(canonical, byte_obj)
                 s3_client.put_object(Bucket=bucket, Key=path[1:], Body=byte_obj.getvalue(), **s3_put_params)
