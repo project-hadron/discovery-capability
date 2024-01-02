@@ -103,8 +103,8 @@ class Visualisation(object):
         :param height: (optional) the figure size height
         :return: pa.Table
         """
-        width = width if isinstance(width, float) else 16
-        height = height if isinstance(height, float) else 4
+        width = width if isinstance(width, float) else 6
+        height = height if isinstance(height, float) else 5
         cap = capped_at if isinstance(capped_at, int) else 1_000_000
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
@@ -311,7 +311,7 @@ class Visualisation(object):
                                                                pa.float64(),pa.float32(),pa.float16()])
         control = canonical.to_pandas()
         depth = int(round(len(num_cols) / 2, 0) + len(num_cols) % 2)
-        _figsize = (16, 4 * depth)
+        _figsize = (width, height * depth)
         fig = plt.figure(figsize=_figsize)
         right = False
         line = 0
