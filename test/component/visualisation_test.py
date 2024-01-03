@@ -83,7 +83,7 @@ class VisualisationTest(unittest.TestCase):
         orders = fs.load_canonical('orders', delimiter=u"\u0009")
         orders = fs.tools.auto_reinstate_nulls(orders, nulls_list=['?'])
         orders = fs.tools.auto_cast_types(orders, inc_category=False, tm_format="%m/%d/%Y %H:%M:%S.000000")
-        result = viz.show_category_frequency(orders, target_dt='ORD_DTS', headers=['ORD_NBR', 'EXTRNL_COMB_HIER_CD'], drop=True)
+        result = viz.show_category_frequency(orders, target_dt='ORD_DTS')
         print(result)
 
     def test_show_num_density(self):

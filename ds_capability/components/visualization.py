@@ -153,7 +153,7 @@ class Visualisation(object):
 
     @staticmethod
     def show_category_frequency(canonical: pa.Table, target_dt, headers: [str, list]=None, d_types: [str, list]=None,
-                                regex: [str, list]=None, drop: bool=None, capped_at: int=None, log_scale=False,
+                                regex: [str, list]=None, drop: bool=None, category_limit: int=None, capped_at: int=None, log_scale=False,
                                 subplot_h=2, subplot_w=15, param_scale=8, rotation=360, hspace=0.35):
         """ creates the frequencies (colors of heatmap) of the elements (y axis) of the categorical columns
         over time (x axis)
@@ -164,6 +164,7 @@ class Visualisation(object):
         :param d_types: (optional) a filter on data type for the canonical. example [pa.int64(), pa.string()]
         :param regex: (optional) a regular expression to search the headers.
         :param drop: (optional) to drop or not drop the resulting headers.
+        :param category_limit: (optional) the number of unique values that make up a category. Default 10
         :param capped_at: (optional) a cap on the size of elements (columns x rows) to process. default at 5,000,000
         :param log_scale: (optional)
         :param subplot_h: (optional)
@@ -173,6 +174,7 @@ class Visualisation(object):
         :param hspace: (optional)
         """
         cap = capped_at if isinstance(capped_at, int) else 1_000_000
+        category_limit = category_limit if isinstance(category_limit, str) else 10
         log_scale = log_scale if isinstance(log_scale, bool) else False
         subplot_h = subplot_h if isinstance(subplot_h, int) else 2
         subplot_w = subplot_w if isinstance(subplot_w, int) else 15
@@ -184,6 +186,10 @@ class Visualisation(object):
             canonical = canonical.take(sample)
         canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         col_names = Commons.filter_headers(canonical, d_types=[pa.string()])
+        for n in tuple(col_names):
+            c = canonical.column(n).combine_chunks()
+            if pc.count(pc.unique(c)).as_py() > category_limit:
+                col_names.remove(n)
         if target_dt in col_names:
             col_names.remove(target_dt)
         df = canonical.to_pandas()
@@ -244,7 +250,8 @@ class Visualisation(object):
     @staticmethod
     def show_category_appearance(canonical: pa.Table, target_dt: str, headers: [str, list]=None,
                                  d_types: [str, list]=None, regex: [str, list]=None, drop: bool=None,
-                                 capped_at: int=None, subplot_h: int=None, subplot_w: int=None, rotation: int=None):
+                                 category_limit: int=None, capped_at: int=None, subplot_h: int=None,
+                                 subplot_w: int=None, rotation: int=None):
         """ creates the proportion (as percentages) (colors of heatmap) of the appearing elements (y axis)
         of the categorical columns over time (x axis)
 
@@ -254,11 +261,13 @@ class Visualisation(object):
         :param d_types: (optional) a filter on data type for the canonical. example [pa.int64(), pa.string()]
         :param regex: (optional) a regular expression to search the headers.
         :param drop: (optional) to drop or not drop the resulting headers.
+        :param category_limit: (optional) the number of unique values that make up a category. Default 10
         :param capped_at: (optional) a cap on the size of elements (columns x rows) to process. default at 5,000,000
         :param subplot_h: (optional)
         :param subplot_w: (optional)
         :param rotation: (optional)
         """
+        category_limit = category_limit if isinstance(category_limit, str) else 10
         cap = capped_at if isinstance(capped_at, int) else 1_000_000
         subplot_h = subplot_h if isinstance(subplot_h, int) else 6
         subplot_w = subplot_w if isinstance(subplot_w, int) else 10
@@ -268,6 +277,10 @@ class Visualisation(object):
             canonical = canonical.take(sample)
         canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         col_names = Commons.filter_headers(canonical, d_types=[pa.string()])
+        for n in tuple(col_names):
+            c = canonical.column(n).combine_chunks()
+            if pc.count(pc.unique(c)).as_py() > category_limit:
+                col_names.remove(n)
         if target_dt in col_names:
             col_names.remove(target_dt)
         df = canonical.to_pandas()
