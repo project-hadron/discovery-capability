@@ -1137,7 +1137,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             canonical = self.get_number(start=-50, stop=8.0, canonical=canonical, size=size, quantity=0.3,
                                         to_header='sparse', seed=seed, save_intent=False)
             # outliers
-            canonical = self.correlate_number(canonical, header='num', choice=5, jitter=3, size=size,
+            canonical = self.correlate_number(canonical, header='num', choice=5, jitter=3,
                                               to_header='outliers', seed=seed, save_intent=False)
             # one string
             _ = pa.table([pa.array(['one']*size)], names=['one_string'])
