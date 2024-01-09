@@ -49,7 +49,7 @@ class Controller(AbstractComponent):
                  default_replace_intent: bool=None, has_contract: bool=None):
         """ Class Factory Method to instantiates the components application. The Factory Method handles the
         instantiation of the Properties Manager, the Intent Model and the persistence of the uploaded properties.
-        See class inline docs for an example method
+        See class inline _docs for an example method
 
          :param task_name: The reference name that uniquely identifies a task or subset of the property manager
          :param uri_pm_path: A URI that identifies the resource path for the property manager.

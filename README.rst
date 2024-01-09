@@ -1,59 +1,56 @@
-Project Hadron Data Science Tools and Synthetic Feature Builder
-###############################################################
+==============
+Project Hadron
+==============
 
-.. class:: no-web no-pdf
+Introduction
+============
+Unfortunately, 85% of data science projects fail due to a lack of understanding of the real
+business problem. This is usually because of poor communication between data scientists and
+business teams, resulting in a disconnect between the two groups. Project Hadron has been built
+to bridge the gap between data scientists and data engineers. More specifically between machine
+learning business outcomes or use case and a product pipeline. It translates the work of data
+scientists into meaningful, production ready solutions that can be easily integrated into a
+DevOps, CI/CD pipeline.
 
-.. contents:: Table of Contents
+Project Hadron addresses data selection, feature engineering and feature transformation as part
+of the critical preprocessing of a Machine Learning pipeline or System Data pipeline. At its core
+the code uses PyArrow as its canonical combining with Pandas as a directed specialist toolset.
+PyArrow complements Pandas by providing a more memory-efficient in-memory representation,
+enabling efficient data interchange between different systems, supporting distributed computing,
+and enhancing compatibility with other programming languages. When used together, Pandas and
+PyArrow form a powerful combination for handling diverse data processing tasks efficiently.
 
-Filling the Gap - Project Hadron
-================================
-Project Hadron has been built to bridge the gap between data scientists and data engineers. More specifically between
-machine learning business outcomes and the final product.  It translates the work of data scientists into meaningful,
-production ready solutions that can be easily managed by product engineers.
+Data Selection and Feature Engineering
+======================================
+Data selection and feature engineering is the art/science of converting raw data to a form that
+optimises the success of the next step in a pipeline. This involves a skilled blend of domain
+expertise, intuition and mathematics. Data selection and feature engineering are the most
+essential part of building a useable machine learning or data project, constituting an average of
+80% of the project's time, even with hundreds of cutting-edge  machine learning algorithms
+appearing.
 
-Project Hadron is a core set of abstractions that are the foundation of the three key elements that represent data
-science, those being: (1) feature engineering, (2) the construction of synthetic data with simulators, and generators
-(3) and statistics and machine learning algorithms for discovery and creating models. Project Hadron uniquely sees
-data as ‘all the same’ (lazyprogrammer (2020) https://lazyprogrammer.me/all-data-is-the-same/) , by which we mean
-its origin, shape and size stay independent throughout the disciplines so its content, form and structure can be
-removed as a factor in the design and implementation of the components built.
+Prof Domingos, the author of 'The Master Algorithm' says::
 
-Project Hadron has been designed to place data scientists in the familiar environment of machine learning and
-statistical tools, extracting their ideas and translating them automagicially into production ready solutions
-familiar to data engineers and Subject Matter Experts (SME’s).
+    "At the end of the day, some machine learning projects succeed and some fail. What makes the
+    difference? Easily the most important factor is the features used."
 
-Project Hadron provides a clear separation of concerns, whilst maintaining the original intentions of the data
-scientist, that can be passed to a production team. It offers trust between the data scientists teams and product
-teams. It brings with it transparency and traceability, dealing with bias, fairness, and knowledge. The resulting
-outcome provides the product engineers with adaptability, robustness, and reuse; fitting seamlessly into a
-microservices solution that can be language agnostic.
+Preprocessing
+-------------
+The term "data preprocessing" is commonly used in the field of data science and machine learning
+to refer ata selection and feature engineering as steps taken to clean, format, and organize raw
+data into a suitable format for Model Evaluation & Tunning
 
-Project Hadron is designed using Microservices. Microservices - also known as the microservice architecture - is an
-architectural pattern that structures an application as a collection of component services that are:
+.. image:: docs/images/introduction/machine_learning_pipeline_v01.png
+  :align: center
+  :width: 700
 
-* Highly maintainable and testable
-* Loosely coupled
-* Independently deployable
-* Highly reusable
-* Resilient
-* Technically independent
 
-Component services are built for business capabilities and each service performs a single function. Because they are
-independently run, each service can be updated, deployed, and scaled to meet demand for specific functions of an
-application. Project Hadron microservices enable the rapid, frequent and reliable delivery of large, complex
-applications. It also enables an organization to evolve its data science stack and experiment with innovative ideas.
 
-At the heart of Project Hadron is a multi-tenant, NoSQL, singleton, in memory data store that has minimal code and
-functionality and has been custom built specifically for Hadron tasks in  mind. Abstracted from this is the component
-store which allows us to build a reusable set of methods that define each tenanted component that sits separately
-from the store itself. In addition, a dynamic key value class provides labeling so that each tenant is not tied to
-a fixed set of reference values unless by specificity. Each of the classes, the data store, the component property
-manager, and the key value pairs that make up the component are all independent, giving complete flexibility and
-minimum code footprint to the build process of new components.
 
-This is what gives us the Domain Contract for each tennant which sits at the heart of what makes the contracts
-reusable, translatable, transferable and brings the data scientist closer to the production engineer along with
-building a production ready component solution.
+
+
+
+
 
 Main features
 -------------
