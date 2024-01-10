@@ -68,14 +68,14 @@ class DiscoveryTest(unittest.TestCase):
         sb = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = sb.tools
         arr = pa.array([1,2,1,34,1,2,3])
-        result = DataDiscovery.interquartile_outliers(arr)
+        result = DataDiscovery.outliers_iqr(arr)
         self.assertEqual(([],[34]), result)
 
     def test_empirical_outliers(self):
         sb = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = sb.tools
         arr = pa.array([1,2,1,1,2,3]*100 +[34])
-        result = DataDiscovery.empirical_outliers(arr)
+        result = DataDiscovery.outliers_empirical(arr)
         self.assertEqual(([],[34]), result)
 
     def test_data_dictionary(self):

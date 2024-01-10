@@ -17,7 +17,7 @@ pd.set_option('display.max_columns', 99)
 pd.set_option('expand_frame_repr', True)
 
 
-class FeatureBuilderTest(unittest.TestCase):
+class FeatureEngineerModelTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):

@@ -1761,6 +1761,56 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
 
+    def correlate_outliers(self, canonical: pa.Table, target: str, method: str, measure: [int,float,tuple]=None,
+                           seed: int=None, to_header: str=None, save_intent: bool=None, intent_level: [int, str]=None,
+                           intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
+        """ creates a boolean column indicating which elements within the target column meet the
+        method criteria. The method criteria for outliers are 'empirical', 'interquartile' ('iqr')
+        or 'custom', where the lower and upper limits are set by the user. With 'custom', the measure
+        parameter should be passed as a tuple of the lower and higher boundaries of exceptions.
+        The default method is 'interquartile'
+
+        :param canonical: a pyarrow table
+        :param target: The name of the target string column
+        :param method: The outlier method. 'empirical', 'iqr' or custom
+        :param measure: The outlier distance being std-width, k-factor or a (min, max) tuple
+        :param to_header: (optional) an optional name to call the column
+        :param seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the intent name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+        :return:
+        """
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        _seed = seed if isinstance(seed, int) else self._seed()
+        values = canonical.column(target).combine_chunks()
+        is_dict = False
+        if not (pa.types.is_integer(values.type) or pa.types.is_floating(values.type)):
+            raise ValueError(f"The target column '{target}' must be an int or float type {values.type} passed")
+        if method.startswith('emp'):
+            measure = measure if isinstance(measure, float) else 3 # std-width
+            result_idx = DataDiscovery.outliers_empirical(values=values, std_width=measure)
+        elif method.startswith('custom'):
+            lower, upper = measure if isinstance(measure, tuple) else (pc.min(values), pc.max(values))
+            result_idx = pc.or_(pc.greater(values, upper), pc.less(values, lower))
+        else:
+            measure = measure if isinstance(measure, float) else 1.5  # k-factor
+            result_idx = DataDiscovery.outliers_iqr(values=values, k_factor=measure)
+        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        return Commons.table_append(canonical, pa.table([result_idx], names=[to_header]))
+
+
     def correlate_replace(self, canonical: pa.Table, target: str, pattern: str, replacement: str, is_regex: bool=None,
                           max_replacements: int=None, seed: int=None, to_header: str=None, save_intent: bool=None,
                           intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,

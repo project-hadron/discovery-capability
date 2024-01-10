@@ -1,5 +1,3 @@
-from typing import Tuple
-import ast
 import collections
 import pandas as pd
 import numpy as np
@@ -12,7 +10,7 @@ from ds_capability.components.commons import Commons
 class DataDiscovery(object):
 
     @staticmethod
-    def interquartile_outliers(values: pa.Array, k_factor: float=None) -> Tuple[list, list]:
+    def outliers_iqr(values: pa.Array, k_factor: float=None):
         """ The interquartile range (IQR), also called the midspread, middle 50%, or H‑spread, is a measure of
         statistical dispersion, being equal to the difference between 75th and 25th percentiles, or between upper
         and lower quartiles
@@ -29,17 +27,15 @@ class DataDiscovery(object):
         values = values.drop_null()
         # calculate interquartile range
         q25, q75 = pc.quantile(values, [0.25, 0.75])
-        iqr = pc.subtract(q75, q25).as_py()
+        iqr = pc.subtract(q75, q25)
         # calculate the outlier cutoff
-        cut_off = pc.multiply(iqr, k_factor).as_py()
-        lower, upper = pc.subtract(q25, cut_off).as_py(), pc.add(q75, cut_off).as_py()
+        cut_off = pc.multiply(iqr, k_factor)
+        lower, upper = pc.subtract(q25, cut_off), pc.add(q75, cut_off)
         # identify outliers
-        upper_outliers = values.filter(pc.greater_equal(values, upper)).to_pylist()
-        lower_outliers = values.filter(pc.less_equal(values, lower)).to_pylist()
-        return lower_outliers, upper_outliers
+        return pc.or_(pc.greater(values, upper), pc.less(values, lower))
 
     @staticmethod
-    def empirical_outliers(values: pa.Array, std_width: int=None) -> Tuple[list, list]:
+    def outliers_empirical(values: pa.Array, std_width: int=None):
         """ The empirical rule states that for a normal distribution, nearly all of the data will fall within three
         standard deviations of the mean.
 
@@ -54,14 +50,12 @@ class DataDiscovery(object):
         """
         values = values.drop_null()
         std_width = std_width if isinstance(std_width, int) and 2 <= std_width <= 6 else 3
-        data_mean, data_std = pc.mean(values).as_py(), pc.stddev(values).as_py()
+        data_mean, data_std = pc.mean(values), pc.stddev(values)
         # identify outliers
-        cut_off = pc.multiply(data_std, std_width).as_py()
-        lower, upper = pc.subtract(data_mean, cut_off).as_py(), pc.add(data_mean, cut_off).as_py()
+        cut_off = pc.multiply(data_std, std_width)
+        lower, upper = pc.subtract(data_mean, cut_off), pc.add(data_mean, cut_off)
         # identify outliers
-        upper_outliers = values.filter(pc.greater_equal(values, upper)).to_pylist()
-        lower_outliers = values.filter(pc.less_equal(values, lower)).to_pylist()
-        return lower_outliers, upper_outliers
+        return pc.or_(pc.greater(values, upper), pc.less(values, lower))
 
     @staticmethod
     def data_quality(canonical: pa.Table, nulls_threshold: float=None, dom_threshold: float=None,

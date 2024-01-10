@@ -22,7 +22,7 @@ pd.set_option('display.max_columns', 99)
 pd.set_option('expand_frame_repr', True)
 
 
-class FeatureEngineererTest(unittest.TestCase):
+class FeatureEngineerTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
