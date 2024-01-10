@@ -1535,6 +1535,81 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
+    def correlate_date_element(self, canonical: pa.Table, target: [str, list], matrix: [str, list],
+                               day_first: bool=None, year_first: bool=None, date_format: str=None,
+                               save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                               replace_intent: bool=None, remove_duplicates: bool=None):
+        """ breaks a date down into value representations of the various parts that date.
+
+        :param canonical:
+        :param target: a target column header
+        :param matrix: the matrix options (see below)
+        :param year_first: specifies if to parse with the year first
+                If True parses dates with the year first, eg 10/11/12 is parsed as 2010-11-12.
+                If both dayfirst and yearfirst are True, yearfirst is preceded (same as dateutil).
+        :param day_first: specifies if to parse with the day first
+                If True, parses dates with the day first, eg %d-%m-%Y.
+                If False default to the a prefered preference, normally %m-%d-%Y (but not strict)
+        :param date_format: if the date can't be inferred uses date format eg format='%Y%m%d'
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the level name that groups intent by a reference name
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pandas.DataFrame.
+
+        Matrix options are:
+        - yr: year
+        - dec: decade
+        - mon: month
+        - day: day
+        - dow: day of week
+        - hr: hour
+        - min: minute
+        - woy: week of year
+        = doy: day of year
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        if not isinstance(target, str) or target not in canonical.column_names:
+            raise ValueError(f"The header '{target}' can't be found in the canonical headers")
+        values = canonical.column(target).combine_chunks()
+        matrix = Commons.list_formatter(matrix)
+        day_first = day_first if isinstance(day_first, bool) else False
+        year_first = year_first if isinstance(year_first, bool) else False
+        p_values = values.to_pandas()
+        p_values = pd.to_datetime(p_values, errors='coerce', dayfirst=day_first, yearfirst=year_first, format=date_format)
+        matrix = Commons.list_formatter(matrix)
+        if 'yr' in matrix:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.year], names=[f"{target}_yr"]))
+        if 'dec' in matrix:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.year % 10], names=[f"{target}_dec"]))
+        if 'mon' in matrix:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.month], names=[f"{target}_mon"]))
+        if 'day' in matrix:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.day], names=[f"{target}_day"]))
+        if 'dow' in matrix:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.dayofweek], names=[f"{target}_dow"]))
+        if 'hr' in matrix:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.hour], names=[f"{target}_hr"]))
+        if 'min' in matrix:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.minute], names=[f"{target}_min"]))
+        if 'woy' in matrix:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.isocalendar().week], names=[f"{target}_woy"]))
+        if 'doy' in matrix:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.dayofyear], names=[f"{target}_doy"]))
+        return canonical
 
     def correlate_discrete_intervals(self, canonical: pa.Table, header: str, granularity: [int, float, list]=None,
                                      lower: [int, float]=None, upper: [int, float]=None, categories: list=None,

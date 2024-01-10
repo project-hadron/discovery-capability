@@ -208,13 +208,13 @@ class FeatureEngineerCorrelateTest(unittest.TestCase):
         result = tools.correlate_dates(tbl, 'dates', now_delta='Y', date_format='%Y/%m/%d', to_header='delta', seed=31)
         self.assertEqual([5,4,4,3], result.column('delta').to_pylist())
 
-    def test_correlate_outliers(self):
+    def test_correlate_date_elements(self):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools
-        tbl = tools.get_synthetic_data_types(1000, seed=101)
-        tbl = fe.tools.correlate_number(tbl, header='num', choice=4, jitter=3, to_header='outliers')
-        tbl.f
-
+        tbl = tools.get_synthetic_data_types(10, seed=101)
+        result = tools.correlate_date_element(tbl, target='date', matrix=['hr', 'min'])
+        print(result.column_names)
+        print(Commons.table_report(result).to_string())
 
     def test_raise(self):
         with self.assertRaises(KeyError) as context:
