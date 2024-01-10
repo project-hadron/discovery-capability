@@ -1761,7 +1761,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
 
-    def correlate_outliers(self, canonical: pa.Table, target: str, method: str=Nonr, measure: [int,float,tuple]=None,
+    def correlate_outliers(self, canonical: pa.Table, target: str, method: str=None, measure: [int,float,tuple]=None,
                            seed: int=None, to_header: str=None, save_intent: bool=None, intent_level: [int, str]=None,
                            intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
         """ creates a boolean column indicating which elements within the target column meet the
