@@ -1761,7 +1761,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
 
-    def correlate_outliers(self, canonical: pa.Table, target: str, method: str, measure: [int,float,tuple]=None,
+    def correlate_outliers(self, canonical: pa.Table, target: str, method: str=Nonr, measure: [int,float,tuple]=None,
                            seed: int=None, to_header: str=None, save_intent: bool=None, intent_level: [int, str]=None,
                            intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
         """ creates a boolean column indicating which elements within the target column meet the
@@ -1772,8 +1772,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
 
         :param canonical: a pyarrow table
         :param target: The name of the target string column
-        :param method: The outlier method. 'empirical', 'iqr' or custom
-        :param measure: The outlier distance being std-width, k-factor or a (min, max) tuple
+        :param method: (optional) The outlier method. 'empirical', 'iqr' or custom
+        :param measure: (optional) The outlier distance being std-width, k-factor or a (min, max) tuple
         :param to_header: (optional) an optional name to call the column
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
