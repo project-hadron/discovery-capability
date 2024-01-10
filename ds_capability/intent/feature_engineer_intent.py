@@ -1786,6 +1786,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         :param replace_intent: (optional) if the intent method exists at the level, or default level
                     - True - replaces the current intent method with the new
                     - False - leaves it untouched, disregarding the new intent
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
         :return:
         """
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
@@ -1793,9 +1794,9 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        method = method if isinstance(method, str) else 'iqr'
         _seed = seed if isinstance(seed, int) else self._seed()
         values = canonical.column(target).combine_chunks()
-        is_dict = False
         if not (pa.types.is_integer(values.type) or pa.types.is_floating(values.type)):
             raise ValueError(f"The target column '{target}' must be an int or float type {values.type} passed")
         if method.startswith('emp'):
