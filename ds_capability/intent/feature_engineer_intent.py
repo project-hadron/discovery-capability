@@ -1536,14 +1536,15 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
     def correlate_date_element(self, canonical: pa.Table, target: [str, list], matrix: [str, list],
-                               day_first: bool=None, year_first: bool=None, date_format: str=None,
-                               save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                               replace_intent: bool=None, remove_duplicates: bool=None):
+                               drop_target:bool =None, day_first: bool=None, year_first: bool=None,
+                               date_format: str=None, save_intent: bool=None, intent_level: [int, str]=None,
+                               intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
         """ breaks a date down into value representations of the various parts that date.
 
         :param canonical:
         :param target: a target column header
         :param matrix: the matrix options (see below)
+        :param drop_target: drop the target column
         :param year_first: specifies if to parse with the year first
                 If True parses dates with the year first, eg 10/11/12 is parsed as 2010-11-12.
                 If both dayfirst and yearfirst are True, yearfirst is preceded (same as dateutil).
@@ -1609,6 +1610,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             canonical = Commons.table_append(canonical, pa.table([p_values.dt.isocalendar().week], names=[f"{target}_woy"]))
         if 'doy' in matrix:
             canonical = Commons.table_append(canonical, pa.table([p_values.dt.dayofyear], names=[f"{target}_doy"]))
+        if isinstance(drop_target, bool) and drop_target:
+            canonical = canonical.drop_columns('target')
         return canonical
 
     def correlate_discrete_intervals(self, canonical: pa.Table, header: str, granularity: [int, float, list]=None,
