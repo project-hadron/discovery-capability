@@ -3,17 +3,27 @@ Why Project Hadron?
 
 What is Project Hadron?
 -----------------------
-Unfortunately, 85% of data science projects fail due to a lack of understanding of the real
-business problem. Likewise similar is found within data provisioning for Data Lakes executing business
-driven analysis. This is usually because of poor communication between data scientists, data
-engineers and business teams, resulting in a disconnect between the three groups. Project Hadron
-has been built to bridge the gap between these groups providing comprehensive reporting and derive
-meaningful information that can be used for decision-making or further analysis.
+Unfortunately, 85% of data science projects fail due to a lack of the ability to retrieve the right
+features from a data pipeline, and communicate with a broadly skilled audience. Similar can be
+found within data provisioning for Data Lakes executing business driven analysis.
 
-Having the ability to derive meaningful information from a data processing pipeline is
-fundamental for making informed decisions, solving problems, optimizing resource allocation and
-predicting future trends. Project Hadron gives this robust and reusable, comprehensive solution
-with a light footprint and is built in-house allowing flexibility and retained knowledge.
+**Project Hadron** is a data preprocessing and data processing pipeline. It is a comprehensive
+set of tools to build improved and targeted features of interest. It manages data sourcing and
+persistence and captures discovery activities that provide a better shared environment and
+insight into idea generation.
+
+Additionally the low success rate of projects is  exacerbated by poor communication between data
+scientists, data engineers and business stakeholders, resulting in a disconnect between the three
+groups.
+
+**Project Hadron** has been built to bridge the gap between these groups providing comprehensive
+reporting and derive meaningful information that can be used for decision-making or further
+analysis.
+
+Project Hadron, as a data processing pipeline is fundamental for making informed and timely
+decisions, solving problems, optimizing resource allocation and predicting future trends. Project
+Hadron gives this robust and reusable, comprehensive solution with a light footprint and is built
+in-house allowing flexibility and retained knowledge.
 
 What are its methodologies and architecture?
 --------------------------------------------

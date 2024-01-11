@@ -29,9 +29,8 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', '.DS_Store', '.ipynd_checkpoints', 'Thumbs.db']
 
 # -- Options for HTML output
-
-html_theme = 'sphinx_rtd_theme'
+# html_theme = 'sphinx_rtd_theme'
 
 # -- Options for EPUB output
-epub_show_urls = 'footnote'
+# epub_show_urls = 'footnote'
 
