@@ -12,18 +12,17 @@ set of tools to build improved and targeted features of interest. It manages dat
 persistence and captures discovery activities that provide a better shared environment and
 insight into idea generation.
 
-Additionally the low success rate of projects is  exacerbated by poor communication between data
+Additionally the low success rate of projects is exacerbated by poor communication between data
 scientists, data engineers and business stakeholders, resulting in a disconnect between the three
-groups.
-
-**Project Hadron** has been built to bridge the gap between these groups providing comprehensive
+groups. Project Hadron has been built to bridge this gap between these groups providing comprehensive
 reporting and derive meaningful information that can be used for decision-making or further
 analysis.
 
-Project Hadron, as a data processing pipeline is fundamental for making informed and timely
-decisions, solving problems, optimizing resource allocation and predicting future trends. Project
-Hadron gives this robust and reusable, comprehensive solution with a light footprint and is built
-in-house allowing flexibility and retained knowledge.
+Project Hadron, as a data processing step, is quick-to-market, identifying
+failures early and ensuring robust foundations for success. It handles large data through memory
+efficiency, facilitates interoperability and optimisation of CPU and GPU acceleration. Project
+Hadron, as a reusable, comprehensive solution with a light touch, is built in-house allowing
+flexibility, adaptability and retained knowledge.
 
 What are its methodologies and architecture?
 --------------------------------------------
