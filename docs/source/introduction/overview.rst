@@ -174,7 +174,8 @@ Pandas as a directed specialist toolset optimizing the advantages of both.
 PyArrow enhances Pandas by providing a more efficient, columnar data representation that
 facilitates seamless interoperability with other systems, improved performance, and support for
 efficient file formats like Parquet. It extends Pandas' capabilities, especially in scenarios
-where performance and data interchange with other systems are critical.
+where performance and data interchange with other systems are critical. These benefits have
+contributed to its wide usage in data engineering, analytics, and other data-intensive applications.
 
 Main features
 -------------
