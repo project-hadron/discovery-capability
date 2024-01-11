@@ -1,5 +1,8 @@
 Why Project Hadron?
 ===================
+
+What is Project Hadron?
+-----------------------
 Unfortunately, 85% of data science projects fail due to a lack of understanding of the real
 business problem. Likewise similar is found within data provisioning for Data Lakes executing business
 driven analysis. This is usually because of poor communication between data scientists, data
@@ -12,8 +15,8 @@ fundamental for making informed decisions, solving problems, optimizing resource
 predicting future trends. Project Hadron gives this robust and reusable, comprehensive solution
 with a light footprint and is built in-house allowing flexibility and retained knowledge.
 
-What are the key elements of its methodologies and architecture?
-----------------------------------------------------------------
+What are its methodologies and architecture?
+--------------------------------------------
 Project Hadron is Python package built using object-oriented design (OOD) and object-oriented
 programming (OOP) to provide an extendable framework for quick build component solutions. It
 uses PyArrow as its canonical combining with Pandas as a directed specialist toolset. PyArrow
