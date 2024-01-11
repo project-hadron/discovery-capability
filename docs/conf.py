@@ -1,19 +1,13 @@
 # Configuration file for the Sphinx documentation builder.
-import os
-import sys
-from ds_capability import __version__
 
+# -- Project information
 
-sys.path.insert(0, os.path.abspath('../'))
+project = 'discovery-capability'
+copyright = '2024, Gigas64'
+author = 'Gigas64'
 
-project = 'ds_capability'
-copyright = '2024, gigas64'
-author = 'gigas64'
-
-# The short X.Y version.
-version = __version__
-# The full version, including alpha/beta/rc tags.
-release = version
+release = '0.1'
+version = '0.1.0'
 
 # -- General configuration
 extensions = [
@@ -22,7 +16,6 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.napoleon',
 ]
 
 intersphinx_mapping = {
@@ -32,7 +25,8 @@ intersphinx_mapping = {
 intersphinx_disabled_domains = ['std']
 
 templates_path = ['_templates']
-html_static_path = ['_static']
+
+exclude_patterns = ['_build', '.DS_Store', '.ipynd_checkpoints', 'Thumbs.db']
 
 # -- Options for HTML output
 
@@ -41,4 +35,3 @@ html_theme = 'sphinx_rtd_theme'
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
 
-exclude_patterns = ['_build', '.DS_Store', '.ipynd_checkpoints', 'Thumbs.db']
