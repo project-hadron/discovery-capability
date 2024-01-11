@@ -1,7 +1,7 @@
 # Configuration file for the Sphinx documentation builder.
 import os
 import sys
-from ds_discovery import __version__
+from ds_capability import __version__
 
 
 sys.path.insert(0, os.path.abspath('../'))
