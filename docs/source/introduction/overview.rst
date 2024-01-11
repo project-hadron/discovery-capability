@@ -12,28 +12,24 @@ set of tools to build improved and targeted features of interest. It manages dat
 persistence and captures discovery activities that provide a better shared environment and
 insight into idea generation.
 
-Additionally the low success rate of projects is  exacerbated by poor communication between data
+Additionally the low success rate of projects is exacerbated by poor communication between data
 scientists, data engineers and business stakeholders, resulting in a disconnect between the three
-groups.
-
-**Project Hadron** has been built to bridge the gap between these groups providing comprehensive
+groups. Project Hadron has been built to bridge this gap between these groups providing comprehensive
 reporting and derive meaningful information that can be used for decision-making or further
 analysis.
 
-Project Hadron, as a data processing pipeline is fundamental for making informed and timely
-decisions, solving problems, optimizing resource allocation and predicting future trends. Project
-Hadron gives this robust and reusable, comprehensive solution with a light footprint and is built
-in-house allowing flexibility and retained knowledge.
+Project Hadron, as a data processing step, is quick-to-market, identifying
+failures early and ensuring robust foundations for success. It handles large data through memory
+efficiency, facilitates interoperability and optimisation of CPU and GPU acceleration. Project
+Hadron, as a reusable, comprehensive solution with a light touch, is built in-house allowing
+flexibility, adaptability and retained knowledge.
 
 What are its methodologies and architecture?
 --------------------------------------------
 Project Hadron is Python package built using object-oriented design (OOD) and object-oriented
-programming (OOP) to provide an extendable framework for quick build component solutions. It
-uses PyArrow as its canonical combining with Pandas as a directed specialist toolset. PyArrow
-complements Pandas by providing a more memory-efficient in-memory representation, enabling
-effective data interchange between different systems, supporting distributed computing, and
-enhancing compatibility with other programming languages. When used together, Pandas and
-PyArrow form a powerful combination for handling diverse data processing tasks efficiently.
+programming (OOP) to provide an extendable framework for quick build component solutions. When used
+together, Pandas and PyArrow form a powerful combination for handling diverse data processing tasks
+efficiently.
 
 It is designed to be used as a development and discovery toolset or a set of Microservices
 within a data processing pipeline, with each Microservice having its own pipeline of capabilities.
@@ -168,6 +164,18 @@ pipelines into a Docker environment there are no code requirements from Hadron a
 as a Docker image and the parameters around that. This will be the same for most implementations,
 brad there is no or low code input.
 
+What is PyArrow?
+----------------
+PyArrow is a Python package for Apache Arrow Python bindings. Apache Arrow is a development
+platform for in-memory analytics. It contains a set of technologies that enable big data systems
+to store, process and move data fast. Project Hadron uses PyArrow as its canonical combining with
+Pandas as a directed specialist toolset optimizing the advantages of both.
+
+PyArrow enhances Pandas by providing a more efficient, columnar data representation that
+facilitates seamless interoperability with other systems, improved performance, and support for
+efficient file formats like Parquet. It extends Pandas' capabilities, especially in scenarios
+where performance and data interchange with other systems are critical. These benefits have
+contributed to its wide usage in data engineering, analytics, and other data-intensive applications.
 
 Main features
 -------------
