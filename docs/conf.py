@@ -6,7 +6,7 @@ from ds_capability import __version__
 
 sys.path.insert(0, os.path.abspath('../'))
 
-project = 'discovery_capability'
+project = 'discovery-capability'
 copyright = '2024, gigas64'
 author = 'gigas64'
 
