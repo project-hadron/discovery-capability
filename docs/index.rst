@@ -11,4 +11,4 @@ Project Hadron Discovery Capability
    :caption: Contents:
 
    source/introduction/overview
-   source/introduction/getting_started
+   source/introduction/installing

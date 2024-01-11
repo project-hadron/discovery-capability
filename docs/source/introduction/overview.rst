@@ -125,22 +125,29 @@ Both principles contribute to building robust and scalable software architecture
 
 Where Can it be Applied?
 ------------------------
-Project Hadron capabilities can be used as an SDK in Jupyter, integrating with other tools to build
-Machine Learning preprocessing for algorithm optimisation. Its light footprint and quick-to-market
-design lends itself perfectly to a POC in a Python IDE, while the ability to build robust
-microservices and shared interoperability through PyArrow are ideal for data processing steps in
-a Three Stage Data Processing.
+Project Hadron is targeted at data improvement for all types of data processing and runs in the
+relevant environment for the user of the tool. it can run as complementary functional toolkit in
+Jupyter Notebooks for Data Scientists. An object oriented collection of abstract and concrete
+classes for in Python IDE, such as PyCharm or Visual Studio. Or an implementation of a script
+images into a Docker environments or as a collection of Microservices in a cloud-native
+architectures Its light footprint and quick-to-market design lends itself perfectly to a pilot and
+POCs with the extensive interoperability. It targets Data Science Environment, allowing a vastly
+improved set of background systems for data management and idea sharing, of knowledge retention and
+separation of concerns. It integrates with familiar Data Science tools while offering functions to
+uncover features, provide robustness, and elevate bringing ideas to a broad audience.
 
 Who would use it?
 -----------------
-Both developers and implementers can use Project Hadron with a broad scope of consumers of the
-reporting and data output
+As a Data Scientist. Project Hadron requires a knowledge of Python 3.8+, PyArrow, Pandas, Numpy as
+a core with a skilled blend of domain expertise, inference and the ability to adopt alternative
+systems to improve project sharing and feature identification. An understanding of Jupyter
+Notebooks or Jupyter Lab
 
-As a developer, Project Hadron requires a knowledge of Python 3.8+ and PyArrow. It can be used with
-any Python interface, command line, Python IDE such as PyCharm or Visual Studio or as Jupyter
-Notebooks. Data selection, feature engineering and feature transition are the most essential part
-of Hadron building a usable data pipeline and involves a skilled blend of domain expertise,
-intuition and lateral thought.
+As a software developers, Project Hadron requires a knowledge of Python 3.8+ and PyArrow. A good
+understanding of some sort of Python interface, or Python IDE such as PyCharm or Visual Studio or as
+Jupyter Notebooks. Data selection, feature engineering and feature transition are the most
+essential part of Hadron building a usable data pipeline and involves a skilled blend of domain
+expertise, intuition and lateral thought.
 
 As an implementer, Project Hadron component pipelines, the skill set depends very much on the
 environment the pipeline is being implemented into. For example if you are implementing Hadron

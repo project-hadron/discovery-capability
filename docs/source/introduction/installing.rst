@@ -1,5 +1,5 @@
-Getting Started
-===============
+Installing Capabilities
+=======================
 The ``discovery-capability`` package is a set of python capabilities components that are focussed
 on data preprocessing. They are a concrete implementation of the Project Hadron abstract core. It
 is build to be very light weight in terms of package dependencies requiring nothing beyond what
