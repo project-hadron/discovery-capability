@@ -70,8 +70,8 @@ usually just a sub-process. Depending on the nature of the pipeline, ETL may be 
 may not be included at all. On the other hand, a data pipeline is broader in that it is the entire
 process involved in transporting data from one location to another.
 
-Then what is a hadron pipeline?
--------------------------------
+Then what is a Capability pipeline?
+-----------------------------------
 Project Hadron for data processing has been built as a set of capabilities to handle the
 different types of processing data. These are Data Selection, Feature Engineering, Feature
 Transition and Feature Build, for specialized capabilities. In order to be able to run these
@@ -132,7 +132,7 @@ system should achieve, while separation of concerns ensures that the system is d
 modular and maintainable way, with each part addressing a specific aspect of its functionality.
 Both principles contribute to building robust and scalable software architectures.
 
-Where Can it be Applied?
+Where can it be applied?
 ------------------------
 Project Hadron is targeted at data improvement for all types of data processing and runs in the
 relevant environment for the user of the tool. It can run as (1) a complementary functional toolkit in
