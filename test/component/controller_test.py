@@ -14,6 +14,7 @@ import pyarrow.parquet as pq
 from ds_core.handlers.event_handlers import EventManager
 from ds_core.properties.property_manager import PropertyManager
 from ds_capability import FeatureEngineer, Controller
+from ds_capability.components.pipeline_scripts import run_repo_pipeline
 
 # Pandas setup
 pd.set_option('max_colwidth', 320)
@@ -63,8 +64,11 @@ class FeatureBuilderTest(unittest.TestCase):
         except OSError:
             pass
 
-    def test_for_smoke(self):
-        set_service()
+    def test_controller_scripts(self):
+        repo_path = "https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/contracts/pyarrow/data_profiling"
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100)
+        result = run_repo_pipeline(tbl, repo_path=repo_path)
+        print(result.shape)
 
     def test_raise(self):
         startTime = datetime.now()

@@ -1,5 +1,4 @@
 import datetime
-import threading
 import time
 import pandas as pd
 import pyarrow as pa
@@ -47,7 +46,7 @@ class Controller(AbstractComponent):
                  template_source_handler: str=None, template_persist_handler: str=None, align_connectors: bool=None,
                  default_save_intent: bool=None, default_intent_level: bool=None, order_next_available: bool=None,
                  default_replace_intent: bool=None, has_contract: bool=None):
-        """ Class Factory Method to instantiates the components application. The Factory Method handles the
+        """ Class Factory Method to instantiates the component's application. The Factory Method handles the
         instantiation of the Properties Manager, the Intent Model and the persistence of the uploaded properties.
         See class inline _docs for an example method
 
