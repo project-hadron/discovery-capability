@@ -70,7 +70,7 @@ usually just a sub-process. Depending on the nature of the pipeline, ETL may be 
 may not be included at all. On the other hand, a data pipeline is broader in that it is the entire
 process involved in transporting data from one location to another.
 
-Then what is a Capability pipeline?
+Then what is a capability pipeline?
 -----------------------------------
 Project Hadron for data processing has been built as a set of capabilities to handle the
 different types of processing data. These are Data Selection, Feature Engineering, Feature

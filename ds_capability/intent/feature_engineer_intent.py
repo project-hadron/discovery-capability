@@ -997,7 +997,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                            quantity=1-nulls, save_intent=False)
             elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
                 s_values = column.to_pandas()
-                if offset is not 0:
+                if offset != 0:
                     s_values = s_values.add(offset)
                 precision = 0 if pa.types.is_integer(column.type) else 5
                 jitter = pc.round(pc.multiply(pc.stddev(column), 0.1), 5).as_py()
