@@ -154,7 +154,7 @@ class MysqlHandlerTest(unittest.TestCase):
         df['int'] = sb.tools.get_number(-1000, 1000, relative_freq=[1, 2, 3, 5, 7, 11, 7, 2, 1], size=size)
         df['bool'] = sb.tools.get_category([1, 0], relative_freq=[9, 1], size=size)
         df['date'] = sb.tools.get_datetime(start='2022-12-01', until='2023-03-31', date_format='%Y-%m-%d', ordered=True, size=size)
-        df['object'] = sb.tools.get_sample('us_professions', size=size)
+        df['object'] = sb.tools.get_sample_list('us_professions', size=size)
         if complete:
             # distributions
             df['normal'] = sb.tools.get_dist_normal(mean=0, std=1, size=size)  # normal

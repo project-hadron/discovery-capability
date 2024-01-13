@@ -76,7 +76,7 @@ class SyntheticTest(unittest.TestCase):
         tbl = Commons.table_append(pa.table([arr], ['User']), tbl)
         fe.add_connector_uri('sample', './working/source/data_type.parquet')
         fe.save_canonical('sample', tbl)
-        result = tools.get_group_analysis(15, 'sample', 'User', 'date')
+        result = tools.get_analysis_group(15, 'sample', 'User', 'date')
         # print(Commons.table_report(result).to_string())
         self.assertEqual((15, 8), result.shape)
         self.assertCountEqual([4, 5, 6], pc.value_counts(result.column('User')).field(1).to_pylist())
