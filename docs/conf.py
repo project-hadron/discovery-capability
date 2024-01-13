@@ -2,7 +2,6 @@
 import os
 import sys
 from ds_capability import __version__
-from ds_capability.intent.feature_engineer_intent import FeatureEngineerIntent
 
 sys.path.insert(0, os.path.abspath('../'))
 
