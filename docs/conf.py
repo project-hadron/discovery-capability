@@ -1,9 +1,4 @@
 # Configuration file for the Sphinx documentation builder.
-import os
-import sys
-from ds_capability import __version__
-
-sys.path.insert(0, os.path.abspath('../'))
 
 # -- Project information
 project = 'discovery-capability'
@@ -11,9 +6,9 @@ copyright = '2024, gigas64'
 author = 'gigas64'
 
 # The short X.Y version.
-version = __version__
+version = '1.2.2'
 # The full version, including alpha/beta/rc tags.
-release = version
+release = '1.2'
 
 # -- General configuration
 extensions = [
