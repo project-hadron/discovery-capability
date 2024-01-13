@@ -42,7 +42,7 @@ setup(
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    keywords='Wrangling ML Visualisation Dictionary Discovery Productize Classification Feature Engineering Cleansing',
+    keywords='data pipeline, data preprocessing, data processing pipeline',
     packages=find_packages(exclude=['tests', 'guides', 'data', 'jupyter']),
     license='BSD',
     include_package_data=True,
@@ -50,9 +50,10 @@ setup(
         # If any package contains *.yaml or *.csv files, include them:
         '': ['*.yaml', '*.csv'],
     },
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     install_requires=[
         'discovery-core',
+        'pyarrow',
         'pandas',
         'numpy',
         'matplotlib',
