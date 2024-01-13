@@ -13,6 +13,14 @@ from ds_capability.intent.abstract_feature_select_intent import AbstractFeatureS
 
 class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
 
+    """This class represents feature selection intent actions focusing on dimensionality and
+    specifically columnar reduction. Its purpose is to disregard irrelevant features to remove,
+    amongst other things, constants, duplicates and statistically uninteresting columns.
+
+    As an early stage data pipeline process, FeatureSelect focuses on data preprocessing, and as
+    such is a filter step for extracting features of interest.
+    """
+
     def auto_clean_header(self, canonical: pa.Table, case: str=None, rename_map: [dict, list, str]=None,
                           replace_spaces: str=None, save_intent: bool=None, intent_level: [int, str]=None,
                           intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
@@ -75,18 +83,18 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         # return table with new headers
         return canonical.rename_columns(headers)
 
-    def auto_cast_types(self, canonical: pa.Table, inc_category: bool=None, category_max: int=None, inc_bool: bool=None,
-                        inc_timestamp: bool=None, tm_format: str=None, tm_units: str=None, tm_tz: str=None, save_intent: bool=None,
+    def auto_cast_types(self, canonical: pa.Table, include_category: bool=None, category_max: int=None, include_bool: bool=None,
+                        include_timestamp: bool=None, tm_format: str=None, tm_units: str=None, tm_tz: str=None, save_intent: bool=None,
                         intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                         remove_duplicates: bool=None) -> pa.Table:
         """ attempts to cast the columns of a table to its appropriate type. Categories boolean and timestamps
-        are toggled on and of with the inc_ parameters being true or false.
+        are toggled on and off with the include parameters being true or false.
 
         :param canonical: the pa.Table
-        :param inc_category: (optional) if categories should be cast.  Default True
+        :param include_category: (optional) if categories should be cast.  Default True
         :param category_max: (optional) the max number of unique values to consider categorical
-        :param inc_bool: (optional) if booleans should be cast. Default True
-        :param inc_timestamp: (optional) if categories should be cast.  Default True
+        :param include_bool: (optional) if booleans should be cast. Default True
+        :param include_timestamp: (optional) if categories should be cast.  Default True
         :param tm_format: (optional) if not standard, the format of the dates, example '%m-%d-%Y %H:%M:%S'
         :param tm_units: (optional) units to cast timestamp. Options are 's', 'ms', 'us', 'ns'
         :param tm_tz: (optional) timezone to cast timestamp
@@ -109,8 +117,8 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
-        return Commons.table_cast(canonical, inc_cat=inc_category, cat_max=category_max, inc_bool=inc_bool,
-                                  inc_time=inc_timestamp, dt_format=tm_format, units=tm_units, tz=tm_tz)
+        return Commons.table_cast(canonical, inc_cat=include_category, cat_max=category_max, inc_bool=include_bool,
+                                  inc_time=include_timestamp, dt_format=tm_format, units=tm_units, tz=tm_tz)
 
     def auto_reinstate_nulls(self, canonical: pa.Table, nulls_list=None, headers: [str, list]=None, drop: bool=None,
                              data_type: [str, list]=None, regex: [str, list]=None, save_intent: bool=None,

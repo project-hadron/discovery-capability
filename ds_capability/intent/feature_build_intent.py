@@ -9,10 +9,9 @@ from ds_capability.components.commons import Commons
 
 class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
 
-    """Feature data is representative data that, depending on its application, holds statistical and
-    distributive characteristics of its real world counterpart. This component provides a set of actions
-    that focuses on building a synthetic data through knowledge and statistical analysis"""
-
+    """This class is for feature builds intent actions which are bespoke to a certain used case
+    but have broader reuse beyond this use case.
+    """
 
     def build_difference(self, canonical: pa.Table, other: [str, pa.Table], on_key: [str, list], drop_zero_sum: bool=None,
                          summary_connector: bool=None, flagged_connector: str=None, detail_connector: str=None,
@@ -179,8 +178,8 @@ class FeatureBuildIntent(AbstractFeatureBuildIntentModel, CommonsIntentModel):
         :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
         :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
         :param drop: (optional) to drop or not drop the headers if specified
-        :param connector_name::(optional) a connector name where the outcome is sent
-        :param seed:(optional) this is a placeholder, here for compatibility across methods
+        :param connector_name: (optional) a connector name where the outcome is sent
+        :param seed: (optional) this is a placeholder, here for compatibility across methods
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.

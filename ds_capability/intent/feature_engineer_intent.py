@@ -17,9 +17,11 @@ from ds_capability.sample.sample_data import Sample, MappedSample
 # noinspection PyArgumentList
 class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentModel):
 
-    """Feature data is representative data that, depending on its application, holds statistical and
-    distributive characteristics of its real world counterpart. This component provides a set of actions
-    that focuses on building a synthetic data through knowledge and statistical analysis"""
+    """This class represents feature engineering intent actions that, depending on its application,
+    represent data's statistical and distributive characteristics to provide targeted features
+    of interests. Its focus is around build, correlate and model features in a way that is more
+    conducive with the downstream feature requirements.
+    """
 
     @property
     def sample_list(self) -> list:
@@ -33,7 +35,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
 
     @staticmethod
     def sample_inspect(method: str):
-        """"""
+        """A taste of a given sample method"""
         if method in MappedSample().__dir__():
             i = inspect.signature(eval(f"MappedSample().{method}")).parameters
             rtn_lst = []
@@ -683,19 +685,20 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                            replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ Returns a random string based on the pattern given. The pattern is made up from the choices passed but
         by default is as follows:
-                - c = random char [a-z][A-Z]
-                - d = digit [0-9]
-                - l = lower case char [a-z]
-                - U = upper case char [A-Z]
-                - p = all punctuation
-                - s = space
+
+            - c = random char [a-z][A-Z]
+            - d = digit [0-9]
+            - l = lower case char [a-z]
+            - U = upper case char [A-Z]
+            - p = all punctuation
+            - s = space
 
         you can also use punctuation in the pattern that will be retained
         A pattern example might be
 
         .. code:: text
 
-                uuddsduu => BA12 2NE or dl-{uu} => 4g-{FY}
+            uuddsduu => BA12 2NE or dl-{uu} => 4g-{FY}
 
         to create your own choices pass a dictionary with a reference char key with a list of choices as a value
 
@@ -770,10 +773,10 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([pa.StringArray.from_pandas(rtn_list)], names=[to_header]))
 
-    def get_sample(self, sample_name: str, canonical: pa.Table=None, sample_size: int=None, shuffle: bool=None,
-                   size: int=None, quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None,
-                   intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                   remove_duplicates: bool=None) -> pa.Table:
+    def get_sample_list(self, sample_name: str, canonical: pa.Table=None, sample_size: int=None, shuffle: bool=None,
+                        size: int=None, quantity: float=None, to_header: str=None, seed: int=None, save_intent: bool=None,
+                        intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                        remove_duplicates: bool=None) -> pa.Table:
         """ returns a sample set based on sample_name. To see the potential samples call the property 'sample_list'.
 
         :param sample_name: The name of the Sample method to be used.
@@ -891,7 +894,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             tbl = tbl.rename_columns(rename_columns)
         return Commons.table_append(canonical, tbl)
 
-    def get_group_analysis(self, size: int, other: [str, pa.Table], group_by: [str, list], order_by: [str, list],
+    def get_analysis_group(self, size: int, other: [str, pa.Table], group_by: [str, list], order_by: [str, list],
                            canonical: pa.Table=None, category_limit: int=None, date_jitter: int=None,
                            date_units: str=None, offset: [int, float]=None, seed: int=None, save_intent: bool=None,
                            intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
@@ -1109,8 +1112,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         canonical = self.get_datetime(start='2022-12-01T13:01:07', until='2023-03-31T23:47:00', ordered=True, canonical=canonical,
                                       size=size, seed=seed, to_header='date', save_intent=False)
         # string
-        canonical = self.get_sample(sample_name='us_street_names', canonical=canonical, size=size, seed=seed,
-                                    to_header='string',  save_intent=False)
+        canonical = self.get_sample_list(sample_name='us_street_names', canonical=canonical, size=size, seed=seed,
+                                         to_header='string', save_intent=False)
 
         if isinstance(inc_nulls, bool) and inc_nulls:
             gen = np.random.default_rng()
@@ -1131,8 +1134,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                           save_intent=False)
             # string_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            canonical = self.get_sample(sample_name='us_cities', canonical=canonical, size=size, quantity=1-prob_nulls,
-                                        to_header='string_null', seed=seed, save_intent=False)
+            canonical = self.get_sample_list(sample_name='us_cities', canonical=canonical, size=size, quantity=1 - prob_nulls,
+                                             to_header='string_null', seed=seed, save_intent=False)
             # sparse
             canonical = self.get_number(start=-50, stop=8.0, canonical=canonical, size=size, quantity=0.3,
                                         to_header='sparse', seed=seed, save_intent=False)
@@ -1628,11 +1631,12 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                 float passed - the length of each interval
                 list[tuple] - specific interval periods e.g []
                 list[float] - the percentile or quantities, All should fall between 0 and 1
+
         :param lower: (optional) the lower limit of the number value. Default min()
         :param upper: (optional) the upper limit of the number value. Default max()
         :param to_header: (optional) an optional name to call the column
         :param precision: (optional) The precision of the range and boundary values. by default set to 5.
-        :param categories:(optional)  a set of labels the same length as the intervals to name the categories
+        :param categories: (optional)  a set of labels the same length as the intervals to name the categories
         :param seed: (optional) the random seed. defaults to current datetime
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the column name that groups intent to create a column
@@ -1941,11 +1945,11 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
 
-    def model_sample_link(self, canonical: pa.Table, other: [str, pa.Table], headers: list, replace: bool=None,
-                          rename_map: [dict, list]=None, multi_map: dict=None, relative_freq: list=None, seed: int=None,
-                          save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                          replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
-        """ Takes a target dataset and samples from that target to the size of the canonical
+    def model_concat_remote(self, canonical: pa.Table, other: [str, pa.Table], headers: list, replace: bool=None,
+                           rename_map: [dict, list]=None, multi_map: dict=None, relative_freq: list=None, seed: int=None,
+                           save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                           replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ Takes a remote target dataset and samples columns from that target to the size of the canonical
 
         :param canonical: a pa.Table as the reference table
         :param other: a direct pa.Table or reference to a connector.
@@ -2005,13 +2009,13 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         """ Imputes missing data with a probabilistic value based on the data pattern and the surrounding values.
         Can be applied to any type. This is the default.
 
-        :param canonical:
+        :param canonical: a canonical with the missing data
         :param strategy: (optional) replace null. By default, probability, or mean, medium, mode, forward, backward
         :param headers: (optional) a filter of headers from the 'other' dataset
         :param drop: (optional) to drop or not drop the headers if specified
         :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
         :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
-        :param seed:(optional) this is a placeholder, here for compatibility across methods
+        :param seed: (optional) this is a placeholder, here for compatibility across methods
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
