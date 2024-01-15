@@ -1,10 +1,24 @@
-Installing Capabilities
-=======================
-The ``discovery-capability`` package is a set of python capabilities components that are focussed
-on data preprocessing. They are a concrete implementation of the Project Hadron abstract core. It
-is build to be very light weight in terms of package dependencies requiring nothing beyond what
-would be found in an basic Data Science environment. Its designed to be used easily within
-multiple python based interfaces such as Jupyter, IDE or terminal python.
+Installation
+============
+
+Python Version
+--------------
+
+We recommend using the latest version of Python. Project Hadron supports Python 3.8 and newer.
+
+
+Dependencies
+------------
+
+These distributions will be installed automatically when installing Project Hadron.
+
+* discovery-core
+* pyarrow
+* pandas
+* numpy
+* matplotlib
+* scipy
+* sscikit-learn
 
 Package Installation
 --------------------
