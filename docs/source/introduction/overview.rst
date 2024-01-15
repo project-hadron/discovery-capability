@@ -188,22 +188,23 @@ Main features
 -------------
 
 * Data Selection
-* Feature Engineering
-* Feature Transformation
+* Feature Creation
+* Feature Transformers
+* Time series
 * Knowledge Augmentation
+
+Performance
+~~~~~~~~~~~
+
 * Apache PyArrow Canonical
 * large Data Processing
 * Interoperability
 * MicroServices
 * Reuse
 
-Data Selection
+Data Reporting
 ~~~~~~~~~~~~~~
 
-
-
-Data Reporting
---------------
 * Data Lineage
 * Data Profiling
 * Data Traceability
