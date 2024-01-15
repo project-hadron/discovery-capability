@@ -1,10 +1,4 @@
 # Configuration file for the Sphinx documentation builder.
-import os
-import sys
-from ds_capability import __version__
-from ds_capability.intent.feature_engineer_intent import FeatureEngineerIntent
-
-sys.path.insert(0, os.path.abspath('../'))
 
 # -- Project information
 project = 'discovery-capability'
@@ -12,9 +6,9 @@ copyright = '2024, gigas64'
 author = 'gigas64'
 
 # The short X.Y version.
-version = __version__
+version = '1.2.2'
 # The full version, including alpha/beta/rc tags.
-release = version
+release = '1.2'
 
 # -- General configuration
 extensions = [
@@ -36,7 +30,7 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', '.DS_Store', '.ipynd_checkpoints', 'Thumbs.db']
 
 # -- Options for HTML output
-# html_theme = 'sphinx_rtd_theme'
+html_theme = 'sphinx_rtd_theme'
 
 # -- Options for EPUB output
 # epub_show_urls = 'footnote'

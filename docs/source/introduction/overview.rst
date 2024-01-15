@@ -121,16 +121,23 @@ component pipelines.
 
 What are capabilities?
 ----------------------
-Capabilities" and their "Separation of Concerns" are fundamental principles in the design of
-Hadron, that help in creating maintainable, scalable, and modular software systems. In the context
-of software development, capabilities refer to the functionalities or features that a software
-system can provide. These can be identified as data selection, feature engineering and feature
-transition. Separation of Concerns is a design principle that advocates breaking a software system
+Capabilities and their separation of concern are fundamental principles in the design of Project
+Hadron. Capabilities refer to the range of functionalities and features a software solution
+possesses, in our case, to handle and process data efficiently. Within Project Hadron these
+capabilities can be identified as
+
+    * data selection
+    * feature engineering for creation
+    * feature engineering for correlation
+    * feature engineering for modelling
+    * feature transition
+
+Separation of concerns (SoC) is a design principle that advocates breaking a software system
 into distinct, independent modules or components, each addressing a specific concern or aspect of
 the system's functionality. Together, defining capabilities helps in understanding what a software
 system should achieve, while separation of concerns ensures that the system is designed in a
 modular and maintainable way, with each part addressing a specific aspect of its functionality.
-Both principles contribute to building robust and scalable software architectures.
+Both principles contribute to building modular, robust and scalable software solutions.
 
 Where can it be applied?
 ------------------------
