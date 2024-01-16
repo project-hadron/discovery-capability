@@ -1,33 +1,59 @@
 Why Project Hadron?
 ===================
 
-What is Project Hadron?
------------------------
-Unfortunately, 85% of data science projects fail due to a lack of the ability to retrieve the right
-features from a data pipeline, and communicate with a broadly skilled audience. Similar can be
-found within data provisioning for Data Lakes executing business driven analysis.
+What are we solving?
+--------------------
+The 80/20 rule, also known as the Pareto Principle, is a concept widely used in various fields,
+including data engineering and data science to denote the imbalance between effort and purpose.
 
-**Project Hadron** is a data preprocessing and data processing pipeline. It is a comprehensive
-set of tools to build improved and targeted features of interest. It manages data sourcing and
-persistence and captures discovery activities that provide a better shared environment and
-insight into idea generation.
+In the context of data engineering, the 80/20 rule suggests that approximately 80% of the effects
+or outcomes come from 20% of the causes or inputs, such as data veracity, software governance
+and solution reuse. While with data scientists, the 80/20 rule suggests that approximately 80% of
+time is spent finding, cleaning, and extracting features of interest with only 20% to perform data
+analytics initiatives. In addition Gartner suggests, 85% of data science initiatives fail because
+they don’t deliver business benefits because they solve the wrong problem.
 
-Additionally the low success rate of projects is exacerbated by poor communication between data
-scientists, data engineers and business stakeholders, resulting in a disconnect between the three
-groups. Project Hadron has been built to bridge this gap between these groups providing comprehensive
-reporting and derive meaningful information that can be used for decision-making or further
-analysis.
+Further more research shows 62% of data processing pipelines depend on others within their
+organization to perform certain steps, within stringent deadlines, in a data processing pipeline.
+Yet poor communication and limited visibility between data scientists, data engineers and business
+stakeholders directly effects success of business objectives.
 
-Project Hadron, as a data processing step, is quick-to-market, identifying
-failures early and ensuring robust foundations for success. It handles large data through memory
-efficiency, facilitates interoperability and optimisation of CPU and GPU acceleration. Project
-Hadron, as a reusable, comprehensive solution with a light touch, is built in-house allowing
-flexibility, adaptability and retained knowledge.
+Where does Project Hadron fit?
+------------------------------
+**Project Hadron** is an open-source application framework, taking raw data and identifying
+analysing and extracting features of interest for the purposes of a down stream business objective.
 
-What are its methodologies and architecture?
---------------------------------------------
-Project Hadron is Python package built using object-oriented design (OOD) and object-oriented
-programming (OOP) to provide an extendable framework for quick build component solutions. When used
+
+
+**Project Hadron** is a comprehensive set of tools to build improved and targeted features of
+interest within a data preprocessing pipeline. It complements and enhances both communication and
+redistribution within a data science project, while providing clear boundaries between the
+preprocessing of data and algorythm optimisation. This separation promotes
+transparency and reuse, vastly improving the identification and extraction of features of interest.
+
+**Project Hadron**, within a data processing step executing business driven analysis, is a quick-to-market, robust set of tools that
+build reusable pipelines for the interrogation and restructure of data for a target use case.
+It helps in identifying potential failures at the earliest stage and helps ensure a transparent and
+traceable data foundations for success. It handles large data through memory efficiency,
+facilitates interoperability and optimisation of CPU and GPU acceleration.
+
+**Project Hadron** has been built to help bridge this gap between data scientists, data engineers
+and business stakeholders with a comprehensive set of reporting tools covering data profiling,
+data lineage and knowledge acquisition. Its targeted reports can be directly delivered as
+spreadsheets for stakeholders, absorbed into an already existing reporting tool for analytics or
+saved in cloud storage all saved in parquet files for interoperability with other solutions.
+
+Within the context of data processing, Project Hadron offers data governance optimization, data
+quality consistency, data efficiency improvement and risk of error reduction.
+
+What are its design methodologies?
+----------------------------------
+Project hadron is an open-source application framework, written in pure Python using pyarrow as its
+canonical and depends on a few key Python packages found in any analytics environment such as
+Pandas and Numpy.
+
+Project Hadron was constructed using object-oriented design (OOD) and object-oriented programming
+(OOP) techniques to provide an extendable framework for quick build component solutions. When used
 together, Pandas and PyArrow form a powerful combination for handling diverse data processing tasks
 efficiently.
 
@@ -207,5 +233,5 @@ Data Reporting
 
 * Data Lineage
 * Data Profiling
-* Data Traceability
+* Knowledge Acquisition
 

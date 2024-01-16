@@ -6,20 +6,6 @@ Python Version
 
 We recommend using the latest version of Python. Project Hadron supports Python 3.8 and newer.
 
-
-Dependencies
-------------
-
-These distributions will be installed automatically when installing Project Hadron.
-
-* discovery-core
-* pyarrow
-* pandas
-* numpy
-* matplotlib
-* scipy
-* sscikit-learn
-
 Package Installation
 --------------------
 The best way to install the component packages is directly from the Python Package Index
@@ -42,28 +28,25 @@ Python, PyArrow and related Data manipulation tooling such as Pandas, Numpy, sci
 and visual packages matplotlib and seaborn, and thus have a limited footprint and non-disruptive
 installation in a data processing environment.
 
-Get the Source Code
--------------------
+dependancies
+~~~~~~~~~~~~
+Project Hadron is written in pure Python and depends on a few key Python packages. These should
+be installed as parge of the pip installation but for troubleshooting, they are:
 
-``discovery-capability`` is actively developed on GitHub, where the code is
-`always available <https://github.com/project-hadron/discovery-capability>`_.
+pyarrow, provides a cross-language, in-memory columnar data representation
+pandas, versatile data manipulation and analysis toolset
+numpy, core library for numerical and mathematical operations
+scipy, scientific computing library that extends the functionality of NumPy
+scikit-learn, machine learning library with a focus on predictive data analysis
+matplotlib, versatile 2D plotting library
+seaborn, statistical data visualization library built on top of Matplotlib
 
-You can clone the public repository with:
 
-.. code-block:: bash
+In case of any trouble related to these dependencies, please refer to their respective
+installation instructions:
 
-    $ git clone git@github.com:project-hadron/discovery-capability.git
-
-Once you have a copy of the source, you can embed it in your own Python
-package, or install it into your site-packages easily running:
-
-.. code-block:: bash
-
-    $ cd discovery-capability
-    $ python -m pip install .
-
-Release Process and Rules
--------------------------
+Release Process
+---------------
 
 Versions to be released will govern and describe how the ``discovery-capability`` produces a new
 release.
@@ -83,11 +66,8 @@ be versioned as ``vX.0.0``. For example, if the previous release was
 ``v10.2.7`` the next version will be ``v11.0.0``.
 
 Breaking changes are changes that break backwards compatibility with prior
-versions. If the project were to change an existing methods signature or
-alter a class or method name, that would only happen in a Major release.
-The majority of changes to the dependant core abstraction will result in a
-major release. Major releases may also include miscellaneous bug fixes that
-have significant implications.
+versions. The majority of changes to the dependant core abstraction will result in a
+major release.
 
 Project Hadron is committed to providing a good user experience
 and as such, committed to preserving backwards compatibility as much as possible.

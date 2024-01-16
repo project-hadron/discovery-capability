@@ -73,6 +73,9 @@ class Controller(AbstractComponent):
          :param has_contract: (optional) indicates the instance should have a property manager domain contract
          :return: the initialised class instance
          """
+        # save the controllers uri_pm_repo path
+        if isinstance(uri_pm_repo, str):
+            cls.URI_PM_REPO = uri_pm_repo
         pm_file_type = pm_file_type if isinstance(pm_file_type, str) else 'json'
         pm_module = pm_module if isinstance(pm_module, str) else cls.DEFAULT_MODULE
         pm_handler = pm_handler if isinstance(pm_handler, str) else cls.DEFAULT_PERSIST_HANDLER
@@ -121,9 +124,6 @@ class Controller(AbstractComponent):
          :param kwargs: to pass to the property ConnectorContract as its kwargs
          :return: the initialised class instance
          """
-        # save the controllers uri_pm_repo path
-        if isinstance(uri_pm_repo, str):
-            cls.URI_PM_REPO = uri_pm_repo
         task_name = task_name if isinstance(task_name, str) else 'master'
         return super().from_env(task_name=task_name, default_save=default_save, reset_templates=reset_templates,
                                 align_connectors=align_connectors, default_save_intent=default_save_intent,
