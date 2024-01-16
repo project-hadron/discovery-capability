@@ -73,6 +73,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
             s = re.sub(r"\s+", '_', s)
             headers.append(s)
         # convert case
+        headers = pa.array(headers)
         if isinstance(case, str):
             if case.lower() == 'lower':
                 headers = pc.ascii_lower(headers)
