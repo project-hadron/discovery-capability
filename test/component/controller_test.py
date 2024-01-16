@@ -65,9 +65,15 @@ class FeatureBuilderTest(unittest.TestCase):
             pass
 
     def test_controller_scripts(self):
-        repo_path = "https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/contracts/pyarrow/data_profiling"
+        repo_path = "https://github.com/project-hadron/hadron-asset-bank/blob/master/contracts/pyarrow/data_profiling"
         tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100)
-        result = run_repo_pipeline(tbl, repo_path=repo_path)
+        # pass the environ variables
+        result = run_repo_pipeline(tbl, repo_path=repo_path,
+                                   hadron_profiing_source_uri='s3://project-hadron-cs-repo/domain/synthetic/source/synthetic_type_10_000.parquet',
+                                   hadron_profiing_persist_uri='s3://project-hadron-cs-repo/domain/synthetic/persist/synthetic_type_10_000_processed.parquet',
+                                   hadron_data_profile_uri='s3://project-hadron-cs-repo/domain/synthetic/persist/quality.parquet',
+                                   hadron_data_dictionary_uri='s3://project-hadron-cs-repo/domain/synthetic/persist/dictionary.parquet',
+                                   hadron_data_schema_uri='s3://project-hadron-cs-repo/domain/synthetic/persist/schema.parquet')
         print(result.shape)
 
     def test_raise(self):

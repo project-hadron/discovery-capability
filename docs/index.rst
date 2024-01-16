@@ -12,4 +12,5 @@ Project Hadron Discovery Capability
 
    source/introduction/overview
    source/introduction/installing
+   source/quick_start/beginning
    source/api_doc/index
