@@ -1614,7 +1614,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         if 'doy' in matrix:
             canonical = Commons.table_append(canonical, pa.table([p_values.dt.dayofyear], names=[f"{target}_doy"]))
         if isinstance(drop_target, bool) and drop_target:
-            canonical = canonical.drop_columns('target')
+            canonical = canonical.drop_columns(target)
         return canonical
 
     def correlate_discrete_intervals(self, canonical: pa.Table, header: str, granularity: [int, float, list]=None,
