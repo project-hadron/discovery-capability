@@ -7,7 +7,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 from ds_capability import *
 from ds_capability.components.commons import Commons
-from ds_capability.intent.feature_build_intent import FeatureBuildIntent
+from ds_capability.intent.feature_engineer_intent import FeatureEngineerIntent
 from ds_core.properties.property_manager import PropertyManager
 
 # Pandas setup
@@ -55,27 +55,75 @@ class FeatureEngineerModelTest(unittest.TestCase):
             pass
 
     def test_for_smoke(self):
-        fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = fb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100)
         self.assertEqual(100, tbl.num_rows)
+        
+    def test_model_cat_cast(self):
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100)
+        result = tools.model_cat_cast(tbl)
+        schema = pa.schema([
+            ("cat", pa.string()),
+            ("num", pa.string()),
+            ("int", pa.string()),
+            ("bool", pa.string()),
+            ("date", pa.string()),
+            ("string", pa.string()),
+        ])
+        self.assertEqual(result.schema, schema)
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100)
+        result = tools.model_cat_cast(tbl, cat_type=True)
+        schema = pa.schema([
+            ("cat", pa.dictionary(pa.int32(), pa.utf8())),
+            ("num", pa.dictionary(pa.int32(), pa.utf8())),
+            ("int", pa.dictionary(pa.int32(), pa.utf8())),
+            ("bool", pa.dictionary(pa.int32(), pa.utf8())),
+            ("date", pa.dictionary(pa.int32(), pa.utf8())),
+            ("string", pa.dictionary(pa.int32(), pa.utf8())),
+        ])
+        self.assertEqual(result.schema, schema)
+
+    def test_model_num_cast(self):
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, category_encode=False)
+        tbl = tools.model_cat_cast(tbl)
+        result = tools.model_num_cast(tbl)
+        schema = pa.schema([
+            ("cat", pa.string()),
+            ("num", pa.float64()),
+            ("int", pa.int64()),
+            ("bool", pa.int64()),
+            ("date", pa.timestamp('ns')),
+            ("string", pa.string()),
+        ])
+        self.assertEqual(result.schema, schema)
+        tbl = pa.table([pa.array(['$1,000.00', '$56.34', '$0.45'])], names=['currency'])
+        result = tools.model_num_cast(tbl, remove=['$', ','])
+        self.assertEqual('double', result.column('currency').type)
+        self.assertEqual([1000.0, 56.34, 0.45], result.column('currency').to_pylist())
+
+
 
     def test_model_sample_link(self):
-        fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = fb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         canonical = FeatureEngineer.from_memory().tools.get_synthetic_data_types(10, category_encode=False)
         other = FeatureEngineer.from_memory().tools.get_synthetic_data_types(5, category_encode=False)
-        result = tools.model_sample_link(canonical=canonical, other=other, headers=['int'], rename_map=['key'])
+        result = tools.model_concat_remote(canonical=canonical, other=other, headers=['int'], rename_map=['key'])
         self.assertCountEqual(result.column_names, canonical.column_names+['key'])
-        result = tools.model_sample_link(canonical=canonical, other=other, headers=['int', 'num'], rename_map={'int': 'key', 'num': 'prob'})
+        result = tools.model_concat_remote(canonical=canonical, other=other, headers=['int', 'num'], rename_map={'int': 'key', 'num': 'prob'})
         self.assertCountEqual(result.column_names, canonical.column_names + ['key', 'prob'])
-        result = tools.model_sample_link(canonical=canonical, other=other, headers=['int'], rename_map=['key1'], multi_map={'key2': 'key1'})
+        result = tools.model_concat_remote(canonical=canonical, other=other, headers=['int'], rename_map=['key1'], multi_map={'key2': 'key1'})
         self.assertCountEqual(result.column_names, canonical.column_names + ['key1', 'key2'])
         self.assertTrue(result.column('key1').equals(result.column('key2')))
 
     def test_model_missing(self):
-        fb = FeatureBuild.from_memory()
-        tools: FeatureBuildIntent = fb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         tbl = FeatureEngineer.from_memory().FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
         self.assertGreater(tbl.column('num_null').null_count, 0)
         self.assertGreater(tbl.column('string_null').null_count, 0)

@@ -20,22 +20,21 @@ stakeholders directly effects success of business objectives.
 
 Where does Project Hadron fit?
 ------------------------------
-**Project Hadron** is an open-source application framework, taking raw data and identifying
-analysing and extracting features of interest for the purposes of a down stream business objective.
+**Project Hadron** is an open-source application framework, taking raw data and identifying,
+analysing and extracting prepared data for the purposes of a down stream business objective.
 
-
-
-**Project Hadron** is a comprehensive set of tools to build improved and targeted features of
+**Project Hadron** is a comprehensive set of tools to build, improved and targeted features of
 interest within a data preprocessing pipeline. It complements and enhances both communication and
 redistribution within a data science project, while providing clear boundaries between the
 preprocessing of data and algorythm optimisation. This separation promotes
 transparency and reuse, vastly improving the identification and extraction of features of interest.
 
-**Project Hadron**, within a data processing step executing business driven analysis, is a quick-to-market, robust set of tools that
-build reusable pipelines for the interrogation and restructure of data for a target use case.
-It helps in identifying potential failures at the earliest stage and helps ensure a transparent and
-traceable data foundations for success. It handles large data through memory efficiency,
-facilitates interoperability and optimisation of CPU and GPU acceleration.
+**Project Hadron**, within a data processing step, executing business driven analysis, is a
+quick-to-market, robust set of tools that build reusable pipelines for the interrogation and
+restructure of data for a target use case. It helps in identifying potential failures at the
+earliest stage and helps ensure a transparent and traceable data foundations for success. It
+handles large data through memory efficiency, facilitates interoperability and optimisation of
+CPU and GPU acceleration.
 
 **Project Hadron** has been built to help bridge this gap between data scientists, data engineers
 and business stakeholders with a comprehensive set of reporting tools covering data profiling,
@@ -68,12 +67,12 @@ Project Hadron provides functionalities fundamental to data processing, and as s
 learning preprocessing pipeline and data processing pipeline, though its application can be applied
 far wider.
 
-The term "preprocessing" is commonly used in the field of data science and machine learning
-to refer to data selection, feature engineering and feature transformation as steps to clean,
+Here we use the term "preprocessing" in the context of data science and machine learning
+referring to data selection, feature engineering and feature transformation as steps to clean,
 format, and organize source data into a suitable format for the process of model evaluation &
 tuning.
 
-.. image:: /images/introduction/machine_learning_pipeline_v01.png
+.. image:: /source/_images/introduction/machine_learning_pipeline_v01.png
   :align: center
   :width: 700
 
@@ -81,69 +80,14 @@ tuning.
 
 This same process exists in 'The Three Stages of Data Processing', but in this case known
 simply as data processing. The architecture consists of three essential elements: a source or
-sources, processing steps, and a destination. Just as with machine learning preprocessing,
+sources, processing steps, and a destination. Similar to thr machine learning preprocessing,
 these steps include transformation, augmentation, filtering, grouping, and aggregation.
 
-.. image:: /images/introduction/three_phase_pipeline_v01.png
+.. image:: /source/_images/introduction/three_phase_pipeline_v01.png
   :align: center
   :width: 650
 
 \
-
-To note, extract, transform, and load (ETL) systems are a kind of data pipeline in that they move
-data from a source, transform the data, and then load the data into a destination. But ETL is
-usually just a sub-process. Depending on the nature of the pipeline, ETL may be automated or
-may not be included at all. On the other hand, a data pipeline is broader in that it is the entire
-process involved in transporting data from one location to another.
-
-Then what is a capability pipeline?
------------------------------------
-Project Hadron for data processing has been built as a set of capabilities to handle the
-different types of processing data. These are Data Selection, Feature Engineering, Feature
-Transition and Feature Build, for specialized capabilities. In order to be able to run these
-capabilities as a cohesive microservice, a specialist capability, called a Controller, coordinates
-the running order of these capabilities, that form the microservice.
-
-.. image:: /images/introduction/hadron_data_pipeline_overview.png
-  :align: center
-  :width: 400
-
-\
-
-From the diagram you can see the encapsulated microservice within which the Hadron pipeline exists.
-This is referred to as a component pipeline, and each capability referred to as a component
-capability or just a component.  Each component has their own runbook script which defines the
-component and how it runs. The Controller also has its own runbook script which describes how the
-component pipeline should run.
-
-This means that component pipelines can go from simple input output microservices to more complex
-and dependent solution pipelines.
-
-.. image:: /images/introduction/hadron_data_pipelines_type1.png
-  :align: center
-  :width: 600
-
-\
-
-fig. 1 Shows a straight through process with one source and one output and three capability
-components.
-
-fig. 2 maintains a single source but in this case each capability has its own output.
-
-.. image:: /images/introduction/hadron_data_pipelines_type2.png
-  :align: center
-  :width: 700
-
-\
-
-fig. 3 shows a more complex multi input with five components and two merging pipelines being
-encapsulated within a single microservice,
-
-fig. 4, while still providing the same complex input output, has been separated into
-three microservices with the responsibility of managing the pipeline with the environment system.
-
-This allows the designer and implementer to choose the best way to manage and monitor a set of
-component pipelines.
 
 What are capabilities?
 ----------------------
@@ -164,6 +108,58 @@ the system's functionality. Together, defining capabilities helps in understandi
 system should achieve, while separation of concerns ensures that the system is designed in a
 modular and maintainable way, with each part addressing a specific aspect of its functionality.
 Both principles contribute to building modular, robust and scalable software solutions.
+
+Then what is a capability recipe?
+---------------------------------
+In order to capture a set of capabilities into a reusable microservice, Project Hadron creates a 
+recipe of capabilities encapsulating how they should run.
+
+It has been built as a set of capabilities to handle the
+different types of processing data. These are Data Selection, Feature Engineering, Feature
+Transition and Feature Build, for specialized capabilities. In order to be able to run these
+capabilities as a cohesive microservice, a specialist capability, called a Controller, coordinates
+the running order of these capabilities, that form the microservice.
+
+.. image:: /source/_images/introduction/hadron_data_pipeline_overview.png
+  :align: center
+  :width: 400
+
+\
+
+From the diagram you can see the encapsulated microservice within which the Hadron capabilities exists.
+This is referred to as a capability recipe, and each capability referred to as a component
+capability or just a component.  Each component has their own runbook script which defines the
+component and how it runs. The Controller also has its own runbook script which describes how the
+capability recipe should run.
+
+This means that capability recipes can go from simple input output microservices to more complex
+and dependent solution pipelines.
+
+.. image:: /source/_images/introduction/hadron_data_pipelines_type1.png
+  :align: center
+  :width: 600
+
+\
+
+fig. 1 Shows a straight through process with one source and one output and three capability
+components.
+
+fig. 2 maintains a single source but in this case each capability has its own output.
+
+.. image:: /source/_images/introduction/hadron_data_pipelines_type2.png
+  :align: center
+  :width: 700
+
+\
+
+fig. 3 shows a more complex multi input with five components and two merging pipelines being
+encapsulated within a single microservice,
+
+fig. 4, while still providing the same complex input output, has been separated into
+three microservices with the responsibility of managing the pipeline with the environment system.
+
+This allows the designer and implementer to choose the best way to manage and monitor a set of
+capability recipes.
 
 Where can it be applied?
 ------------------------
@@ -191,7 +187,7 @@ Jupyter Notebooks. Data selection, feature engineering and feature transition ar
 essential part of Hadron, building a usable data pipeline and involves a skilled blend of domain
 expertise, intuition and lateral thought.
 
-As an implementer, Project Hadron component pipelines, the skill set depends very much on the
+As an implementer, Project Hadron capability recipes, the skill set depends very much on the
 environment the pipeline is being implemented into. For example if you are implementing Hadron
 pipelines into a Docker environment there are no code requirements from Hadron as it is presented
 as a Docker image and the parameters around that. This will be the same for most implementations,
