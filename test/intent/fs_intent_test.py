@@ -81,13 +81,6 @@ class FeatureEngineererTest(unittest.TestCase):
         self.assertEqual(13, result.num_columns)
         print(result.column_names)
 
-    def test_auto_to_string(self):
-        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100)
-        fs = FeatureSelect.from_memory()
-        tools: FeatureSelectIntent = fs.tools
-        result = tools.auto_to_string(tbl)
-        print(result.schema)
-
     def test_auto_drop_correlated(self):
         tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, inc_nulls=True)
         fs = FeatureSelect.from_memory()

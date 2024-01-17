@@ -2235,3 +2235,127 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         df_rtn = df.merge(right=df_other, how=how, left_on=left_on, right_on=right_on, on=on, suffixes=suffixes,
                           indicator=indicator, validate=validate)
         return pa.Table.from_pandas(df_rtn)
+
+    def model_cat_cast(self, canonical: pa.Table, cat_type: bool=None, headers: [str, list]=None,
+                       d_types: [str, list]=None, regex: [str, list]=None, drop: bool=None,
+                       save_intent: bool=None, tm_format: str=None, tm_locale:str=None,
+                       intent_level: [int, str]=None, intent_order: int=None,
+                       replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ Reverses casting of int, float values to string, decodes Dictionary types to string,
+        casts bools to 1 and 0, then converts to string and converts dates to a given string format.
+        If cat_type is True then all string types passed are converted to dictionary type
+
+        :param canonical: the pa.Table
+        :param cat_type: (optional) converts str to Categorical type
+        :param headers: (optional) a filter of headers from the 'other' dataset
+        :param drop: (optional) to drop or not drop the headers if specified
+        :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
+        :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
+        :param tm_format: Pattern for formatting input values. Default “%Y-%m-%dT%H:%M:%S”
+        :param tm_locale: Locale to use for locale-specific format specifiers.. Default 'C'
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the level name that groups intent by a reference name
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table.
+        """
+        # resolve intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        cat_type = cat_type if isinstance(cat_type, bool) else False
+        tm_format = tm_format if isinstance(tm_format, str) else '%Y-%m-%dT%H:%M:%S'
+        tm_locale = tm_locale if isinstance(tm_locale, str) else "C"
+        cast_names = Commons.filter_headers(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
+        for n in cast_names:
+            c = canonical.column(n).combine_chunks()
+            if pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
+                c = pc.cast(c, pa.string())
+            elif pa.types.is_dictionary(c.type):
+                c = c.dictionary_decode()
+            elif pa.types.is_timestamp(c.type):
+                c = pc.strftime(c, format=tm_format, locale=tm_locale)
+            elif pa.types.is_boolean(c.type):
+                c = pc.cast(c, pa.int8())
+                c = pc.cast(c, pa.string())
+            if pa.types.is_string(c.type):
+                if cat_type:
+                    c = c.dictionary_encode()
+            else:
+                continue
+            canonical = Commons.table_append(canonical, pa.table([c], names=[n]))
+        return canonical
+
+    def model_num_cast(self, canonical: pa.Table, headers: [str, list]=None,
+                       d_types: [str, list]=None, regex: [str, list]=None, drop: bool=None, remove: list=None,
+                       save_intent: bool=None, tm_format: str=None, tm_units: str=None, tm_tz: str=None,
+                       intent_level: [int, str]=None, intent_order: int=None,
+                       replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ Reverses casting of strings and dictionary types to int or float removing .
+
+
+        :param canonical: the pa.Table
+        :param headers: (optional) a filter of headers from the 'other' dataset
+        :param drop: (optional) to drop or not drop the headers if specified
+        :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
+        :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
+        :param remove: (optional) a list of items to remove from the string such a '$' or','
+        :param tm_format: (optional) the format of the string dates used if the date cannot be coerced
+        :param tm_units: (optional)
+        :param tm_tz: (optional)
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the level name that groups intent by a reference name
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table.
+        """
+        # resolve intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        tm_units = tm_units if isinstance(tm_units, str) and tm_units in ['s', 'ms', 'us', 'ns'] else 'ns'
+        remove = Commons.list_formatter(remove)
+        cast_names = Commons.filter_headers(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
+        for n in cast_names:
+            c = canonical.column(n).combine_chunks()
+            if pa.types.is_dictionary(c.type):
+                c = c.dictionary_decode()
+            if remove:
+                p = c.to_pandas()
+                for item in remove:
+                    p = p.str.replace(item, '')
+                c = pa.Array.from_pandas(p)
+            if pa.types.is_string(c.type):
+                if any([Commons.valid_date(x) for x in c.drop_null().to_pylist()]):
+                    if isinstance(tm_format, str):
+                        c = pc.strptime(c, format=tm_format, unit=tm_units)
+                    else:
+                        c = Commons.column_cast(c, pa.timestamp(unit=tm_units, tz=tm_tz))
+                else:
+                    if pa.types.is_string(c.type):
+                        c = Commons.column_cast(c, pa.float64())
+                    if pa.types.is_floating(c.type):
+                        c = Commons.column_cast(c, pa.int64())
+            else:
+                continue
+            canonical = Commons.table_append(canonical, pa.table([c], names=[n]))
+        return canonical
+
