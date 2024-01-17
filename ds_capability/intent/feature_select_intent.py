@@ -252,8 +252,8 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         # Code block for intent
         tm_format = tm_format if isinstance(tm_format, str) else '%Y-%m-%dT%H:%M:%S'
         tm_locale = tm_locale if isinstance(tm_locale, str) else "C"
-        canonical = Commons.filter_columns(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
-        for n in canonical.column_names:
+        cast_names = Commons.filter_headers(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
+        for n in cast_names:
             c = canonical.column(n).combine_chunks()
             if pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
                 c = pc.cast(c, pa.string())
