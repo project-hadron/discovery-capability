@@ -73,14 +73,15 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
             s = re.sub(r"\s+", '_', s)
             headers.append(s)
         # convert case
-        headers = pa.array(headers)
         if isinstance(case, str):
+            headers = pa.array(headers)
             if case.lower() == 'lower':
                 headers = pc.ascii_lower(headers)
             elif case.lower() == 'upper':
                 headers = pc.ascii_upper(headers)
             elif case.lower() == 'title':
                 headers = pc.ascii_title(headers)
+            headers = headers.to_pylist()
         # return table with new headers
         return canonical.rename_columns(headers)
 
