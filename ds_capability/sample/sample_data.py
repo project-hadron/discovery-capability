@@ -266,6 +266,7 @@ class MappedSample(AbstractSample):
         # generate the random index of the names
         generator = np.random.default_rng(seed=seed)
         # set male/female
+        sample = sample.to_pandas()
         female_idx = sample[sample['Gender'] == 'F'].dropna().index.to_list()
         male_idx = sample[sample['Gender'] == 'M'].dropna().index.to_list()
         female_bias = female_bias if isinstance(female_bias, float) and 0 <= female_bias <= 1 else np.round(
