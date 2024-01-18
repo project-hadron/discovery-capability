@@ -63,14 +63,13 @@ traceability.
 
 Where does it sit within a system pipeline?
 -------------------------------------------
-Project Hadron provides functionalities fundamental to data processing, and as such targets machine
-learning preprocessing pipeline and data processing pipeline, though its application can be applied
-far wider.
+Project Hadron provides functionalities fundamental to the optimisation and appropriateness of
+tabular data for a downstream business objective. As such it places itself as a machine learning
+preprocessing or data processing step, though its application can be applied far wider.
 
-Here we use the term "preprocessing" in the context of data science and machine learning
-referring to data selection, feature engineering and feature transformation as steps to clean,
-format, and organize source data into a suitable format for the process of model evaluation &
-tuning.
+Preprocessing, in the context of data science and machine learning, refers to data selection,
+feature engineering and feature transformation as steps to clean, format, and organize source
+data into a suitable format for the process of model evaluation and tuning.
 
 .. image:: /source/_images/introduction/machine_learning_pipeline_v01.png
   :align: center
@@ -78,16 +77,18 @@ tuning.
 
 \
 
-This same process exists in 'The Three Stages of Data Processing', but in this case known
-simply as data processing. The architecture consists of three essential elements: a source or
-sources, processing steps, and a destination. Similar to thr machine learning preprocessing,
-these steps include transformation, augmentation, filtering, grouping, and aggregation.
+This same process exists in 'The Three Stages of Data Processing', where the architecture consists
+of three essential elements: a source or sources, processing steps, and a destination. Similar to
+the machine learning preprocessing, these steps include transformation, augmentation, filtering,
+grouping, and aggregation.
 
 .. image:: /source/_images/introduction/three_phase_pipeline_v01.png
   :align: center
   :width: 650
 
 \
+
+.. _What are capabilities?:
 
 What are capabilities?
 ----------------------
@@ -111,8 +112,11 @@ Both principles contribute to building modular, robust and scalable software sol
 
 Then what is a capability recipe?
 ---------------------------------
-In order to capture a set of capabilities into a reusable microservice, Project Hadron creates a 
-recipe of capabilities encapsulating how they should run.
+Capabilities, on their own, are tightly focused on their concerns, albeit with a use case in mind.
+It is not till we collectively link our capabilities in a meaningful order, we build our reusable use case or
+microservice. In order to capture a set of capabilities into a reusable
+microservice, Project Hadron creates a collection of capabilities, and their actions, that relate
+to a reusable test to a encapsulating how they should run.
 
 It has been built as a set of capabilities to handle the
 different types of processing data. These are Data Selection, Feature Engineering, Feature
@@ -126,8 +130,8 @@ the running order of these capabilities, that form the microservice.
 
 \
 
-From the diagram you can see the encapsulated microservice within which the Hadron capabilities exists.
-This is referred to as a capability recipe, and each capability referred to as a component
+From the diagram you can see the encapsulated microservice within which the Hadron capabilities
+exists. This is referred to as a capability recipe, and each capability referred to as a component
 capability or just a component.  Each component has their own runbook script which defines the
 component and how it runs. The Controller also has its own runbook script which describes how the
 capability recipe should run.
@@ -161,29 +165,29 @@ three microservices with the responsibility of managing the pipeline with the en
 This allows the designer and implementer to choose the best way to manage and monitor a set of
 capability recipes.
 
-Where can it be applied?
-------------------------
-Project Hadron is targeted at data improvement for all types of data processing and runs in the
-relevant environment for the user of the tool. It can run as (1) a complementary functional toolkit in
+Where can Project Hadron be applied?
+------------------------------------
+Project Hadron can run as (1) a complementary functional toolkit in
 Jupyter Notebooks for Data Scientists, (2) an object oriented collection of abstract and concrete
 classes for a Python IDE, such as PyCharm or Visual Studio, (3) or an implementation of a script
 image into a Docker environment or as a collection of Microservices in a cloud-native
-architecture. Its light footprint and quick-to-market design lends itself perfectly to pilots and
-POCs when including its extensive interoperability. It targets Data Science environments, allowing a vastly
-improved set of background systems for data management and idea sharing, of knowledge retention and
-separation of concerns. It integrates with familiar Data Science tools while offering functions to
-uncover features, provide robustness, and elevate ideas to a broad audience.
+architecture.
 
-Who would use it?
------------------
+Written in pure Python and depends on only a few well-established and supported Python packages,
+Project Hadron's quick-to-market design lends itself pilots and with extensive interoperability,
+POCs. Its robustness and reuse along with its implementation as microservices place it in any
+larger project for data analytics and data processing.
+
+Who would use Project Hadron?
+-----------------------------
 As a Data Scientist. Project Hadron requires a knowledge of Python 3.8+, PyArrow, Pandas, Numpy as
 a core with a skilled blend of domain expertise, inference and the ability to adopt alternative
 systems to improve project sharing and feature identification. An understanding of Jupyter
 Notebooks or Jupyter Lab.
 
 As a software developer, Project Hadron requires a knowledge of Python 3.8+ and PyArrow. A good
-understanding of some sort of Python interface, or Python IDE such as PyCharm or Visual Studio or as
-Jupyter Notebooks. Data selection, feature engineering and feature transition are the most
+understanding of some sort of Python interface, or Python IDE such as PyCharm or Visual Studio or
+as Jupyter Notebooks. Data selection, feature engineering and feature transition are the most
 essential part of Hadron, building a usable data pipeline and involves a skilled blend of domain
 expertise, intuition and lateral thought.
 
@@ -204,10 +208,18 @@ PyArrow enhances Pandas by providing a more efficient, columnar data representat
 facilitates seamless interoperability with other systems, improved performance, and support for
 efficient file formats like Parquet. It extends Pandas' capabilities, especially in scenarios
 where performance and data interchange with other systems are critical. These benefits have
-contributed to its wide usage in data engineering, analytics, and other data-intensive applications.
+contributed to its wide usage in data engineering, analytics, and other data-intensive
+applications.
 
-Main features
--------------
+For more information visit `Apache Arrow`_
+
+.. _Apache Arrow: https://arrow.apache.org/
+
+Quick glance features
+---------------------
+
+Capabilities
+~~~~~~~~~~~~
 
 * Data Selection
 * Feature Creation
@@ -219,13 +231,14 @@ Performance
 ~~~~~~~~~~~
 
 * Apache PyArrow Canonical
+* improved memory management
 * large Data Processing
 * Interoperability
 * MicroServices
 * Reuse
 
-Data Reporting
-~~~~~~~~~~~~~~
+Reporting
+~~~~~~~~~
 
 * Data Lineage
 * Data Profiling
