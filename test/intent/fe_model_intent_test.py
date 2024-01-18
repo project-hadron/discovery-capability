@@ -106,8 +106,6 @@ class FeatureEngineerModelTest(unittest.TestCase):
         self.assertEqual('double', result.column('currency').type)
         self.assertEqual([1000.0, 56.34, 0.45], result.column('currency').to_pylist())
 
-
-
     def test_model_sample_link(self):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools

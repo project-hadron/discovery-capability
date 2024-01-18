@@ -29,9 +29,10 @@ the `suggested resources in the learnpython-subreddit`_.
 .. _Learn Python 3 The Hard Way: https://learnpythonthehardway.org/python3/
 .. _suggested resources in the learnpython-subreddit: https://www.reddit.com/r/learnpython/wiki/index#wiki_new_to_python.3F
 
-As actions
-----------
-You can run Gradio in your favorite code editor, Jupyter notebook, Google Colab, or anywhere else you write Python.
+Basic usage
+-----------
+You can run Project Hadron in your favorite code editor, Jupyter notebook, Google Colab, or
+anywhere else you write Python.
 
 Feature Build
 

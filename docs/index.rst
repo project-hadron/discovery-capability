@@ -1,13 +1,17 @@
-.. discovery_capability documentation master file, created by
-   sphinx-quickstart on Sun Jan  7 12:16:54 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Project Hadron
+==============
 
-Project Hadron Discovery Capability
-===================================
+**Project Hadron** is an open-source application framework for preprocessing, feature creation,
+data analysis and transformation of tabular datasets. With PyArrow as its canonical, and a more
+directed use of pandas, Project Hadron offers extensive interoperability, improved memory
+management and hardware optimization for the processing of large datasets fast.
+
+Project Hadron is a selection of :ref:`capabilities<What are capabilities?>` that represent an
+encapsulated set of actionAs an example, FeatureSelection, a capability class, encapsulates
+cleaning data by removing uninformative columns from a data table.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    source/introduction/overview

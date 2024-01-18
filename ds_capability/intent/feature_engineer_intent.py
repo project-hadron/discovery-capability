@@ -352,11 +352,13 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             rtn_list = rtn_list.apply(lambda t: t.replace(second=0, microsecond=0, nanosecond=0))
         if as_num:
             return Commons.date2value(rtn_list)
+        rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         if isinstance(date_format, str) and len(rtn_list) > 0:
             rtn_list = rtn_list.dt.strftime(date_format)
-        rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
+            arr = pc.cast(pa.Array.from_pandas(rtn_list), pa.string())
+        else:
+            arr = pc.cast(pa.TimestampArray.from_pandas(rtn_list), pa.timestamp(time_unit, timezone))
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
-        arr = pc.cast(pa.TimestampArray.from_pandas(rtn_list), pa.timestamp(time_unit, timezone))
         return Commons.table_append(canonical, pa.table([arr], names=[to_header]))
 
     def get_intervals(self, intervals: list, canonical: pa.Table=None, relative_freq: list=None, precision: int=None,
