@@ -88,10 +88,9 @@ grouping, and aggregation.
 
 \
 
-.. _What are capabilities?:
-
 What are capabilities?
 ----------------------
+
 Capabilities and their separation of concern are fundamental principles in the design of Project
 Hadron. Capabilities refer to the range of functionalities and features a software solution
 possesses, in our case, to handle and process data efficiently. Within Project Hadron these

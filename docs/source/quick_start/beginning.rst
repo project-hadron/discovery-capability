@@ -1,5 +1,5 @@
-Quick Start
-===========
+Getting Started
+===============
 
 Before we begin
 ---------------

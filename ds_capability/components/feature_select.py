@@ -1,4 +1,6 @@
 from __future__ import annotations
+import pandas as pd
+import pyarrow as pa
 from ds_capability.components.commons import Commons
 from ds_capability.intent.feature_select_intent import FeatureSelectIntent
 from ds_capability.managers.feature_select_property_manager import FeatureSelectPropertyManager
@@ -70,3 +72,62 @@ class FeatureSelect(AbstractCommonComponent):
     @property
     def tools(self) -> FeatureSelectIntent:
         return self._intent_model
+
+    def set_provenance(self, title: str=None, domain: str=None, description: str=None, license_type: str=None,
+                       license_name: str=None, license_uri: str=None, cost_price: str = None, cost_code: str = None,
+                       cost_type: str = None, provider_name: str=None, provider_uri: str=None, provider_note: str=None,
+                       author_name: str=None, author_uri: str=None, author_contact: str=None, save: bool=None):
+        """sets the provenance values. Only sets those passed
+
+        :param title: (optional) the title of the provenance
+        :param domain: (optional) the domain it sits within
+        :param description: (optional) a description of the provenance
+        :param license_type: (optional) The type of the license. Default 'ODC-By'
+        :param license_name: (optional) The full name of the license. Default 'Open Data Commons Attribution License'
+        :param license_uri: (optional) The license uri. Default https://opendatacommons.org/licenses/by/
+        :param cost_price: (optional) a cost price associated with this provenance
+        :param cost_code: (optional) a cost centre code or reference code
+        :param cost_type: (optional) the cost type or description
+        :param provider_name: (optional) the provider system or institution name or title
+        :param provider_uri: (optional) a uri reference that helps identify the provider
+        :param provider_note: (optional) any notes that might be useful
+        :param author_name: (optional) the author of the data
+        :param author_uri: (optional) the author uri
+        :param author_contact: (optional)the the author contact information
+        :param save: (optional) if True, save to file. Default is True
+        """
+        license_type = license_type if license_type else 'PDDL'
+        license_name = license_name if license_name else 'Open Data Commons Attribution License'
+        license_uri = license_uri if license_uri else 'https://opendatacommons.org/licenses/pddl/summary'
+
+        self.pm.set_provenance(title=title, domain=domain, description=description, license_type=license_type,
+                               license_name=license_name, license_uri=license_uri, cost_price=cost_price,
+                               cost_code=cost_code, cost_type=cost_type, provider_name=provider_name,
+                               provider_uri=provider_uri, provider_note=provider_note, author_name=author_name,
+                               author_uri=author_uri, author_contact=author_contact)
+        self.pm_persist(save=save)
+
+    def reset_provenance(self, save: bool=None):
+        """resets the provenance back to its default values"""
+        self.pm.reset_provenance()
+        self.pm_persist(save)
+
+    def report_provenance(self, as_dict: bool=None, stylise: bool=None):
+        """ a report on the provenance set as part of the domain contract
+
+        :param as_dict: (optional) if the result should be a dictionary. Default is False
+        :param stylise: (optional) if as_dict is False, if the return dataFrame should be stylised
+        :return:
+        """
+        as_dict = as_dict if isinstance(as_dict, bool) else False
+        stylise = stylise if isinstance(stylise, bool) else True
+        report = self.pm.report_provenance()
+        if as_dict:
+            return report
+        df = pd.DataFrame(report, index=['values'])
+        df = df.transpose().reset_index()
+        df.columns = ['provenance', 'values']
+        if stylise:
+            return Commons.report(df, index_header='provenance')
+        return pa.Table.from_pandas(df)
+
