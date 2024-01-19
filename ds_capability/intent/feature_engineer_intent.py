@@ -1057,6 +1057,67 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             rtn_tbl = Commons.table_append(rtn_tbl, result)
         return Commons.table_append(canonical, rtn_tbl)
 
+    def get_synthetic_persona_usa(self, size: int, canonical: pa.Table=None, seed: int=None, category_encode: bool=None,
+                                  save_intent: bool=None, intent_level: [int, str]=None,intent_order: int=None,
+                                  replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ A synthetic dataset representing a persona in the United States of America
+
+        :param size: The size of the sample
+        :param canonical: (optional) a pa.Table to append the result table to
+        :param category_encode: (optional) if the categorical should be encoded to DictionaryArray
+        :param seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pyarrow Table
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        size = self._extract_value(size)
+        if not isinstance(size, int):
+            raise ValueError("size not set. Size must be an int greater than zero")
+        seed = self._seed(seed=seed)
+        mins = 1 if size < 700_000 else int(size / 700_000) + 1
+        canonical = self.get_datetime(start=-1, until={'minutes': mins}, at_most=1,
+                                          date_format="%m%d%H%M%S%f",
+                                          ordered=True, size=size, seed=seed, to_header='pid',
+                                          save_intent=False)
+        canonical = self.get_datetime(start=-36500, until=-6500,
+                                          relative_freq=[0.001, 0.05, 1, 3, 2, 5, 4, 2],
+                                          canonical=canonical, size=size, seed=seed,
+                                          to_header='birth_date', save_intent=False)
+        canonical = self.get_category(
+            selection=['Not Hispanic or latino', 'Hispanic or latino'], relative_freq=[8, 2],
+            canonical=canonical, size=size, seed=seed, encode=category_encode,
+            to_header='ethnicity',
+            save_intent=False)
+        canonical = self.get_category(
+            selection=['White', 'Black or African American', 'American Indian or Alaska Native',
+                       'Native Hawaiian or Other Pacific Islander', 'Asian', 'Others'],
+            relative_freq=[60, 16, 2, 1, 6, 3], canonical=canonical, size=size, seed=seed,
+            encode=category_encode,
+            to_header='race', save_intent=False)
+        canonical = self.get_sample_map(canonical=canonical, sample_map='us_persona',
+                                            headers=['first_name', 'family_name', 'gender'],
+                                            female_bias=0.4, size=size, save_intent=False)
+        canonical = self.get_sample_map(canonical=canonical, sample_map='us_zipcodes_detail',
+                                            headers=['city', 'state', 'zipcode'],
+                                            size=size, save_intent=False)
+        return canonical
+
     def get_synthetic_data_types(self, size: int, canonical: pa.Table=None, inc_nulls: bool=None,
                                  prob_nulls: float=None, seed: int=None, category_encode: bool=None,
                                  save_intent: bool=None, intent_level: [int, str]=None,intent_order: int=None,
@@ -1081,7 +1142,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                     - False - leaves it untouched, disregarding the new intent
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: pandas DataSet
+        :return: pyarrow Table
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
