@@ -334,7 +334,7 @@ class Sample(AbstractSample):
             return 2000000
 
         size = size if isinstance(size, int) else 150000
-        df = AbstractSample._get_constant(reference='map_us_surname_rank', seed=seed, shuffle=False)
+        df = AbstractSample._get_constant(reference='map_us_surname_rank', seed=seed, shuffle=False).to_pandas()
         df['weight'] = [int(round((x / divider(size)), 0)) for x in df['count']]
         df_clean = df.where(df.weight > 1).dropna()
         result = [[x] * df_clean.weight.astype(int).iloc[x] for x in df_clean.index]
@@ -351,7 +351,7 @@ class Sample(AbstractSample):
         :param seed: (optional) a seed value
         :return: a list of names
         """
-        df = AbstractSample._get_constant(reference='map_us_profession_detail_rank', seed=seed, shuffle=False)
+        df = AbstractSample._get_constant(reference='map_us_profession_detail_rank', seed=seed, shuffle=False).to_pandas()
         df.columns = ['occupation', 'total']
         size = size if isinstance(size, int) else df.shape[0]
         result = [[x] * df['total'].astype(int).iloc[x] for x in df.index]
