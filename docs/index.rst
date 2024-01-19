@@ -15,10 +15,11 @@ For a more in-depth view of Project Hadron read the section on :ref:`Why Project
 jump straight to :ref:`Getting Started` once you have :ref:`installed<Installation>` the package.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Contents:
 
    source/introduction/overview
    source/introduction/installing
    source/quick_start/beginning
+   source/reporting/index
    source/api_doc/index
