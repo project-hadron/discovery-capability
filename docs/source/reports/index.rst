@@ -12,4 +12,4 @@ detailed schema.
    :maxdepth: 1
    :glob:
 
-    lineage
+   lineage
