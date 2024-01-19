@@ -101,7 +101,7 @@ class MappedSample(AbstractSample):
         df['city'] = df['city'].str.title()
         if isinstance(shuffle, bool) and shuffle:
             df.sample(frac=1, random_state=seed).reset_index(drop=True)
-        return pa.Table.from_pandas((df))
+        return pa.Table.from_pandas(df)
 
     @staticmethod
     def companies_fortune1000(size: int=None, shuffle: bool=False, seed: int=None) -> pa.Table:
@@ -205,7 +205,7 @@ class MappedSample(AbstractSample):
             df_rtn = df_rtn.sample(frac=1, random_state=seed).reset_index(drop=True)
         else:
             df_rtn.sort_values(by=['state_abbr', 'county'], inplace=True)
-        return df_rtn.iloc[:size]
+        return pa.Table.from_pandas(df_rtn.iloc[:size])
 
     @staticmethod
     def us_phone_code(size: int=None, shuffle: bool=False, seed: int=None) -> pa.Table:
