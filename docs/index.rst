@@ -21,5 +21,5 @@ jump straight to :ref:`Getting Started` once you have :ref:`installed<Installati
    source/introduction/overview
    source/introduction/installing
    source/quick_start/beginning
-   source/reporting/index
+   source/reports/index
    source/api_doc/index
