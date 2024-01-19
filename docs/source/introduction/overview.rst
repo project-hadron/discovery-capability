@@ -131,7 +131,8 @@ components, their actions, encapsulating how they should run.
 
 In order to be able to run these capability recipes as a cohesive microservice, a specialist
 capability, called a Controller, coordinates the running order of each recipe, that form the
-microservice. This controller also has its own recipe.
+microservice. This controller also has its own recipe and collectively is known as a capability
+**receipt**
 
 .. image:: /source/_images/introduction/hadron_data_pipeline_overview.png
   :align: center
