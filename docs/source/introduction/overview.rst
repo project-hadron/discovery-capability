@@ -92,9 +92,9 @@ What are capabilities?
 ----------------------
 
 Capabilities and their separation of concern are fundamental principles in the design of Project
-Hadron. Capabilities refer to the range of functionalities and features a software solution
-possesses, in our case, to handle and process data efficiently. Within Project Hadron these
-capabilities can be identified as
+Hadron. Capabilities can be thought of as specialist components that refer to the range of
+functionalities and features a software solution possesses, in our case, to handle and process
+ata efficiently. Within Project Hadron these capabilities can be identified as
 
     * data selection
     * feature engineering for creation
@@ -109,19 +109,29 @@ system should achieve, while separation of concerns ensures that the system is d
 modular and maintainable way, with each part addressing a specific aspect of its functionality.
 Both principles contribute to building modular, robust and scalable software solutions.
 
-Then what is a capability recipe?
----------------------------------
-Capabilities, on their own, are tightly focused on their concerns, albeit with a use case in mind.
-It is not till we collectively link our capabilities in a meaningful order, we build our reusable use case or
-microservice. In order to capture a set of capabilities into a reusable
-microservice, Project Hadron creates a collection of capabilities, and their actions, that relate
-to a reusable test to a encapsulating how they should run.
+How are capabilities reusable?
+------------------------------
 
-It has been built as a set of capabilities to handle the
-different types of processing data. These are Data Selection, Feature Engineering, Feature
-Transition and Feature Build, for specialized capabilities. In order to be able to run these
-capabilities as a cohesive microservice, a specialist capability, called a Controller, coordinates
-the running order of these capabilities, that form the microservice.
+While using the actions of a capability, those actions, and other metadata, are recorded as a
+runbook of instruction of the lineage of that instance. This runbook is known as a capability
+**recipe**'. By referencing the name of the instance, the recipe can be re-loaded and re-run
+creating the reusable capability.
+
+Recipes can also be edited as actions are immutable. If you write an action with the same name as a
+previously added action, the original action parameters will be replaced with the parameters of
+the overwriting action. Actions can also be deleted by specifying their name.
+
+What is a capability receipt?
+-----------------------------
+Capabilities, on their own, are tightly focused on their concerns, albeit with a use case in mind.
+It is not till we collectively link our capabilities in a meaningful order that we build our
+reusable use case or microservice. In order to capture a set of capabilities into a reusable
+microservice, Project Hadron creates a :ref:`recipe<How are capabilities reusable?>` of these
+components, their actions, encapsulating how they should run.
+
+In order to be able to run these capability recipes as a cohesive microservice, a specialist
+capability, called a Controller, coordinates the running order of each recipe, that form the
+microservice. This controller also has its own recipe.
 
 .. image:: /source/_images/introduction/hadron_data_pipeline_overview.png
   :align: center
@@ -130,13 +140,8 @@ the running order of these capabilities, that form the microservice.
 \
 
 From the diagram you can see the encapsulated microservice within which the Hadron capabilities
-exists. This is referred to as a capability recipe, and each capability referred to as a component
-capability or just a component.  Each component has their own runbook script which defines the
-component and how it runs. The Controller also has its own runbook script which describes how the
-capability recipe should run.
-
-This means that capability recipes can go from simple input output microservices to more complex
-and dependent solution pipelines.
+exists and the recipes that make up the reusable receipt. This means that capability recipes can
+go from simple input output microservices to more complex and dependent solution pipelines.
 
 .. image:: /source/_images/introduction/hadron_data_pipelines_type1.png
   :align: center
