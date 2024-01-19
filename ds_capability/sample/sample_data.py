@@ -186,7 +186,7 @@ class MappedSample(AbstractSample):
         :return: the mapping DataFrame
         """
         inc_military = inc_military if isinstance(inc_military, bool) else True
-        sample = AbstractSample._get_constant(reference='map_us_city_zipcodes_rank', shuffle=False)
+        sample = AbstractSample._get_constant(reference='map_us_city_zipcodes_rank', shuffle=False).to_pandas()
         # trim
         if not inc_military:
             sample = sample[~sample['military']]
