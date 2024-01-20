@@ -47,7 +47,7 @@ quality consistency, data efficiency improvement and risk of error reduction.
 
 What are its design methodologies?
 ----------------------------------
-Project hadron is an open-source application framework, written in pure Python using pyarrow as its
+Project hadron is an open-source application framework, written in pure Python using PyArrow as its
 canonical and depends on a few key Python packages found in any analytics environment such as
 Pandas and Numpy.
 
@@ -204,17 +204,32 @@ brad there is no or low code input.
 
 What is PyArrow?
 ----------------
-PyArrow is a Python package for Apache Arrow Python bindings. Apache Arrow is a development
-platform for in-memory analytics. It contains a set of technologies that enable big data systems
-to store, process and move data fast. Project Hadron uses PyArrow as its canonical combining with
-Pandas as a directed specialist toolset optimizing the advantages of both.
 
-PyArrow enhances Pandas by providing a more efficient, columnar data representation that
-facilitates seamless interoperability with other systems, improved performance, and support for
-efficient file formats like Parquet. It extends Pandas' capabilities, especially in scenarios
-where performance and data interchange with other systems are critical. These benefits have
-contributed to its wide usage in data engineering, analytics, and other data-intensive
-applications.
+PyArrow is the Python implementation of Apache Arrow, which is an open-source, cross-language
+development platform for in-memory data. Apache Arrow defines a standardized language-independent
+columnar memory format that facilitates efficient data interchange between different systems and
+programming languages. Project Hadron uses the power of Pandas for data manipulation and PyArrow
+as its in-memory canonical carefully considering PyArrow in its design to negate the challenges
+associated with Pandas.
+
+Pandas stands out for its intuitive columnar data structure, ease of use, extensive functionality,
+and strong community support, making it a preferred choice for data analysts and scientists working
+with structured data in Python. But Pandas is rightly challenged for high memory consumption,
+slow performance and limitations in handling large datasets. PyArrow, when used
+as a complementary package, provides solutions to these issues.
+
+PyArrow provides an in-memory columnar data representation that is more memory-efficient than
+Pandas DataFrames, alleviating the memory burden associated with large datasets. Additionally,
+PyArrow enhances interoperability, allowing seamless data interchange between Pandas and other
+systems through its support for Apache Arrow-based formats. The adoption of the Apache Parquet
+file format by PyArrow contributes to improved I/O performance and reduced storage requirements
+when reading and writing data. PyArrow also supports parallel and distributed computing, addressing
+Pandas' limitations in handling big data and enabling users to scale their computations across
+clusters. The consistency in data types enforced by PyArrow contributes to enhanced data integrity,
+and efficient Arrow-based operations provide performance boost.
+
+Integrating PyArrow with Pandas allows users to leverage these advantages, making their data
+manipulation and analysis workflows more efficient and scalable.
 
 For more information visit `Apache Arrow`_
 
