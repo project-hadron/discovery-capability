@@ -68,7 +68,7 @@ class FeatureEngineerTest(unittest.TestCase):
     def test_run_intent_pipeline(self):
         fb = FeatureEngineer.from_env('test', has_contract=False)
         tools: FeatureEngineerIntent = fb.tools
-        _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_level='simulator')
+        _ = tools.get_synthetic_data_types(size=10, extend=True, intent_level='simulator')
         _ = tools.correlate_number(_, header='num', intent_level='data_quality', intent_order=0)
         # pprint(pm_view('feature_build', 'test', 'intent'))
         fb.run_component_pipeline(intent_levels=['simulator', 'data_quality'])
@@ -79,7 +79,7 @@ class FeatureEngineerTest(unittest.TestCase):
         fb = FeatureEngineer.from_env('test', has_contract=False)
         tools: FeatureEngineerIntent = fb.tools
         fb.set_persist_uri('event://task')
-        _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_level='simulator')
+        _ = tools.get_synthetic_data_types(size=10, extend=True, intent_level='simulator')
         _ = tools.correlate_number(_, header='num', intent_level='data_quality', intent_order=0)
         # pprint(pm_view('feature_build', 'test', 'intent'))
         fb.run_component_pipeline(intent_levels=['simulator', 'data_quality'])

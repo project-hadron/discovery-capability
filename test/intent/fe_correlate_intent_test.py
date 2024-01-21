@@ -100,7 +100,7 @@ class FeatureEngineerCorrelateTest(unittest.TestCase):
                                               value=0, default="@num", to_header='target')
         self.assertEqual(result.column('target').slice(2, 4), result.column('num').slice(2, 4))
         # check null
-        tbl = tools.get_synthetic_data_types(1000, inc_nulls=True, seed=101)
+        tbl = tools.get_synthetic_data_types(1000, extend=True, seed=101)
         result = tools.correlate_on_condition(tbl, header='num_null', other='num_null',
                                               condition=[(None, 'is_null', None)],
                                               value=0, default="@num_null", to_header='target')
@@ -117,7 +117,7 @@ class FeatureEngineerCorrelateTest(unittest.TestCase):
         result = tools.correlate_column_join(tbl, header='cat', others='string', sep=': ', to_header='cat')
         self.assertCountEqual(['cat', 'num', 'int', 'bool', 'date'], result.column_names)
         self.assertEqual("PENDING: Smokeys Gate", result.column('cat').combine_chunks()[0].as_py())
-        tbl = tools.get_synthetic_data_types(1000, inc_nulls=True, seed=101)
+        tbl = tools.get_synthetic_data_types(1000, extend=True, seed=101)
         result = tools.correlate_column_join(tbl, header='cat', others=['cat_null', 'string_null'], sep='-', to_header='compound')
         self.assertGreater(result.column('compound').combine_chunks().null_count, 0)
 

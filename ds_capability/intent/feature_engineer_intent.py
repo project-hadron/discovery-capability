@@ -1118,13 +1118,13 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                             size=size, save_intent=False)
         return canonical
 
-    def get_synthetic_data_types(self, size: int, inc_nulls: bool=None, prob_nulls: float=None, seed: int=None,
+    def get_synthetic_data_types(self, size: int, extend: bool=None, prob_nulls: float=None, seed: int=None,
                                  category_encode: bool=None, save_intent: bool=None, intent_level: [int, str]=None,
                                  intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ A dataset with example data types
 
         :param size: The size of the sample
-        :param inc_nulls: include values with nulls
+        :param extend: extend the synthetic dataset to include non-standard types
         :param prob_nulls: (optional) a value between 0 an 1 of the percentage of nulls. Default 0.02
         :param category_encode: (optional) if the categorical should be encoded to DictionaryArray
         :param seed: (optional) a seed value for the random function: default to None
@@ -1178,7 +1178,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         canonical = self.get_sample_list(sample_name='us_street_names', canonical=canonical, size=size, seed=seed,
                                          to_header='string', save_intent=False)
 
-        if isinstance(inc_nulls, bool) and inc_nulls:
+        if isinstance(extend, bool) and extend:
             gen = np.random.default_rng()
             # cat_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls

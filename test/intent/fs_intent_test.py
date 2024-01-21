@@ -73,7 +73,7 @@ class FeatureEngineererTest(unittest.TestCase):
         self.assertEqual(2, result.column('string').null_count)
 
     def test_auto_drop_noise(self):
-        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, inc_nulls=True)
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, extend=True)
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
         self.assertEqual(19, tbl.num_columns)
@@ -82,7 +82,7 @@ class FeatureEngineererTest(unittest.TestCase):
         print(result.column_names)
 
     def test_auto_drop_correlated(self):
-        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, inc_nulls=True)
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, extend=True)
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
         self.assertEqual(19, tbl.num_columns)
@@ -92,7 +92,7 @@ class FeatureEngineererTest(unittest.TestCase):
         self.assertNotIn('dup_num', result.column_names)
 
     def test_aggrigate(self):
-        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(5, inc_nulls=False)
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(5, extend=False)
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
         result = tools.auto_aggregate(tbl, action='count', regex=['cat', 'string'], to_header='agg', drop_aggregated=True)
