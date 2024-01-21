@@ -1118,15 +1118,13 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                             size=size, save_intent=False)
         return canonical
 
-    def get_synthetic_data_types(self, size: int, canonical: pa.Table=None, inc_nulls: bool=None,
-                                 prob_nulls: float=None, seed: int=None, category_encode: bool=None,
-                                 save_intent: bool=None, intent_level: [int, str]=None,intent_order: int=None,
-                                 replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+    def get_synthetic_data_types(self, size: int, inc_nulls: bool=None, prob_nulls: float=None, seed: int=None,
+                                 category_encode: bool=None, save_intent: bool=None, intent_level: [int, str]=None,
+                                 intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ A dataset with example data types
 
         :param size: The size of the sample
         :param inc_nulls: include values with nulls
-        :param canonical: (optional) a pa.Table to append the result table to
         :param prob_nulls: (optional) a value between 0 an 1 of the percentage of nulls. Default 0.02
         :param category_encode: (optional) if the categorical should be encoded to DictionaryArray
         :param seed: (optional) a seed value for the random function: default to None
@@ -1149,13 +1147,15 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
-        canonical = self._get_canonical(canonical)
         size = self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed(seed=seed)
         prob_nulls = prob_nulls if isinstance(prob_nulls, float) and 0 < prob_nulls < 1 else 0.1
         category_encode = category_encode if isinstance(category_encode, bool) else True
+        mins = 1 if size < 700_000 else int(size / 700_000) + 1
+        canonical = self.get_datetime(start=-1, until={'minutes': mins}, at_most=1, date_format="%m%d%H%M%S%f",
+                                      ordered=True, size=size, seed=seed, to_header='id', save_intent=False)
         # cat
         canonical = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE', 'ARCHIVE'],
                                       canonical=canonical, size=size, seed=seed, relative_freq=[1, 70, 20, 30, 10],
@@ -1167,7 +1167,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                           save_intent=False)
         # int
         canonical = self.get_number(start=size, stop=size * 10, at_most=1, ordered=True, canonical=canonical, size=size,
-                                    seed=seed, to_header='int', save_intent=False)
+                                    relative_freq=[1, 40, 20, 15, 10, 3, 2], seed=seed, to_header='int', save_intent=False)
         # bool
         canonical = self.get_boolean(size=size, probability=0.7, canonical=canonical, seed=seed, to_header='bool',
                                      save_intent=False)
@@ -1195,10 +1195,6 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             canonical = self.get_datetime(start='2023-02-01', until='2023-05-31', canonical=canonical, ordered=True,
                                           size=size, quantity=1 - prob_nulls, to_header='date_null', seed=seed,
                                           save_intent=False)
-            # string_null
-            prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
-            canonical = self.get_sample_list(sample_name='us_cities', canonical=canonical, size=size, quantity=1 - prob_nulls,
-                                             to_header='string_null', seed=seed, save_intent=False)
             # sparse
             canonical = self.get_number(start=-50, stop=8.0, canonical=canonical, size=size, quantity=0.3,
                                         to_header='sparse', seed=seed, save_intent=False)
@@ -1210,15 +1206,6 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             canonical = Commons.table_append(canonical, _)
             # duplicate num
             _ = pa.table([canonical.column('num')], names=['dup_num'])
-            canonical = Commons.table_append(canonical, _)
-            # nulls_int
-            _ = pa.table([pa.array(pa.nulls(size), pa.int64())], names=['nulls_int'])
-            canonical = Commons.table_append(canonical, _)
-            # nulls_date
-            _ = pa.table([pa.array(pa.nulls(size), pa.timestamp('ns'))], names=['nulls_date'])
-            canonical = Commons.table_append(canonical, _)
-            # nulls_str
-            _ = pa.table([pa.array(pa.nulls(size), pa.string())], names=['nulls_str'])
             canonical = Commons.table_append(canonical, _)
             # nulls
             _ = pa.table([pa.nulls(size)], names=['nulls'])
