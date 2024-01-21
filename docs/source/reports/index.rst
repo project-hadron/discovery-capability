@@ -13,3 +13,4 @@ detailed schema.
    :glob:
 
    lineage
+   quality

@@ -148,6 +148,16 @@ class AbstractCommonComponent(AbstractComponent):
         tbl = Commons.filter_columns(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
         return DataDiscovery.data_schema(canonical=tbl, table_cast=table_cast, stylise=stylise)
 
+    @staticmethod
+    def table_report(canonical: pa.Table, head: int=None):
+        """ Creates a report from a pyarrow table in a tabular form
+
+        :param canonical: the table to view
+        :param head: The number of rows to show. Default to 5
+        """
+        head = head if isinstance(head, int) else 5
+        return Commons.table_report(canonical, head=head)
+
     def report_task(self, stylise: bool=True):
         """ generates a report on the source contract
 
