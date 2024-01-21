@@ -61,7 +61,7 @@ class SyntheticTest(unittest.TestCase):
     def test_for_smoke(self):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools
-        tbl = tools.get_synthetic_data_types(100, inc_nulls=True)
+        tbl = tools.get_synthetic_data_types(100, extend=True)
         fe.add_connector_uri('sample', './working/source/data_type.parquet')
         fe.save_canonical('sample', tbl)
         self.assertEqual((100, 17), tbl.shape)
@@ -84,7 +84,7 @@ class SyntheticTest(unittest.TestCase):
     def test_direct_other(self):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools
-        tbl = tools.get_synthetic_data_types(10, inc_nulls=True)
+        tbl = tools.get_synthetic_data_types(10, extend=True)
         result = tools.get_analysis(100, tbl)
         self.assertEqual((100, 17), result.shape)
 

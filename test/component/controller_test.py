@@ -85,7 +85,7 @@ class FeatureBuilderTest(unittest.TestCase):
 
 
 def get_table(size: int=10, inc_null: bool=None):
-    return FeatureEngineer.from_memory().tools.get_synthetic_data_types(size=size, inc_nulls=inc_null)
+    return FeatureEngineer.from_memory().tools.get_synthetic_data_types(size=size, extend=inc_null)
 
 def set_service():
     EventManager().set('sample', get_table())

@@ -122,7 +122,7 @@ class FeatureEngineerModelTest(unittest.TestCase):
     def test_model_missing(self):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools
-        tbl = FeatureEngineer.from_memory().FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
+        tbl = FeatureEngineer.from_memory().FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, extend=True, seed=31)
         self.assertGreater(tbl.column('num_null').null_count, 0)
         self.assertGreater(tbl.column('string_null').null_count, 0)
         # default
@@ -130,12 +130,12 @@ class FeatureEngineerModelTest(unittest.TestCase):
         self.assertEqual(0, result.column('num_null').null_count)
         self.assertEqual(0, result.column('string_null').null_count)
         # knn distance
-        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, extend=True, seed=31)
         result = tools.model_missing(tbl, headers=['num_null', 'string_null'], strategy='knn_distance')
         self.assertEqual(0, result.column('num_null').null_count)
         self.assertEqual(0, result.column('string_null').null_count)
         # mean
-        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, inc_nulls=True, seed=31)
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, extend=True, seed=31)
         result = tools.model_missing(tbl, headers=['num_null', 'string_null'], strategy='mean')
         self.assertEqual(0, result.column('num_null').null_count)
         self.assertEqual(0, result.column('string_null').null_count)

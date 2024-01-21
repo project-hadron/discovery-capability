@@ -81,28 +81,28 @@ class DiscoveryTest(unittest.TestCase):
     def test_data_dictionary(self):
         sb = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = sb.tools
-        tbl = tools.get_synthetic_data_types(1_000, inc_nulls=True)
+        tbl = tools.get_synthetic_data_types(1_000, extend=True)
         result = DataDiscovery.data_dictionary(tbl, stylise=True)
         pprint(result.to_string())
 
     def test_data_quality(self):
         sb = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = sb.tools
-        tbl = tools.get_synthetic_data_types(100_000, inc_nulls=True)
+        tbl = tools.get_synthetic_data_types(100_000, extend=True)
         result = DataDiscovery.data_quality(tbl, stylise=True)
         pprint(result.to_string())
 
     def test_data_quality_ref(self):
         sb = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = sb.tools
-        tbl = tools.get_synthetic_data_types(100_000, inc_nulls=True)
+        tbl = tools.get_synthetic_data_types(100_000, extend=True)
         result = DataDiscovery.data_quality(tbl, stylise=False)
         pprint(result.schema)
 
     def test_data_schema(self):
         sb = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = sb.tools
-        tbl = tools.get_synthetic_data_types(1_000, inc_nulls=True)
+        tbl = tools.get_synthetic_data_types(1_000, extend=True)
         result = DataDiscovery.data_schema(tbl, stylise=True)
         pprint(result.to_string())
 

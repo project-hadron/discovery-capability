@@ -65,7 +65,7 @@ class FeatureEngineerTest(unittest.TestCase):
         tbl = tools.get_synthetic_data_types(100)
         self.assertEqual((100, 6), tbl.shape)
         self.assertCountEqual(['cat', 'num', 'int', 'bool', 'date', 'string'], tbl.column_names)
-        tbl = tools.get_synthetic_data_types(100, inc_nulls=True, prob_nulls=0.03)
+        tbl = tools.get_synthetic_data_types(100, extend=True, prob_nulls=0.03)
         self.assertEqual((100, 19), tbl.shape)
 
     def test_event_event_singleton(self):
@@ -85,7 +85,7 @@ class FeatureEngineerTest(unittest.TestCase):
         tools: FeatureEngineerIntent = fe.tools
         # reload the properties
         fe = FeatureEngineer.from_env('test')
-        _ = tools.get_synthetic_data_types(size=10, inc_nulls=True)
+        _ = tools.get_synthetic_data_types(size=10, extend=True)
         result = fe.tools.run_intent_pipeline()
         self.assertEqual((10, 19), result.shape)
         _ = tools.correlate_number(result, header='num')
@@ -101,7 +101,7 @@ class FeatureEngineerTest(unittest.TestCase):
         tools: FeatureEngineerIntent = fe.tools
         # reload the properties
         fe = FeatureEngineer.from_env('test')
-        _ = tools.get_synthetic_data_types(size=10, inc_nulls=True, intent_order=0)
+        _ = tools.get_synthetic_data_types(size=10, extend=True, intent_order=0)
         _ = tools.correlate_number(_, header='num', intent_order=1)
         _ = tools.build_profiling(_, profiling='quality', intent_order=1)
         pprint(pm_view('feature_build', 'test', 'intent'))
@@ -113,7 +113,7 @@ class FeatureEngineerTest(unittest.TestCase):
         tools: FeatureEngineerIntent = fe.tools
         # reload the properties
         fe = FeatureEngineer.from_env('test')
-        tbl = tools.get_synthetic_data_types(size=10, inc_nulls=True, save_intent=False)
+        tbl = tools.get_synthetic_data_types(size=10, extend=True, save_intent=False)
         _ = tools.correlate_number(tbl, header='num')
         _ = tools.build_profiling(_, profiling='quality')
         pprint(pm_view('feature_build', 'test', 'intent'))
@@ -127,7 +127,7 @@ class FeatureEngineerTest(unittest.TestCase):
         tools: FeatureEngineerIntent = fe.tools
         # reload the properties
         fe = FeatureEngineer.from_env('test')
-        tbl = tools.get_synthetic_data_types(size=10, inc_nulls=True, save_intent=False)
+        tbl = tools.get_synthetic_data_types(size=10, extend=True, save_intent=False)
         _ = tools.correlate_number(tbl, header='num', intent_level='quantity')
         _ = tools.build_profiling(_, profiling='quality', intent_level='quantity')
         pprint(pm_view('feature_build', 'test', 'intent'))
