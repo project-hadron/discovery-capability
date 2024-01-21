@@ -114,7 +114,7 @@ How are capabilities reusable?
 
 While using the actions of a capability, those actions, and other metadata, are recorded as a
 runbook of instruction of the lineage of that instance. This runbook is known as a capability
-**recipe**'. By referencing the name of the instance, the recipe can be re-loaded and re-run
+**recipe**. By referencing the name of the instance, the recipe can be re-loaded and re-run
 creating the reusable capability.
 
 Recipes can also be edited as actions are immutable. If you write an action with the same name as a
