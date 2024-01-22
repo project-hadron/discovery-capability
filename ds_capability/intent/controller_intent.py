@@ -144,7 +144,7 @@ class ControllerIntentModel(AbstractIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # create the event book
         fe: FeatureEngineer = eval(f"FeatureEngineer.from_env(task_name=task_name, default_save=False, "
-                                f"has_contract=True, **{kwargs})", globals(), locals())
+                                   f"has_contract=True, **{kwargs})", globals(), locals())
         if source and fe.pm.has_connector(source):
             canonical = fe.load_canonical(source)
         elif fe.pm.has_connector(fe.CONNECTOR_SOURCE):
@@ -187,7 +187,7 @@ class ControllerIntentModel(AbstractIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # create the event book
         ft: FeatureTransform = eval(f"FeatureTransform.from_env(task_name=task_name, default_save=False, "
-                                f"has_contract=True), **{kwargs}", globals(), locals())
+                                    f"has_contract=True, **{kwargs})", globals(), locals())
         if source and ft.pm.has_connector(source):
             canonical = ft.load_canonical(source)
         elif ft.pm.has_connector(ft.CONNECTOR_SOURCE):
@@ -230,7 +230,7 @@ class ControllerIntentModel(AbstractIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # create the event book
         fs: FeatureSelect = eval(f"FeatureSelect.from_env(task_name=task_name, default_save=False, "
-                                 f"has_contract=True), **{kwargs}", globals(), locals())
+                                 f"has_contract=True, **{kwargs})", globals(), locals())
         if source and fs.pm.has_connector(source):
             canonical = fs.load_canonical(source)
         elif fs.pm.has_connector(fs.CONNECTOR_SOURCE):
