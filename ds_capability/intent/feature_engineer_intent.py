@@ -2114,7 +2114,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             else:
                 # get the analysis
                 anal_tbl = self.get_analysis(tbl.num_rows, pa.table([c.drop_null()], names=[n]))
-                c = c.fill_null(anal_tbl.column(n))
+                c = c.fill_null(anal_tbl.column(n).combine_chunks())
             rtn_tbl = Commons.table_append(rtn_tbl, pa.table([c], names=[n]))
         return Commons.table_append(canonical, rtn_tbl)
 
