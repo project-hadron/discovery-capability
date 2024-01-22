@@ -2,7 +2,7 @@ import inspect
 from ds_capability.components.commons import Commons
 from ds_core.intent.abstract_intent import AbstractIntentModel
 
-from ds_capability import FeatureBuild, FeatureTransform, FeatureSelect
+from ds_capability import FeatureBuild, FeatureTransform, FeatureSelect, FeatureEngineer
 from ds_capability.managers.controller_property_manager import ControllerPropertyManager
 
 
@@ -143,21 +143,21 @@ class ControllerIntentModel(AbstractIntentModel):
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # create the event book
-        fb: FeatureBuild = eval(f"FeatureEngineer.from_env(task_name=task_name, default_save=False, "
+        fe: FeatureEngineer = eval(f"FeatureEngineer.from_env(task_name=task_name, default_save=False, "
                                 f"has_contract=True, **{kwargs})", globals(), locals())
-        if source and fb.pm.has_connector(source):
-            canonical = fb.load_canonical(source)
-        elif fb.pm.has_connector(fb.CONNECTOR_SOURCE):
-            canonical = fb.load_source_canonical()
+        if source and fe.pm.has_connector(source):
+            canonical = fe.load_canonical(source)
+        elif fe.pm.has_connector(fe.CONNECTOR_SOURCE):
+            canonical = fe.load_source_canonical()
         else:
             canonical = None
-        canonical = fb.intent_model.run_intent_pipeline(canonical=canonical, intent_levels=intent_level, seed=seed)
+        canonical = fe.intent_model.run_intent_pipeline(canonical=canonical, intent_levels=intent_level, seed=seed)
         if persist:
             for out in Commons.list_formatter(persist):
-                if fb.pm.has_connector(out):
-                    fb.save_canonical(connector_name=out, canonical=canonical)
+                if fe.pm.has_connector(out):
+                    fe.save_canonical(connector_name=out, canonical=canonical)
         else:
-            fb.save_persist_canonical(canonical=canonical)
+            fe.save_persist_canonical(canonical=canonical)
         return canonical.shape
 
     def feature_transform(self, task_name: str, source: str=None, persist: [str, list]=None, columns: [str, list]=None,
