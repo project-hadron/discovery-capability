@@ -29,71 +29,70 @@ the `suggested resources in the learnpython-subreddit`_.
 .. _Learn Python 3 The Hard Way: https://learnpythonthehardway.org/python3/
 .. _suggested resources in the learnpython-subreddit: https://www.reddit.com/r/learnpython/wiki/index#wiki_new_to_python.3F
 
-Basic usage
------------
-You can run Project Hadron in your favorite code editor, Jupyter notebook, Google Colab, or
-anywhere else you write Python.
+First Feature Actions
+---------------------
 
-Feature Build
+
+
+PyArrow Table
+~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    import pyarrow as pa
+
+    tbl = pa.table({
+        "col1": [0, 2, None, 3, 1, None, 2, 2],
+    })
+
+With the results
+
+.. code-block:: python
+
+    pyarrow.Table
+    col1: int64
+    ----
+    col1: [[0,2,null,3,1,null,2,2]]
+
+Feature Engineer
+~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
     from ds_capability import FeatureEngineer
 
     fe = FeatureEngineer.from_memory()
-    tbl = fe.tools.get_synthetic_data_types(100)
+    tbl = fe.tools.model_missing(tbl)
 
-This is what the data looks like
-
-.. image:: /source/_images/quick_start/qs_01.png
-  :align: center
-  :width: 550
-
-\
-
-Feature Select
+With the results
 
 .. code-block:: python
 
-    from ds_capability import FeatureSelect
+    pyarrow.Table
+    col1: int64
+    ----
+    col1: [[0,2,2,3,1,0,2,2]]
 
-    fs = FeatureSelect.from_memory()
-    tbl = fs.tools.auto_clean_header(tbl, case='upper')
-    tbl = fs.tools.auto_drop_columns(tbl, headers='STRING')
-
-
-Headers changed and column dropped
-
-.. image:: /source/_images/quick_start/qs_02.png
-  :align: center
-  :width: 550
-
-\
-
-Back to Feature Engineering
+Feature Transition
+~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
-    tbl = fe.tools.correlate_date_element(tbl, target='DATE',
-                                          matrix=['yr', 'mon', 'day', 'hr', 'min'],
-                                          drop_target=True)
+    from ds_capability import FeatureTransform
+
+    ft = FeatureTransform.from_memory()
+    tbl = ft.tools.scale_normalize(tbl)
 
 Resulting in
 
-.. image:: /source/_images/quick_start/qs_03.png
-  :align: center
-  :width: 550
-
-\
-
-Need to change types
-
-Then back to Feature Selection
-
 .. code-block:: python
 
-    tbl = fs.tools.auto_to_string(tbl, regex=['DATE'])
+    pyarrow.Table
+    col1: double
+    ----
+    col1: [[0,0.67,0.67,1,0.33,0,0.67,0.67]]
 
-    tbl.schema
 
-Now the
+Making Reusable Actions
+-----------------------
+

@@ -117,6 +117,49 @@ class ControllerIntentModel(AbstractIntentModel):
             fb.save_persist_canonical(canonical=canonical)
         return canonical.shape
 
+    def feature_engineer(self, task_name: str, source: str=None, persist: [str, list]=None, columns: [str, list]=None,
+                         seed: int=None, save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
+                         replace_intent: bool=None, remove_duplicates: bool=None, **kwargs):
+        """ register a Transition component task pipeline
+
+        :param persist:
+        :param source:
+        :param task_name: the task_name reference for this component
+        :param columns: (optional) a single or list of intent_level to run, if list, run in order given
+        :param seed: (optional) a seed for the run
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the level name that groups intent by a reference name
+        :param intent_order: (optional) the order in which each intent should run.
+                        If None: default's to -1
+                        if -1: added to a level above any current instance of the intent section, level 0 if not found
+                        if int: added to the level specified, overwriting any that already exist
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                        True - replaces the current intent method with the new
+                        False - leaves it untouched, disregarding the new intent
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+       """
+        # resolve intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # create the event book
+        fb: FeatureBuild = eval(f"FeatureEngineer.from_env(task_name=task_name, default_save=False, "
+                                f"has_contract=True, **{kwargs})", globals(), locals())
+        if source and fb.pm.has_connector(source):
+            canonical = fb.load_canonical(source)
+        elif fb.pm.has_connector(fb.CONNECTOR_SOURCE):
+            canonical = fb.load_source_canonical()
+        else:
+            canonical = None
+        canonical = fb.intent_model.run_intent_pipeline(canonical=canonical, intent_levels=intent_level, seed=seed)
+        if persist:
+            for out in Commons.list_formatter(persist):
+                if fb.pm.has_connector(out):
+                    fb.save_canonical(connector_name=out, canonical=canonical)
+        else:
+            fb.save_persist_canonical(canonical=canonical)
+        return canonical.shape
+
     def feature_transform(self, task_name: str, source: str=None, persist: [str, list]=None, columns: [str, list]=None,
                           seed: int=None, save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
                           replace_intent: bool=None, remove_duplicates: bool=None, **kwargs):

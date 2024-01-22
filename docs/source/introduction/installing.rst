@@ -1,6 +1,12 @@
 Installation
 ============
 
+Python editing
+--------------
+
+You can run Project Hadron in your favorite code editor, Jupyter notebook, Google Colab, or
+anywhere else you write Python.
+
 Python Version
 --------------
 
