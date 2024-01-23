@@ -8,6 +8,7 @@ from ds_core.components.abstract_component import AbstractComponent
 from ds_capability.components.commons import Commons
 from ds_capability.managers.controller_property_manager import ControllerPropertyManager
 from ds_capability.intent.controller_intent import ControllerIntentModel
+from ds_capability.components.discovery import DataDiscovery
 
 
 # noinspection PyArgumentList
@@ -224,6 +225,64 @@ class Controller(AbstractComponent):
         """
         return self.load_canonical(self.CONNECTOR_PERSIST, reset_changed=reset_changed, has_changed=has_changed,
                                    return_empty=return_empty, **kwargs)
+
+    @staticmethod
+    def quality_report(canonical: pa.Table, nulls_threshold: float = None,
+                       dom_threshold: float = None,
+                       cat_threshold: int = None, stylise: bool = None):
+        """ Analyses a dataset, passed as a DataFrame and returns a quality summary
+
+        :param canonical: The table to view.
+        :param cat_threshold: (optional) The threshold for the max number of unique categories. Default is 60
+        :param dom_threshold: (optional) The threshold limit of a dominant value. Default 0.98
+        :param nulls_threshold: (optional) The threshold limit of a nulls value. Default 0.9
+        :param stylise: (optional) if the output is stylised
+        """
+        stylise = stylise if isinstance(stylise, bool) else True
+        return DataDiscovery.data_quality(canonical=canonical, nulls_threshold=nulls_threshold,
+                                          dom_threshold=dom_threshold, cat_threshold=cat_threshold,
+                                          stylise=stylise)
+
+    @staticmethod
+    def canonical_report(canonical: pa.Table, headers: [str, list] = None,
+                         regex: [str, list] = None, d_types: list = None,
+                         drop: bool = None, stylise: bool = None, display_width: int = None):
+        """The Canonical Report is a data dictionary of the canonical providing a reference view of the dataset's
+        attribute properties
+
+        :param canonical: the table to view
+        :param headers: (optional) specific headers to display
+        :param regex: (optional) specify header regex to display. regex matching is done using the Google RE2 library.
+        :param d_types: (optional) a list of pyarrow DataType e.g [pa.string(), pa.bool_()]
+        :param drop: (optional) if the headers are to be dropped and the remaining to display
+        :param stylise: (optional) if True present the report stylised.
+        :param display_width: (optional) the width of the observational display
+        """
+        stylise = stylise if isinstance(stylise, bool) else True
+        tbl = Commons.filter_columns(canonical, headers=headers, regex=regex, d_types=d_types,
+                                     drop=drop)
+        return DataDiscovery.data_dictionary(canonical=tbl, stylise=stylise,
+                                             display_width=display_width)
+
+    @staticmethod
+    def schema_report(canonical: pa.Table, headers: [str, list] = None, regex: [str, list] = None,
+                      d_types: list = None,
+                      drop: bool = None, stylise: bool = True, table_cast: bool = None):
+        """ presents the current canonical schema
+
+        :param canonical: the table to view
+        :param headers: (optional) specific headers to display
+        :param regex: (optional) specify header regex to display. regex matching is done using the Google RE2 library.
+        :param d_types: (optional) a list of pyarrow DataType e.g [pa.string(), pa.bool_()]
+        :param drop: (optional) if the headers are to be dropped and the remaining to display
+        :param stylise: (optional) if True present the report stylised.
+        :param table_cast: (optional) if the column should try to be cast to its type
+        """
+        stylise = stylise if isinstance(stylise, bool) else True
+        table_cast = table_cast if isinstance(table_cast, bool) else True
+        tbl = Commons.filter_columns(canonical, headers=headers, regex=regex, d_types=d_types,
+                                     drop=drop)
+        return DataDiscovery.data_schema(canonical=tbl, table_cast=table_cast, stylise=stylise)
 
     @staticmethod
     def table_report(canonical: pa.Table, head: int=None):
