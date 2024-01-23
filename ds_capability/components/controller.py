@@ -187,6 +187,54 @@ class Controller(AbstractComponent):
                              stakeholder_lead=stakeholder_lead, stakeholder_contact=stakeholder_contact)
         self.pm_persist(save=save)
 
+    def load_source_canonical(self, reset_changed: bool=None, has_changed: bool=None, return_empty: bool=None,
+                              **kwargs) -> pa.Table:
+        """returns the contracted source data as a DataFrame
+
+        :param reset_changed: (optional) resets the has_changed boolean to True
+        :param has_changed: (optional) tests if the underline canonical has changed since last load else error returned
+        :param return_empty: (optional) if has_changed is set, returns an empty canonical if set to True
+        :param kwargs: arguments to be passed to the handler on load
+        """
+        return self.load_canonical(self.CONNECTOR_SOURCE, reset_changed=reset_changed, has_changed=has_changed,
+                                   return_empty=return_empty, **kwargs)
+
+    def load_canonical(self, connector_name: str, reset_changed: bool=None, has_changed: bool=None,
+                       return_empty: bool=None, **kwargs) -> pa.Table:
+        """returns the canonical of the referenced connector
+
+        :param connector_name: the name or label to identify and reference the connector
+        :param reset_changed: (optional) resets the has_changed boolean to True
+        :param has_changed: (optional) tests if the underline canonical has changed since last load else error returned
+        :param return_empty: (optional) if has_changed is set, returns an empty canonical if set to True
+        :param kwargs: arguments to be passed to the handler on load
+        """
+        canonical = super().load_canonical(connector_name=connector_name, reset_changed=reset_changed,
+                                           has_changed=has_changed, return_empty=return_empty, **kwargs)
+        return canonical
+
+    def load_persist_canonical(self, reset_changed: bool=None, has_changed: bool=None, return_empty: bool=None,
+                               **kwargs) -> pa.Table:
+        """loads the clean pandas.DataFrame from the clean folder for this contract
+
+        :param reset_changed: (optional) resets the has_changed boolean to True
+        :param has_changed: (optional) tests if the underline canonical has changed since last load else error returned
+        :param return_empty: (optional) if has_changed is set, returns an empty canonical if set to True
+        :param kwargs: arguments to be passed to the handler on load
+        """
+        return self.load_canonical(self.CONNECTOR_PERSIST, reset_changed=reset_changed, has_changed=has_changed,
+                                   return_empty=return_empty, **kwargs)
+
+    @staticmethod
+    def table_report(canonical: pa.Table, head: int=None):
+        """ Creates a report from a pyarrow table in a tabular form
+
+        :param canonical: the table to view
+        :param head: The number of rows to show. Default to 5
+        """
+        head = head if isinstance(head, int) else 5
+        return Commons.table_report(canonical, head=head)
+
     def reset_use_case(self, save: bool=None):
         """resets the use_case back to its default values"""
         self.pm.reset_use_case()
