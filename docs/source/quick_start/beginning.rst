@@ -42,7 +42,8 @@ PyArrow Table
     import pyarrow as pa
 
     tbl = pa.table({
-        "col1": [0, 2, None, 3, 1, None, 2, 2],
+        "col1": [0, 2, None, 3, 1, None, 2, 2, 3, 1],
+        "col2": [0]*10
     })
 
 With the results
@@ -51,8 +52,29 @@ With the results
 
     pyarrow.Table
     col1: int64
+    col2: int64
     ----
-    col1: [[0,2,null,3,1,null,2,2]]
+    col1: [[0,2,null,3,1,null,2,2,3,1]]
+    col2: [[0,0,0,0,0,0,0,0,0,0]]
+
+Feature Select
+~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    from ds_capability import FeatureSelect
+
+    fe = FeatureSelect.from_memory()
+    tbl = fe.tools.auto_drop_noise(tbl)
+
+With result
+
+.. code-block:: python
+
+    pyarrow.Table
+    col1: int64
+    ----
+    col1: [[0,2,null,3,1,null,2,2,3,1]]
 
 Feature Engineer
 ~~~~~~~~~~~~~~~~
@@ -71,7 +93,7 @@ With the results
     pyarrow.Table
     col1: int64
     ----
-    col1: [[0,2,2,3,1,0,2,2]]
+    col1: [[0,2,2,3,1,2,2,2,3,1]]
 
 Feature Transition
 ~~~~~~~~~~~~~~~~~~
@@ -90,9 +112,81 @@ Resulting in
     pyarrow.Table
     col1: double
     ----
-    col1: [[0,0.67,0.67,1,0.33,0,0.67,0.67]]
+    col1: [[0,0.67,0.67,1,0.33,0.67,0.67,0.67,1,0.33]]
+
+Making Reusable Capabilities
+----------------------------
+
+Environment
+~~~~~~~~~~~
+
+.. code-block:: python
+
+    import os
+
+    os.environ['HADRON_CLEAN_SOURCE_URI'] = 'https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv'
+    os.environ['HADRON_CLEAN_PERSIST_URI'] = 'event://demo/'
+
+Feature auto clean
+~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    from ds_capability import FeatureSelect
+
+    fs = FeatureSelect.from_env('auto_clean', has_contract=False)
+    fs.set_source_uri('${HADRON_CLEAN_SOURCE_URI}')
+    fs.set_persist_uri('${HADRON_CLEAN_PERSIST_URI}')
+
+    tbl = fs.load_source_canonical()
+    tbl = fs.tools.auto_clean_header(tbl)
+    tbl = fs.tools.auto_drop_noise(tbl)
+    tbl = fs.tools.auto_drop_correlated(tbl)
+    tbl = fs.tools.auto_drop_duplicates(tbl)
+    tbl = fs.tools.auto_cast_types(tbl, include_category=False, include_bool=False)
+
+Controller registration
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    from ds_capability import Controller
+
+    ctr = Controller.from_env(has_contract=False)
+    ctr.register.feature_select('auto_clean')
+
+Receipt reuse
+~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    import os
+
+    os.environ['HADRON_CLEAN_SOURCE_URI'] = 'https://raw.githubusercontent.com/mwaskom/seaborn-data/master/tips.csv'
+    os.environ['HADRON_CLEAN_PERSIST_URI'] = 'event://demo/'
+
+    os.environ['HADRON_PM_REPO'] = './hadron/contracts/'
 
 
-Making Reusable Actions
------------------------
+.. code-block:: python
 
+    from ds_capability import Controller
+
+    ctr = Controller.from_env()
+    ctr.run_controller()
+
+Proof of outcome
+~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    ctr.set_persist_uri('event://demo/')
+    ctr.load_persist_canonical().column_names
+
+Shown new headers
+
+.. code-block:: python
+
+    ['total_bill', 'tip', 'sex', 'smoker', 'day', 'time', 'size']
+
+Our receipt `auto_clean` can now be used on any dataset.
