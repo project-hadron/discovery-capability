@@ -64,8 +64,8 @@ Feature Select
 
     from ds_capability import FeatureSelect
 
-    fe = FeatureSelect.from_memory()
-    tbl = fe.tools.auto_drop_noise(tbl)
+    fs = FeatureSelect.from_memory()
+    tbl = fs.tools.auto_drop_noise(tbl)
 
 With result
 
@@ -139,13 +139,13 @@ Feature auto clean
     fs.set_persist_uri('${HADRON_CLEAN_PERSIST_URI}')
 
     tbl = fs.load_source_canonical()
+
     tbl = fs.tools.auto_clean_header(tbl)
     tbl = fs.tools.auto_drop_noise(tbl)
     tbl = fs.tools.auto_drop_correlated(tbl)
     tbl = fs.tools.auto_drop_duplicates(tbl)
-    tbl = fs.tools.auto_cast_types(tbl, include_category=False, include_bool=False)
 
-Controller registration
+Capability registration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python

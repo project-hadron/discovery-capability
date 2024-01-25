@@ -63,13 +63,16 @@ traceability.
 
 Where does it sit within a system pipeline?
 -------------------------------------------
-Project Hadron provides functionalities fundamental to the optimisation and appropriateness of
-tabular data for a downstream business objective. As such it places itself as a machine learning
-preprocessing or data processing step, though its application can be applied far wider.
+Project Hadron provides a set of `capabilities<What are capabilities?>`_ fundamental to the
+optimisation and appropriateness of tabular data for a downstream business objective. As such it
+places itself as a machine learning preprocessing or data processing step, though its application
+can be applied far wider.
 
-Preprocessing, in the context of data science and machine learning, refers to data selection,
-feature engineering and feature transformation as steps to clean, format, and organize source
-data into a suitable format for the process of model evaluation and tuning.
+When applied to preprocessing for data science and machine learning, the scope of reference is to
+data selection, feature engineering, feature build and feature transformation as steps to clean,
+create, format, and organize source data into a suitable format for the process of model
+evaluation and tuning. The following diagram illustrates where preprocessing sits within the
+machine learning pipeline.
 
 .. image:: /source/_images/introduction/machine_learning_pipeline_v01.png
   :align: center
@@ -79,8 +82,9 @@ data into a suitable format for the process of model evaluation and tuning.
 
 This same process exists in 'The Three Stages of Data Processing', where the architecture consists
 of three essential elements: a source or sources, processing steps, and a destination. Similar to
-the machine learning preprocessing, these steps include transformation, augmentation, filtering,
-grouping, and aggregation.
+the machine learning preprocessing and taken from its references, these steps include
+transformation, augmentation, filtering, grouping, and aggregation. The following diagram
+illustrates where the processing sits within the three stage pipeline pipeline.
 
 .. image:: /source/_images/introduction/three_phase_pipeline_v01.png
   :align: center
@@ -121,18 +125,18 @@ Recipes can also be edited as actions are immutable. If you write an action with
 previously added action, the original action parameters will be replaced with the parameters of
 the overwriting action. Actions can also be deleted by specifying their name.
 
-What is a capability receipt?
------------------------------
+What is a capability pipeline?
+------------------------------
 Capabilities, on their own, are tightly focused on their concerns, albeit with a use case in mind.
 It is not till we collectively link our capabilities in a meaningful order that we build our
 reusable use case or microservice. In order to capture a set of capabilities into a reusable
-microservice, Project Hadron creates a :ref:`recipe<How are capabilities reusable?>` of these
-components, their actions, encapsulating how they should run.
+microservice, Project Hadron creates a pipeline of these components, their connectivity, their
+actions and encapsulates how they should run.
 
-In order to be able to run these capability recipes as a cohesive microservice, a specialist
+In order to be able to run a capability pipeline as a cohesive microservice, a specialist
 capability, called a Controller, coordinates the running order of each recipe, that form the
-microservice. This controller also has its own recipe and collectively is known as a capability
-**receipt**
+microservice. This controller also has its own recipe and collectively is known as a **capability
+pipeline**
 
 .. image:: /source/_images/introduction/hadron_data_pipeline_overview.png
   :align: center
@@ -141,8 +145,9 @@ microservice. This controller also has its own recipe and collectively is known 
 \
 
 From the diagram you can see the encapsulated microservice within which the Hadron capabilities
-exists and the recipes that make up the reusable receipt. This means that capability recipes can
-go from simple input output microservices to more complex and dependent solution pipelines.
+exists and the recipes that make up the reusable capability pipeline. This means that capability
+recipes can go from simple input output microservices to more complex and dependent solution
+applications.
 
 .. image:: /source/_images/introduction/hadron_data_pipelines_type1.png
   :align: center
@@ -168,14 +173,14 @@ fig. 4, while still providing the same complex input output, has been separated 
 three microservices with the responsibility of managing the pipeline with the environment system.
 
 This allows the designer and implementer to choose the best way to manage and monitor a set of
-capability recipes.
+capability recipes into a meaningful business objective.
 
 Where can Project Hadron be applied?
 ------------------------------------
 Project Hadron can run as (1) a complementary functional toolkit in
 Jupyter Notebooks for Data Scientists, (2) an object oriented collection of abstract and concrete
-classes for a Python IDE, such as PyCharm or Visual Studio, (3) or an implementation of a script
-image into a Docker environment or as a collection of Microservices in a cloud-native
+classes for building softare solutions in PyCharm or Visual Studio, (3) or an implementation of a
+script image into a Docker environment or as a collection of Microservices in a cloud-native
 architecture.
 
 Written in pure Python and depends on only a few well-established and supported Python packages,

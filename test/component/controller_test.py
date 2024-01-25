@@ -13,7 +13,7 @@ import pyarrow.parquet as pq
 
 from ds_core.handlers.event_handlers import EventManager
 from ds_core.properties.property_manager import PropertyManager
-from ds_capability import FeatureEngineer, Controller
+from ds_capability import FeatureEngineer, Controller, FeatureSelect
 from ds_capability.components.pipeline_scripts import run_repo_pipeline
 
 # Pandas setup
@@ -63,6 +63,37 @@ class FeatureBuilderTest(unittest.TestCase):
             shutil.rmtree('working')
         except OSError:
             pass
+
+    def test_controller(self):
+        # setup
+        os.environ['HADRON_CLEAN_SOURCE_URI'] = 'https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv'
+        os.environ['HADRON_CLEAN_PERSIST_URI'] = 'event://demo/'
+
+        fs = FeatureSelect.from_env('auto_clean', has_contract=False)
+        fs.set_source_uri('${HADRON_CLEAN_SOURCE_URI}')
+        fs.set_persist_uri('${HADRON_CLEAN_PERSIST_URI}')
+
+        tbl = fs.load_source_canonical()
+        tbl = fs.tools.auto_clean_header(tbl)
+        tbl = fs.tools.auto_drop_noise(tbl)
+        tbl = fs.tools.auto_drop_correlated(tbl)
+        tbl = fs.tools.auto_drop_duplicates(tbl)
+        tbl = fs.tools.auto_cast_types(tbl, include_category=False, include_bool=False)
+
+        ctr = Controller.from_env(has_contract=False)
+        ctr.register.feature_select('auto_clean')
+
+        # reuse
+        os.environ['HADRON_CLEAN_SOURCE_URI'] = 'https://raw.githubusercontent.com/mwaskom/seaborn-data/master/tips.csv'
+        os.environ['HADRON_CLEAN_PERSIST_URI'] = 'event://demo/'
+        os.environ['HADRON_PM_REPO'] = './working/contracts/'
+
+        ctr = Controller.from_env()
+        ctr.run_controller()
+
+        # review
+        ctr.set_persist_uri('event://demo/')
+        print(ctr.table_report(ctr.load_persist_canonical()).to_string())
 
     def test_controller_scripts(self):
         repo_path = "https://github.com/project-hadron/hadron-asset-bank/blob/master/contracts/pyarrow/data_profiling"
