@@ -9,7 +9,7 @@ management and hardware optimization.
 
 **Project Hadron** is a selection of :ref:`capabilities<What are capabilities?>` that represent an
 encapsulated set of actions that act upon a given dataset. An example of this would be
-FeatureSelection, a capability class, encapsulates cleaning data by removing uninformative columns.
+FeatureSelection, a capability class, encapsulating cleaning data by removing uninformative columns.
 
 For a more in-depth view of **Project Hadron** read the section on :ref:`Why Project Hadron?` or
 jump straight to :ref:`Getting Started` once you have :ref:`installed<Installation>` the package.
@@ -21,5 +21,5 @@ jump straight to :ref:`Getting Started` once you have :ref:`installed<Installati
    source/introduction/overview
    source/introduction/installing
    source/quick_start/beginning
-   source/reports/index
    source/api_doc/index
+   source/reports/index

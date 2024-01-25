@@ -2,27 +2,17 @@
 
 API
 ===
-**Project Hadron** provides functionalities fundamental to data processing, and as such targets machine
-learning preprocessing pipeline
-
-.. image:: /images/introduction/machine_learning_pipeline_v01.png
-  :align: center
-  :width: 700
-
-\
-and a three step data processing pipeline, though its application can be applied far wider.
-
-.. image:: /images/introduction/three_phase_pipeline_v01.png
-  :align: center
-  :width: 650
-
-\
-
-
 This provides the intent action API documentation for Project Hadron
 
-Featue Selection
-----------------
+Feature Selection
+-----------------
+
+This class represents feature selection focusing on dimensionality and specifically columnar
+reduction. Its purpose is to disregard irrelevant features to remove, amongst other things,
+constants, duplicates and statistically uninteresting columns.
+
+As an early stage data pipeline process, FeatureSelect focuses on data preprocessing, and
+as such is a filter step for extracting features of interest.
 
 .. toctree::
    :maxdepth: 1

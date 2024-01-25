@@ -22,15 +22,11 @@ data originated, how it has changed, and its ultimate destination.
 
 ----
 
-Add Knowledge
--------------
-As part of the set-up process, or at anytime during the component
+Capturing Knowledge
+-------------------
+As part of the set-up process, or at anytime during the capability
 development cycle, information can be gathered and added to the
-component as part of its information store.
-
-It is worth noting, method calls allow partial completion with
-additional information added at a later date as knowledge is gained or
-changed.
+capability's already existing knowledge.
 
 Firstly we reload the instance we wish to add the knowledge to.
 
@@ -39,16 +35,11 @@ Firstly we reload the instance we wish to add the knowledge to.
     fs = FeatureSelect.from_env('demo_citation', has_contract=False)
 
 
-Add information
-~~~~~~~~~~~~~~~
+Add identification
+~~~~~~~~~~~~~~~~~~
 
-As part of the set-up process and as best practice, the component is
-cited through added knowledge from the component’s creator or SME
-feedback.
-
-
-Additional knowledge can be added beyond the set provenance (see other
-sections).
+Primarily giving your capability a description, version and status helps
+identify its purpose and placement in a project.
 
 .. code:: python
 
@@ -56,15 +47,13 @@ sections).
     fs.set_version('0.0.1')
     fs.set_status('discovery')
 
-Add source citation
-~~~~~~~~~~~~~~~~~~~
+Add provenance
+~~~~~~~~~~~~~~
 
-This is extended with the Project Hadron transition component,
-considered the data entry point reporting tool, which includes a special
-method call to add provenance. Provenance sites a number of origin
-indicators that guide the user to the data’s provenance, its
-restrictions such as cost and license, its provider and the data’s
-author.
+The FeatureSelect capability provides a special method to add provenance.
+Provenance cites a number of origin indicators that guide the user to the
+data’s provenance, its restrictions such as cost and license, its provider
+and the data’s author.
 
 .. code:: python
 
@@ -78,23 +67,12 @@ author.
                       cost_price="$0.00",
                       cost_type="batch")
 
-Add data connectivity
+Describing attributes
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
-
-    fs.set_source_uri(uri="https://data.cityofnewyork.us/api/views/8h9b-rp9u/rows.csv")
-    fs.set_persist(uri_file='NYPD_Arrest_Historic.parquet')
-
-----
-
-Add Attributes
---------------
-
-A vital part of understanding one’s dataset is to describe the
-attributes provided. In this instance we name our catalogue group
-‘attributes’. The attributes are labeled with the name of the attribute
-and given a description.
+A vital part of understanding one’s dataset is to describe the attributes provided.
+Using `sdd_notes` we set the catalogue group as ‘attributes’, then labeled with the
+name of the attribute and description.
 
 .. code:: python
 
@@ -107,106 +85,52 @@ and given a description.
     fs.add_notes(catalog='attributes', label='survived', text='If the passenger survived or not as the target')
     fs.add_notes(catalog='attributes', label='embarked', text='The code for the port the passengered embarked')
 
-----
+Capture observations
+~~~~~~~~~~~~~~~~~~~~
 
-Adding Observations
--------------------
-
-In addition we can capture feedback from an SME or data owner, for
+As with attributes, we use `sdd_notes` to capture feedback from an SME or data owner, for
 example. In this case we capture ‘observations’ as our catalogue and
 ‘describe’ as our label which we maintain for both descriptions.
 
-One can now use the reporting tool to visually present the knowledge
-added. It is worth noting that with observations each description has
-been captured.
-
 .. code:: python
 
-    fs.add_notes(catalog='observations', label='describe', 
+    fs.add_notes(catalog='observations', label='describe',
                  text='The original Titanic dataset has been engineered to fit Seaborn functionality')
-    fs.add_notes(catalog='observations', label='describe', 
+    fs.add_notes(catalog='observations', label='describe',
                  text='The age and deck attributes still maintain their null values')
 
+Describe Actions
+~~~~~~~~~~~~~~~~
 
-.. code:: python
+To enhance the readability and understanding of each capabilities actions, we can add notes
+to help explain ones thinking for each intent action. This can then extend to the broader team,
+and those re-exploring the intended actions to understand why.
 
-    fs.report_notes(drop_dates=True)
+.. code:: ipython3
 
-.. image:: /images/reports/met_img01.png
-  :align: center
-  :width: 500
+    tr.add_intent_description(level='clean_header', text="Tidy headers with spaces and set to lower case")
+    tr.add_intent_description(level='reinstate_nulls', text="replace question marks with nulls")
 
 ----
 
+Reporting
+---------
 
-Transformation Intent
----------------------
+Once the activities of connectivity and intended actions have been completed, and
+information is added it can easily be accessed, either visually
+through reporting or remotely through predefined connector contracts. In
+our case we are visually displaying the reports for the purpose of
+demonstration but would normally be connected to a reporting tool for
+information capture.
 
-Intent is a core concept that transforms a set of intended actions
-relating directly to the components core task. In this instance we are
-using the Transitioning component that provides selection engineering of
-a provided dataset.
 
-As a core concept, Intent and its Parameterization is captured in full
-giving it transparency and traceability to an expert observer. It
-provides direct editability of each Intent, with each Intent a separate
-concern. This means minimal rewrites, adaptability, clarity of change
-and reduced testing.
 
-.. code:: ipython3
 
-    tr = Transition.from_env('demo_intent', has_contract=False)
 
-Set File Source
-^^^^^^^^^^^^^^^
 
-Initially set the file source for the data of interest and runs the
-component.
 
-.. code:: ipython3
 
-    ## Set the file source location
-    data = 'https://www.openml.org/data/get_csv/16826755/phpMYEkMl.csv'
-    tr.set_source_uri(data)
-    tr.set_persist()
-    tr.set_description("Original Titanic Dataset")
 
-Parameterised Intent
---------------------
-
-Through observations one identifies a number of selection engineering
-that needs to be done with the provided dataset. We are therefore
-looking to: - automatically clean the header to remove spaces and
-hidden characters in the header names. In addition note that ‘home.dest’
-is seperated with a dot and best practice is to replace that with an
-underscore. - reinstate nulls that have been obfuscated with ‘question
-marks’ in order for us to clarify data quality and make better feature
-engineering decisions. - identity selected data columns of no interest
-and remove them. - apply logic that identifies potential categoricals
-and appropriately ‘type’ them. - insure the appropriate’typing’ of
-identified numeric features. - turn our target boolean into a 0 and 1
-integer type for better feature engineering, observability and decision
-making.
-
-Then run the pipeline to apply the Intent to the dataset.
-
-.. code:: ipython3
-
-    df = tr.load_source_canonical()
-
-.. code:: ipython3
-
-    df = tr.tools.auto_clean_header(df, rename_map={'home.dest': 'home_dest'}, intent_level='clean_header')
-    df = tr.tools.auto_reinstate_nulls(df, nulls_list=['?'], intent_level='reinstate_nulls')
-    df = tr.tools.to_remove(df, headers=['body', 'name', 'ticket', 'boat'], intent_level='to_remove')
-    df = tr.tools.auto_to_category(df, intent_level='auto_categorize')
-    df = tr.tools.to_numeric_type(df, headers=['age', 'fare'], intent_level='to_numeric')
-    df = tr.tools.to_int_type(df, headers='survived', intent_level='to_int')
-
-    tr.run_component_pipeline()
-
-Report
-------
 
 The Intent, once applied, can now be observed through the Intent’s
 report which outlines each activity which displays each line of the
@@ -236,17 +160,13 @@ the outgoing dataset.
 
 .. code:: ipython3
 
-    tr.add_intent_level_description(level='clean_header', text="clean_header")
-    tr.add_intent_level_description(level='reinstate_nulls', text="replace in question marks with nulls so its data can be properly typed")
-    tr.add_intent_level_description(level='to_remove', text="Selective engineering to remove features of no interest")
-    tr.add_intent_level_description(level='auto_categorize', text="categorise feature object types ")
-    tr.add_intent_level_description(level='to_numeric', text="with nulls reinstated we can now reset the feature type")
-    tr.add_intent_level_description(level='to_int', text="make the target type int rather than bool passing decision making down to the feature engineering")
+    tr.add_intent_level_description(level='clean_header', text="Tidy headers with spaces and set to lower case")
+    tr.add_intent_level_description(level='reinstate_nulls', text="replace question marks with nulls")
 
 
 .. code:: ipython3
 
-    tr.report_column_catalog()
+    tr.report_intent_description()
 
 .. image:: /images/reports/int_img02.png
   :align: center
@@ -289,16 +209,12 @@ visualisation.
 Reports
 -------
 
-Once information is added it can easily be accessed, either visually
-through reporting or remotely through predefined connector contracts. In
-our case we are visually displaying the reports for the purpose of
-demonstration but would normally be connected to a reporting tool for
-information capture.
 
-Component Reporting
-~~~~~~~~~~~~~~~~~~~
 
-Our initial report shows information capture about our component.
+Capability Reporting
+~~~~~~~~~~~~~~~~~~~~
+
+Our initial report shows information capture about our capability.
 
 .. code:: python
 
@@ -311,7 +227,7 @@ Our initial report shows information capture about our component.
 Connectivity Reporting
 ~~~~~~~~~~~~~~~~~~~~~~
 
-As part of all components one can also interrogate where data is coming
+As part of all capabilities one can also interrogate where data is coming
 from and going to, which connector contracts have been set up and what
 they look like. In this case we only require our primary source and
 persist connectors from which we can identify the data’s location and
@@ -328,14 +244,14 @@ how we retrieved it.
 Provenance Reporting
 ~~~~~~~~~~~~~~~~~~~~
 
-Finally and specifically to the transitioning component, we citate
+Finally and specifically to the transitioning capability, we citate
 the provider of our data and that citation can be added to as knowledge
 is gained.
 
 This information not only shows us the domain and description of the
 provider but also the providers details, the datas author and
 restrictions on that data through license and costs. This information
-can easily be passed to a separate component that could for example
+can easily be passed to a separate capability that could for example
 monitor cost/spend on data throughput or collate common provider
 sourcing for data reuse.
 

@@ -194,15 +194,15 @@ class AbstractCommonComponent(AbstractComponent):
             return Commons.report(df, index_header='connector_name')
         return pa.Table.from_pandas(df)
 
-    def report_column_catalog(self, column_name: [str, list]=None, stylise: bool=True):
-        """ generates a report on the source contract
+    def report_intent_description(self, action: [str, list]=None, stylise: bool=True):
+        """ generates a report on the intent action notes
 
-        :param column_name: (optional) filters on specific column names.
+        :param action: (optional) filters on specific action names.
         :param stylise: (optional) returns a stylised DataFrame with formatting
         :return: pa.Table
         """
         stylise = True if not isinstance(stylise, bool) else stylise
-        df = pd.DataFrame.from_dict(data=self.pm.report_intent(levels=column_name, as_description=True,
+        df = pd.DataFrame.from_dict(data=self.pm.report_intent(levels=action, as_description=True,
                                                                level_label='column_name'))
         if stylise:
             return Commons.report(df, index_header='column_name')

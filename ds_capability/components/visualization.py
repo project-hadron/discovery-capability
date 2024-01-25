@@ -121,7 +121,8 @@ class Visualisation(object):
         plt.clf()
 
     @staticmethod
-    def show_distributions(canonical: pa.Table, target: str, capped_at: int=None, width: float=None, height: float=None):
+    def show_distributions(canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
+                        regex: [str, list]=None, drop: bool=None, capped_at: int=None, width: float=None, height: float=None):
         """ Shows three key distributions for a target sample array."""
         width = width if isinstance(width, float) else 16
         height = height if isinstance(height, float) else 4
@@ -129,24 +130,26 @@ class Visualisation(object):
         if canonical.num_rows*canonical.num_columns > cap > 0:
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
+        canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         canonical = Commons.filter_columns(canonical, d_types=[pa.int64(),pa.int32(),pa.int16(),pa.int8(),
                                                                pa.float64(),pa.float32(),pa.float16()])
         control = canonical.to_pandas()
+        for target in canonical.column_names:
         # Define figure size.
-        _ = plt.figure(figsize=(width, height))
-        _ = plt.suptitle('Show Distribution', fontdict={'size': 20})
-        # histogram
-        plt.subplot(1, 3, 1)
-        sns.histplot(control[target], bins=30)
-        plt.title('Histogram')
-        # Q-Q plot
-        plt.subplot(1, 3, 2)
-        stats.probplot(control[target], dist="norm", plot=plt)
-        plt.ylabel('RM quantiles')
-        # boxplot
-        plt.subplot(1, 3, 3)
-        sns.boxplot(y=control[target])
-        plt.title('Boxplot')
+            _ = plt.figure(figsize=(width, height))
+            _ = plt.suptitle('Show Distribution', fontdict={'size': 20})
+            # histogram
+            plt.subplot(1, 3, 1)
+            sns.histplot(control[target], bins=30)
+            plt.title('Histogram')
+            # Q-Q plot
+            plt.subplot(1, 3, 2)
+            stats.probplot(control[target], dist="norm", plot=plt)
+            plt.ylabel('RM quantiles')
+            # boxplot
+            plt.subplot(1, 3, 3)
+            sns.boxplot(y=control[target])
+            plt.title('Boxplot')
         plt.tight_layout()
         plt.show()
         plt.clf()
