@@ -2057,7 +2057,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                       save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                       replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ Imputes missing data with a probabilistic value based on the data pattern and the surrounding values.
-        Can be applied to any type. This is the default.
+        Can be applied to any type. This is the default. Other imputations include mean, medium, mode, forward, backward
 
         :param canonical: a canonical with the missing data
         :param strategy: (optional) replace null. By default, probability, or mean, medium, mode, forward, backward
