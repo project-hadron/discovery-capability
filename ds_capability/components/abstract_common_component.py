@@ -219,17 +219,16 @@ class AbstractCommonComponent(AbstractComponent):
             return Commons.report(df, index_header='name')
         return pa.Table.from_pandas(df)
 
-    def report_environ(self, hide_not_set: bool=True, stylise: bool=True):
+    def report_environ(self, stylise: bool=True):
         """ generates a report on all the intent
 
-        :param hide_not_set: hide environ keys that are not set.
         :param stylise: returns a stylised dataframe with formatting
         :return: pa.Table
         """
-        df = pd.DataFrame.from_dict(data=super().report_environ(hide_not_set), orient='index').reset_index()
+        df = pd.DataFrame.from_dict(data=super().report_environ(), orient='index').reset_index()
         df.columns = ["environ", "value"]
         if stylise:
-            return Commons.report(df, index_header='environ')
+            return Commons.report(df, bold='environ')
         return pa.Table.from_pandas(df)
 
     def report_intent(self, levels: [str, int, list]=None, stylise: bool=True):
