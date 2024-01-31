@@ -1757,7 +1757,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             s_values = s_values.iloc[:, 0]
         rtn_arr = pa.Array.from_pandas(s_values)
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([rtn_arr.dictionary_encode()], names=[to_header]))
+        return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
     def correlate_on_condition(self, canonical: pa.Table, header: str, other: str, condition: list,
                                value: [int, float, bool, str], mask_null: bool=None,
@@ -2137,7 +2137,11 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             return canonical
         rtn_tbl = None
         for n in tbl.column_names:
+            cat_type = False
             c = tbl.column(n).combine_chunks()
+            if pa.types.is_dictionary(c.type):
+                c = c.dictionary_decode()
+                cat_type = True
             if pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
                 precision = Commons.column_precision(c)
                 if strategy == 'mean':
@@ -2159,6 +2163,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                 # get the analysis
                 anal_tbl = self.get_analysis(tbl.num_rows, pa.table([c.drop_null()], names=[n]))
                 c = c.fill_null(anal_tbl.column(n).combine_chunks())
+            if cat_type:
+                c = c.dictionary_encode()
             rtn_tbl = Commons.table_append(rtn_tbl, pa.table([c], names=[n]))
         return Commons.table_append(canonical, rtn_tbl)
 
