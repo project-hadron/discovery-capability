@@ -36,7 +36,7 @@ earliest stage and helps ensure a transparent and traceable data foundations for
 handles large data through memory efficiency, facilitates interoperability and optimisation of
 CPU and GPU acceleration.
 
-**Project Hadron** has been built to help bridge this gap between data scientists, data engineers
+**Project Hadron** has been built to help bridge the gap between data scientists, data engineers
 and business stakeholders with a comprehensive set of reporting tools covering data profiling,
 data lineage and knowledge acquisition. Its targeted reports can be directly delivered as
 spreadsheets for stakeholders, absorbed into an already existing reporting tool for analytics or

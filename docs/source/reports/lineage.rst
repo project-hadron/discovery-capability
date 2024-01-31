@@ -13,7 +13,7 @@ consistency, and security.
 Each capability has a common set of reports that provide Data lineage, identifying where the
 data originated, how it has changed, and its ultimate destination.
 
-.. code:: python
+.. code-block:: python
 
     from ds_capability import FeatureSelect
     from ds_core.handlers.abstract_handlers import ConnectorContract
@@ -30,7 +30,7 @@ capability's already existing knowledge.
 
 Firstly we reload the instance we wish to add the knowledge to.
 
-.. code:: python
+.. code-block:: python
 
     fs = FeatureSelect.from_env('demo_citation', has_contract=False)
 
@@ -41,7 +41,7 @@ Add identification
 Primarily giving your capability a description, version and status helps
 identify its purpose and placement in a project.
 
-.. code:: python
+.. code-block:: python
 
     fs.set_description("Every arrest effected in NYC by the NYPD from 2006 to the end of the previous calendar year")
     fs.set_version('0.0.1')
@@ -55,7 +55,7 @@ Provenance cites a number of origin indicators that guide the user to the
 data’s provenance, its restrictions such as cost and license, its provider
 and the data’s author.
 
-.. code:: python
+.. code-block:: python
 
     fs.set_provenance(title='NYPD Historic Arrest Data',
                       domain='Public Safety',
@@ -74,7 +74,7 @@ A vital part of understanding one’s dataset is to describe the attributes prov
 Using `sdd_notes` we set the catalogue group as ‘attributes’, then labeled with the
 name of the attribute and description.
 
-.. code:: python
+.. code-block:: python
 
     ## Add some attribute descriptions
     fs.add_notes(catalog='attributes', label='age', text='The age of the passenger has limited null values')
@@ -92,7 +92,7 @@ As with attributes, we use `sdd_notes` to capture feedback from an SME or data o
 example. In this case we capture ‘observations’ as our catalogue and
 ‘describe’ as our label which we maintain for both descriptions.
 
-.. code:: python
+.. code-block:: python
 
     fs.add_notes(catalog='observations', label='describe',
                  text='The original Titanic dataset has been engineered to fit Seaborn functionality')
@@ -106,7 +106,7 @@ To enhance the readability and understanding of each capabilities actions, we ca
 to help explain ones thinking for each intent action. This can then extend to the broader team,
 and those re-exploring the intended actions to understand why.
 
-.. code:: ipython3
+.. code-block:: python
 
     tr.add_intent_description(level='clean_header', text="Tidy headers with spaces and set to lower case")
     tr.add_intent_description(level='reinstate_nulls', text="replace question marks with nulls")
@@ -141,7 +141,7 @@ From the report one can clearly see each Intent and its Parameterization
 that can be modified by applying either a new Intent or a replacement of
 the already existing line of code.
 
-.. code:: ipython3
+.. code-block:: python
 
     tr.report_intent()
 
@@ -158,13 +158,13 @@ conjunction with the Intent report to provided a full picture of the
 actions that were taken and their changes and those actions changes to
 the outgoing dataset.
 
-.. code:: ipython3
+.. code-block:: python
 
     tr.add_intent_level_description(level='clean_header', text="Tidy headers with spaces and set to lower case")
     tr.add_intent_level_description(level='reinstate_nulls', text="replace question marks with nulls")
 
 
-.. code:: ipython3
+.. code-block:: python
 
     tr.report_intent_description()
 
@@ -189,11 +189,11 @@ particular dataset. This is an advanced topic and not covered here.
 As usual the Run Book comes with its own reporting tool for easy
 visualisation.
 
-.. code:: ipython3
+.. code-block:: python
 
     tr.add_run_book(run_levels=['clean_header', 'to_remove', 'reinstate_nulls', 'auto_categorize', 'to_numeric', 'to_int'])
 
-.. code:: ipython3
+.. code-block:: python
 
     tr.report_run_book()
 
@@ -216,7 +216,7 @@ Capability Reporting
 
 Our initial report shows information capture about our capability.
 
-.. code:: python
+.. code-block:: python
 
     fs.report_task()
 
@@ -233,7 +233,7 @@ they look like. In this case we only require our primary source and
 persist connectors from which we can identify the data’s location and
 how we retrieved it.
 
-.. code:: python
+.. code-block:: python
 
     fs.report_connectors()
 
@@ -255,7 +255,7 @@ can easily be passed to a separate capability that could for example
 monitor cost/spend on data throughput or collate common provider
 sourcing for data reuse.
 
-.. code:: python
+.. code-block:: python
 
     fs.report_provenance()
 
