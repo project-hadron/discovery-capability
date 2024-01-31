@@ -945,7 +945,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         constructed association to be used as reference for a sub category.
 
         :param size: The number of rows
-        :param other: a direct or generated pd.DataFrame. see context notes below
+        :param other: a direct or generated pa.Table.
         :param canonical: (optional) a pa.Table to append the result table to
         :param category_limit: (optional) a global cap on categories captured. zero value returns no limits
         :param date_jitter: (optional) The size of the jitter. Default to 2
@@ -2142,7 +2142,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             if pa.types.is_dictionary(c.type):
                 c = c.dictionary_decode()
                 cat_type = True
-            if pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
+            if (pa.types.is_integer(c.type) or pa.types.is_floating(c.type)) and strategy in ['mean', 'median', 'mode', 'knn_uniform', 'knn_distance']:
                 precision = Commons.column_precision(c)
                 if strategy == 'mean':
                     c = c.fill_null(pc.round(pc.mean(c), precision))
@@ -2155,7 +2155,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                     model = KNNImputer(n_neighbors=5, weights=weights)
                     np_array = c.to_pandas().to_numpy().reshape(-1, 1)
                     c = pa.Array.from_pandas(model.fit_transform(np_array).reshape(1, -1)[0])
-            if strategy == 'forward':
+            elif strategy == 'forward':
                 c = pc.fill_null_forward(c)
             elif strategy == 'backward':
                 c = c.fill_null_backward(c)
