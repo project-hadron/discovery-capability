@@ -59,11 +59,13 @@ class DataDiscovery(object):
 
     @staticmethod
     def data_quality(canonical: pa.Table, nulls_threshold: float=None, dom_threshold: float=None,
-                     cat_threshold: int=None, capped_at: int=None, stylise: bool=None):
+                     cat_threshold: int=None, discrete_threshold: int=None, capped_at: int=None,
+                     stylise: bool=None):
         """ Analyses a dataset, passed as a DataFrame and returns a quality summary
 
         :param canonical: The dataset, as a DataFrame.
-        :param cat_threshold: The threshold for the max number of unique categories. Default is 60
+        :param cat_threshold: The threshold for the max number of unique categories. Default is 20
+        :param discrete_threshold: The threshold for the max number of unique numeric. Default is 20
         :param dom_threshold: The threshold limit of a dominant value. Default 0.98
         :param nulls_threshold: The threshold limit of a nulls value. Default 0.9
         :param capped_at: the row and column cap or 0 to ignore. default 5_000_000
@@ -71,7 +73,8 @@ class DataDiscovery(object):
         :return: pd.DataFrame
         """
         # defaults
-        cat_threshold = cat_threshold if isinstance(cat_threshold, int) else 60
+        cat_threshold = cat_threshold if isinstance(cat_threshold, int) else 20
+        discrete_threshold = discrete_threshold if isinstance(discrete_threshold, int) else 20
         dom_threshold = dom_threshold if isinstance(dom_threshold, float) and 0 <= dom_threshold <= 1 else 0.98
         nulls_threshold = nulls_threshold if isinstance(nulls_threshold, float) and 0 <= nulls_threshold <= 1 else 0.95
         stylise = stylise if isinstance(stylise, bool) else False
@@ -88,6 +91,7 @@ class DataDiscovery(object):
         _date_columns = []
         _bool_columns = []
         _cat_columns = []
+        _disc_columns = []
         _num_columns = []
         _int_columns = []
         _str_columns = []

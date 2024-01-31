@@ -18,7 +18,7 @@ The review of a dataset by an expert with similar credentials and
 subject knowledge as the data creator to validate the accuracy of the
 data and gain insight into its content and form.
 
-.. code:: python
+.. code-block:: python
 
     from ds_discovery import Transition
 
@@ -38,7 +38,7 @@ reports that are based on best practice and familiar to both parties.
 Finially it provides observational tools presenting a broad-set of
 information in a compacted and common display format.
 
-.. code:: python
+.. code-block:: python
 
     tr = Transition.from_env('demo_quality', has_contract=False)
 
@@ -48,7 +48,7 @@ Set File Source
 Initially we set the file source for our data of interest and run the
 component.
 
-.. code:: python
+.. code-block:: python
 
     ## Set the file source location
     data = 'https://www.openml.org/data/get_csv/16826755/phpMYEkMl.csv'
@@ -69,7 +69,7 @@ the data. There are also multiple features that are not required, all of
 which need to be dealt with before one can get a better view of the data
 presented.
 
-.. code:: python
+.. code-block:: python
 
     df = fs.load_source_canonical()
     fs.canonical_report (df)
@@ -85,7 +85,7 @@ The canonical is tidied up through engineering selection where one
 adjusts the features of interest, whilst removing the data columns that
 are of no interest and making sure the data is correctly typed.
 
-.. code:: python
+.. code-block:: python
 
     df = fs.tools.auto_reinstate_nulls(df, nulls_list=['?'])
     df = fs.tools.to_remove(df, headers=['body', 'name', 'ticket', 'boat', 'home.dest'])
@@ -105,7 +105,7 @@ The canonical report provides an enhancement of already existing data
 science tools to give a clear single view of our data set that is
 familiar to a broader audience.
 
-.. code:: python
+.. code-block:: python
 
     fs.canonical_report(df)
 
@@ -121,7 +121,7 @@ upload bulk notes from an external data source. In our next example we
 take an order book and from an already existing description catalogue
 extract that knowledge and add it to our attributes.
 
-.. code:: python
+.. code-block:: python
 
     tr = Transition.from_env('cs_orders', has_contract=False)
 
@@ -131,7 +131,7 @@ Set file source
 Initially set the file source for the data of interest and run the
 component.
 
-.. code:: python
+.. code-block:: python
 
     fs.set_source_uri(uri='data/CS_ORDERS.txt', sep='\t', error_bad_lines=False, low_memory=True, encoding='Latin1')
     fs.set_persist()
@@ -142,7 +142,7 @@ Connect the bulk upload
 
 First create a connector to the information source.
 
-.. code:: python
+.. code-block:: python
 
     fs.add_connector_uri(connector_name='bulk_notes', uri='data/cs_orders_dictionary.csv')
 
@@ -155,12 +155,12 @@ columns of interest that provide both the label and the text.
 Using our reporting tool one can now observe that attribute descriptions
 have been uploaded.
 
-.. code:: python
+.. code-block:: python
 
     notes = fs.load_canonical(connector_name='bulk_notes')
     fs.upload_notes(canonical=notes, catalog='attributes', label_key='Attribute', text_key='Description')
 
-.. code:: python
+.. code-block:: python
 
     fs.report_notes(drop_dates=True)
 
@@ -178,7 +178,7 @@ information. Our reporting tool has the ability to filter what we
 visualize giving us a clean summery of items of interest. In our example
 we are filtering on ‘label’ across all sections, or catalogues.
 
-.. code:: python
+.. code-block:: python
 
     fs.report_notes(labels=['ORD_DTS', 'INV_DTS', 'HOLD_DTS'], drop_dates=True)
 
@@ -222,7 +222,7 @@ tree, through naming. One can build a semantic and contextualized view of
 its data that can be distributed as a machine readable set of
 comparatives or as part of some other outcome.
 
-.. code:: python
+.. code-block:: python
 
     tr = Transition.from_env('demo_schema', has_contract=False)
 
@@ -232,14 +232,14 @@ Set File Source
 Initially we set the file source for the data of interest and run the
 component.
 
-.. code:: python
+.. code-block:: python
 
     ## Set the file source location
     fs.set_source_uri('https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv')
     fs.set_persist()
     fs.set_description("Titanic Dataset used by Seaborn")
 
-.. code:: python
+.. code-block:: python
 
     fs.run_component_pipeline()
 
@@ -251,11 +251,11 @@ flat view of the data or feature set and producing a schema that is
 either distributable through a given connector contract or, as in our
 case, displayed within the notebook.
 
-.. code:: python
+.. code-block:: python
 
     fs.save_canonical_schema()
 
-.. code:: python
+.. code-block:: python
 
     fs.report_canonical_schema()
 
@@ -273,7 +273,7 @@ parties or systems where the data can be observed or schematically
 examined to produce decision making outcomes. For example with the
 observation of concept drift.
 
-.. code:: python
+.. code-block:: python
 
     schema = fs.report_canonical_schema(fs.load_persist_canonical(), stylise=False)
     fs.save_report_canonical(reports=fs.REPORT_SCHEMA, report_canonical=schema)
@@ -293,7 +293,7 @@ This provides quick and easy visualisation of complex schemas and can
 help to identify individuals or groups of elements of interest within
 that schema.
 
-.. code:: python
+.. code-block:: python
 
     fs.report_canonical_schema(roots=['survived', 'fare'], sections='patterns')
 
@@ -316,13 +316,13 @@ case we take ‘survived’ as our root, being the target feature of
 interest. We next relate this to ‘age’ to understand how age is
 distributed both by ‘survived’ and ‘gender’.
 
-.. code:: python
+.. code-block:: python
 
     fs.save_canonical_schema(schema_name='survived', schema_tree=[
         {'survived': {'dtype': 'bool'}},
         {'age': {'granularity': [(0, 18), (18, 30), (30, 50), (50, 100)]}}])
 
-.. code:: python
+.. code-block:: python
 
     fs.report_canonical_schema(schema='survived')
 
@@ -344,7 +344,7 @@ period of time or fixed at a moment in time then distributed and
 compared to provide monitoring and insight into data as it flows through
 your system.
 
-.. code:: python
+.. code-block:: python
 
     result = fs.report_canonical_schema(schema='survived', roots='survived.1.age', elements=['relative_freq'], stylise=False)
     result['value'].to_list()
@@ -363,7 +363,7 @@ As well as its visual display the enhanced dictionary can be distributed
 to any connecting service, such as an XL spreadsheet and its graphical
 tooling.
 
-.. code:: python
+.. code-block:: python
 
     dictionary = fs.canonical_report(fs.load_persist_canonical(), stylise=False)
     fs.save_report_canonical(reports=fs.REPORT_DICTIONARY, report_canonical=dictionary)
@@ -375,7 +375,7 @@ By default reports are given their own name and data type, though this
 can be tailored to suit a targeted system with options of name,
 versioning, timestamp and the data type of the data to be reported.
 
-.. code:: python
+.. code-block:: python
 
     reports = [fs.report2dict(report=fs.REPORT_DICTIONARY, prefix='titanic_', file_type='csv', stamped='days')]
     fs.save_report_canonical(reports=reports, report_canonical=dictionary)
@@ -388,7 +388,7 @@ also produce a summary overview of the dataset as a whole. The quality
 report provides a subset view of quality score, data shape, data types,
 usability summary and cost, if applicable.
 
-.. code:: python
+.. code-block:: python
 
     fs.report_quality_summary()
 
@@ -402,7 +402,7 @@ Report Redistribution
 As with the dictionary the quality report can be saved and redistributed
 to interested parties.
 
-.. code:: python
+.. code-block:: python
 
     quality = fs.report_quality_summary(stylise=False)
     fs.save_report_canonical(reports=fs.REPORT_SUMMARY, report_canonical=quality)

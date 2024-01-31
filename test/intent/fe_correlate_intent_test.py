@@ -76,6 +76,19 @@ class FeatureEngineerCorrelateTest(unittest.TestCase):
                                                     categories=['0%->25%', '25%->50%', '50%->75%', '75%->100%'], to_header='num')
         self.assertCountEqual(['0%->25%', '25%->50%', '50%->75%', '75%->100%'], result.column('num').combine_chunks().dictionary.to_pylist())
 
+    def test_correlate_on_pandas(self):
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        tbl = fe.set_source_uri('https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/datasets/toy_sample/titanic.csv').load_source_canonical()
+        tbl = tools.correlate_on_pandas(tbl, header='cabin',
+                                        code_str="str.extract('([0-9]+)').astype('float')",
+                                        to_header='cabin_num')
+        tbl = tools.correlate_on_pandas(tbl, header='cabin',
+                                        code_str="apply(lambda x: x[0] if isinstance(x, str) and len(x) > 0 else None)",
+                                        to_header='cabin_cat')
+        self.assertTrue('cabin_num' in tbl.column_names and 'cabin_cat' in tbl.column_names)
+        print(fe.table_report(tbl, head=3).to_string())
+
     def test_correlate_on_condition(self):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools
