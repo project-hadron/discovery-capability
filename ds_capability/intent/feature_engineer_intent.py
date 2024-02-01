@@ -46,6 +46,54 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             return rtn_lst
         raise ValueError(f"The sample map name '{method}' was not found in the MappedSample class")
 
+    def _correlate_template(self, canonical: pa.Table, header: str, to_header: str=None,
+                            seed: int=None, save_intent: bool=None, intent_order: int=None,
+                            intent_level: [int, str]=None, replace_intent: bool=None,
+                            remove_duplicates: bool=None) -> pa.Table:
+        """
+
+        :param canonical: a pa.Table as the reference table
+        :param header: the header for the target values to change
+
+        :param to_header: (optional) an optional name to call the column
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table
+        """
+        self._set_intend_signature( self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header = self._extract_value(to_header)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        seed = seed if isinstance(seed, int) else self._seed()
+        c = canonical.column(header).combine_chunks()
+        is_dict = False
+        if pa.types.is_dictionary(c.type):
+            is_dict = True
+            c = c.dictionary_decode()
+
+
+
+        if is_dict:
+            c = c.dictionary_encode()
+        to_header = to_header if isinstance(to_header, str) else header
+        return Commons.table_append(canonical, pa.table([c], names=[to_header]))
+
     def get_number(self, start: [int, float, str]=None, stop: [int, float, str]=None, canonical: pa.Table=None,
                    relative_freq: list=None, precision: int=None, ordered: str=None, at_most: int=None, size: int=None,
                    quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None, intent_order: int=None,
@@ -940,7 +988,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                      offset: [int, float]=None, seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
                      intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ builds a set of columns based on another (see analyse_association)
-        if a reference DataFrame is passed then as the analysis is run if the column already exists the row
+        if a reference Table is passed then as the analysis is run if the column already exists the row
         value will be taken as the reference to the sub category and not the random value. This allows already
         constructed association to be used as reference for a sub category.
 
@@ -1314,6 +1362,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header  = self._extract_value(to_header)
         if not isinstance(header, str) or header not in canonical.column_names:
             raise ValueError(f"The header '{header}' can't be found in the canonical headers")
         seed = seed if isinstance(seed, int) else self._seed()
@@ -1381,7 +1431,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                 rtn_arr = pa.array(rtn_arr, pa.int64())
             except pa.lib.ArrowInvalid:
                 pass
-        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
     def correlate_dates(self, canonical: pa.Table, header: str, choice: [int, float, str]=None, choice_header: str=None,
@@ -1436,6 +1486,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header  = self._extract_value(to_header)
         if not isinstance(header, str) or header not in canonical.column_names:
             raise ValueError(f"The header '{header}' can't be found in the canonical headers")
         seed = seed if isinstance(seed, int) else self._seed()
@@ -1537,7 +1589,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             s_others = pd.Series(pd.DatetimeIndex(s_others).normalize())
         elif ignore_seconds:
             s_others = s_others.dt.round('min')
-        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([s_others], names=[to_header]))
 
     def correlate_date_diff(self, canonical: pa.Table, first_date: str, second_date: str, units: str=None,
@@ -1579,13 +1631,14 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         if first_date not in canonical.column_names:
             raise ValueError(f"The column header '{first_date}' is not in the canonical DataFrame")
         canonical = self._get_canonical(canonical)
+        to_header  = self._extract_value(to_header)
         _seed = seed if isinstance(seed, int) else self._seed()
         precision = precision if isinstance(precision, int) else 0
         units = units if isinstance(units, str) else 'D'
         selected = Commons.filter_columns(canonical, headers=[first_date, second_date]).to_pandas()
         rename = (selected[second_date].sub(selected[first_date], axis=0) / np.timedelta64(1, units))
         rtn_arr = pa.array([np.round(v, precision) for v in rename], pa.int64())
-        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        to_header = to_header if isinstance(to_header, str) else f"{first_date}-{second_date}"
         return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
     def correlate_date_element(self, canonical: pa.Table, target: [str, list], matrix: [str, list],
@@ -1708,13 +1761,15 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header  = self._extract_value(to_header)
         if not isinstance(header, str) or header not in canonical.column_names:
             raise ValueError(f"The header '{header}' can't be found in the canonical headers")
         seed = seed if isinstance(seed, int) else self._seed()
         rtn_arr = DataDiscovery.to_discrete_intervals(column=canonical.column(header), granularity=granularity,
                                                       lower=lower, upper=upper, categories=categories,
                                                       precision=precision)
-        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([rtn_arr.dictionary_encode()], names=[to_header]))
 
     def correlate_on_pandas(self, canonical: pa.Table, header: str, code_str: str, to_header: str=None, seed: int=None,
@@ -1748,6 +1803,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header  = self._extract_value(to_header)
         if not isinstance(header, str) or header not in canonical.column_names:
             raise ValueError(f"The header '{header}' can't be found in the canonical headers")
         seed = seed if isinstance(seed, int) else self._seed()
@@ -1756,7 +1813,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         if isinstance(s_values, pd.DataFrame):
             s_values = s_values.iloc[:, 0]
         rtn_arr = pa.Array.from_pandas(s_values)
-        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
     def correlate_on_condition(self, canonical: pa.Table, header: str, other: str, condition: list,
@@ -1809,6 +1866,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header  = self._extract_value(to_header)
         if not isinstance(header, str) or header not in canonical.column_names:
             raise ValueError(f"The header '{header}' can't be found in the canonical headers")
         seed = seed if isinstance(seed, int) else self._seed()
@@ -1823,7 +1882,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         elif default is None:
             default = h_col
             # replace and add it back to the original table
-        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([pc.if_else(_mask, value, default)], names=[to_header]))
 
     def correlate_column_join(self, canonical: pa.Table, header: str, others: [str, list], drop_others: bool=None,
@@ -1860,6 +1919,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header  = self._extract_value(to_header)
         seed = seed if isinstance(seed, int) else self._seed()
         drop_others = drop_others if isinstance(drop_others, bool) else True
         sep = sep if isinstance(sep, str) else ''
@@ -1876,66 +1937,10 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             else:
                 o_col = n
             h_col = pc.binary_join_element_wise(h_col, o_col, sep)
-        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([h_col], names=[to_header]))
 
-    def correlate_custom(self, canonical: pa.Table, code_str: str, seed: int=None, to_header: str=None,
-                         save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                         replace_intent: bool=None, remove_duplicates: bool=None, **kwargs):
-        """ Commonly used for custom list comprehension, takes code string that when evaluated returns a list of values
-        Before using this method, consider the method correlate_selection(...)
-
-        When referencing the canonical in the code_str it should be referenced either by use parameter label 'canonical'
-        or the short cut '@' symbol.
-        for example:
-
-        .. code-block:: py3
-
-            code_str = "[x + 2 for x in @['A']]" # where 'A' is a header in the canonical
-
-        kwargs can also be passed into the code string but must be preceded by a '$' symbol
-        for example:
-
-        .. code-block:: py3
-
-            code_str = "[True if x == $v1 else False for x in @['A']]" # where 'v1' is a kwargs
-
-        :param canonical:
-        :param code_str: an action on those column values. to reference the canonical use '@'
-        :param to_header: (optional) an optional name to call the column
-        :param seed: (optional) a seed value for the random function: default to None
-        :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param intent_level: (optional) the intent name that groups intent to create a column
-        :param intent_order: (optional) the order in which each intent should run.
-                    - If None: default's to -1
-                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
-                    - if int: added to the level specified, overwriting any that already exist
-
-        :param replace_intent: (optional) if the intent method exists at the level, or default level
-                    - True - replaces the current intent method with the new
-                    - False - leaves it untouched, disregarding the new intent
-
-        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :param kwargs: a set of kwargs to include in any executable function
-        :return: value set based on the selection list and the action
-        """
-        # intent persist options
-        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
-                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
-        # remove intent params
-        canonical = self._get_canonical(canonical)
-        _seed = seed if isinstance(seed, int) else self._seed()
-        local_kwargs = locals()
-        for k, v in local_kwargs.pop('kwargs', {}).items():
-            local_kwargs.update({k: v})
-            code_str = code_str.replace(f'${k}', str(v))
-        code_str = code_str.replace('@', 'canonical')
-        rtn_values = eval(code_str, globals(), local_kwargs)
-        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
-
-    def correlate_outliers(self, canonical: pa.Table, target: str, method: str=None, measure: [int,float,tuple]=None,
+    def correlate_outliers(self, canonical: pa.Table, header: str, method: str=None, measure: [int, float, tuple]=None,
                            seed: int=None, to_header: str=None, save_intent: bool=None, intent_level: [int, str]=None,
                            intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
         """ creates a boolean column indicating which elements within the target column meet the
@@ -1945,7 +1950,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         The default method is 'interquartile'
 
         :param canonical: a pyarrow table
-        :param target: The name of the target string column
+        :param header: The name of the target string column
         :param method: (optional) The outlier method. 'empirical', 'iqr' or custom
         :param measure: (optional) The outlier distance being std-width, k-factor or a (min, max) tuple
         :param to_header: (optional) an optional name to call the column
@@ -1968,11 +1973,13 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header  = self._extract_value(to_header)
         method = method if isinstance(method, str) else 'iqr'
         _seed = seed if isinstance(seed, int) else self._seed()
-        values = canonical.column(target).combine_chunks()
+        values = canonical.column(header).combine_chunks()
         if not (pa.types.is_integer(values.type) or pa.types.is_floating(values.type)):
-            raise ValueError(f"The target column '{target}' must be an int or float type {values.type} passed")
+            raise ValueError(f"The target column '{header}' must be an int or float type {values.type} passed")
         if method.startswith('emp'):
             measure = measure if isinstance(measure, float) else 3 # std-width
             result_idx = DataDiscovery.outliers_empirical(values=values, std_width=measure)
@@ -1982,11 +1989,11 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         else:
             measure = measure if isinstance(measure, float) else 1.5  # k-factor
             result_idx = DataDiscovery.outliers_iqr(values=values, k_factor=measure)
-        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([result_idx], names=[to_header]))
 
 
-    def correlate_replace(self, canonical: pa.Table, target: str, pattern: str, replacement: str, is_regex: bool=None,
+    def correlate_replace(self, canonical: pa.Table, header: str, pattern: str, replacement: str, is_regex: bool=None,
                           max_replacements: int=None, seed: int=None, to_header: str=None, save_intent: bool=None,
                           intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                           remove_duplicates: bool=None):
@@ -1997,7 +2004,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         If is a regex then RE2 Regular Expression Syntax is used
 
         :param canonical:
-        :param target: The name of the target string column
+        :param header: The name of the target string column
         :param pattern: Substring pattern to look for inside input values.
         :param replacement: What to replace the pattern with.
         :param is_regex: (optional) if the pattern is a regex. Default False
@@ -2023,9 +2030,11 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header  = self._extract_value(to_header)
         is_regex = is_regex if isinstance(is_regex, bool) else False
         _seed = seed if isinstance(seed, int) else self._seed()
-        c = canonical.column(target).combine_chunks()
+        c = canonical.column(header).combine_chunks()
         is_dict = False
         if pa.types.is_dictionary(c.type):
             is_dict = True
@@ -2036,8 +2045,126 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             rtn_values = pc.replace_substring(c, pattern, replacement, max_replacements=max_replacements)
         if is_dict:
             rtn_values = rtn_values.dictionary_encode()
-        to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
+        to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
+
+    def correlate_missing(self, canonical: pa.Table, header: str, to_header: str=None, strategy: str=None,
+                          constant: [str, int, float]=None, seed: int=None, save_intent: bool=None, intent_order: int=None,
+                          intent_level: [int, str]=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ correlates a missing data imputation, replacing nulls with a given strategy. If no strategy is given
+        or the strategy isn't recognised then defaults to 'mode'. As 'mean' or 'median' only apply to numeric
+        values, if used on a categorical the strategy will revert back to the default.
+
+        The available strategies are 'mean', 'median', 'mode', 'constant', 'forward' and 'backward' where
+        forward carry non-null values forward to fill null slots and  backward carry non-null values backward
+        to fill null slots.
+
+        :param canonical: a pa.Table as the reference table
+        :param header: the header for the target values to change
+        :param strategy: (optional) imputation strategy. 'mean','median','mode','constant','forward','backward'
+        :param constant: (optional) if action is constant, the value to use.
+        :param to_header: (optional) an optional name to call the column
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table
+        """
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header = self._extract_value(to_header)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        seed = seed if isinstance(seed, int) else self._seed()
+        c = canonical.column(header).combine_chunks()
+        if c.null_count == 0:
+            return canonical
+        constant = constant if isinstance(constant, (str, int, float)) else 'NA' if pa.types.is_string(c.type) else 0
+        is_dict = False
+        if pa.types.is_dictionary(c.type):
+            c = c.dictionary_decode()
+            is_dict = True
+        if strategy == 'mean' and (pa.types.is_integer(c.type) or pa.types.is_floating(c.type)):
+            c = c.fill_null(pc.round(pc.mean(c), Commons.column_precision(c)))
+        elif strategy == 'median' and (pa.types.is_integer(c.type) or pa.types.is_floating(c.type)):
+            c = c.fill_null(pc.round(pc.approximate_median(c), Commons.column_precision(c)))
+        elif strategy == 'forward':
+            c = pc.fill_null_forward(c)
+        elif strategy == 'backward':
+            c = c.fill_null_backward(c)
+        elif strategy == 'constant':
+            c = c.fill_null(constant)
+        else: # mode
+            if pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
+                c = c.fill_null(pc.round(pc.mode(c).field(0)[0], Commons.column_precision(c)))
+            else:
+                c = c.fill_null(pc.mode(c).field(0)[0])
+        if is_dict:
+            c = c.dictionary_encode()
+        to_header = to_header if isinstance(to_header, str) else header
+        return Commons.table_append(canonical, pa.table([c], names=[to_header]))
+
+    def correlate_missing_probability(self, canonical: pa.Table, header: str, to_header: str=None, seed: int=None,
+                                      save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
+                                      replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """
+
+        :param canonical: a pa.Table as the reference table
+        :param header: the header for the target values to change
+
+        :param to_header: (optional) an optional name to call the column
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table
+        """
+        self._set_intend_signature( self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header = self._extract_value(to_header)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        seed = seed if isinstance(seed, int) else self._seed()
+        c = canonical.column(header).combine_chunks()
+        is_dict = False
+        if pa.types.is_dictionary(c.type):
+            is_dict = True
+            c = c.dictionary_decode()
+        sample = self.get_analysis(size=len(c), other=pa.table([c.drop_null()], names=['null_sample']))
+        null_sample = sample.column('null_sample').combine_chunks()
+        if pa.types.is_floating(c.type) or pa.types.is_integer(c.type):
+            null_sample = pc.round(null_sample, Commons.column_precision(c))
+        c = c.fill_null(null_sample)
+        if is_dict:
+            c = c.dictionary_encode()
+        to_header = to_header if isinstance(to_header, str) else header
+        return Commons.table_append(canonical, pa.table([c], names=[to_header]))
 
     def model_concat_remote(self, canonical: pa.Table, other: [str, pa.Table], headers: list, replace: bool=None,
                            rename_map: [dict, list]=None, multi_map: dict=None, relative_freq: list=None, seed: int=None,
@@ -2095,78 +2222,6 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                     other[k] = other[v]
         other = pa.Table.from_pandas(other)
         return Commons.table_append(canonical, other)
-
-    def model_missing(self, canonical: pa.Table, strategy: str=None, headers: [str, list]=None,
-                      d_types: [str, list]=None, regex: [str, list]=None, drop: bool=None, seed: int=None,
-                      save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                      replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
-        """ Imputes missing data with a probabilistic value based on the data pattern and the surrounding values.
-        Can be applied to any type. This is the default. Other imputations include mean, medium, mode, forward, backward
-
-        :param canonical: a canonical with the missing data
-        :param strategy: (optional) replace null. By default, probability, or mean, medium, mode, forward, backward
-        :param headers: (optional) a filter of headers from the 'other' dataset
-        :param drop: (optional) to drop or not drop the headers if specified
-        :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
-        :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
-        :param seed: (optional) this is a placeholder, here for compatibility across methods
-        :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param intent_level: (optional) the column name that groups intent to create a column
-        :param intent_order: (optional) the order in which each intent should run.
-                    - If None: default's to -1
-                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
-                    - if int: added to the level specified, overwriting any that already exist
-
-        :param replace_intent: (optional) if the intent method exists at the level, or default level
-                    - True - replaces the current intent method with the new
-                    - False - leaves it untouched, disregarding the new intent
-
-        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: a pa.Table
-        """
-        # intent persist options
-        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
-                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
-        # intent action
-        canonical = self._get_canonical(canonical)
-        _seed = self._seed() if seed is None else seed
-        strategy = strategy if isinstance(strategy, str) else 'probability'
-        tbl = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
-        if tbl.num_columns == 0:
-            return canonical
-        rtn_tbl = None
-        for n in tbl.column_names:
-            cat_type = False
-            c = tbl.column(n).combine_chunks()
-            if pa.types.is_dictionary(c.type):
-                c = c.dictionary_decode()
-                cat_type = True
-            if (pa.types.is_integer(c.type) or pa.types.is_floating(c.type)) and strategy in ['mean', 'median', 'mode', 'knn_uniform', 'knn_distance']:
-                precision = Commons.column_precision(c)
-                if strategy == 'mean':
-                    c = c.fill_null(pc.round(pc.mean(c), precision))
-                elif strategy == 'median':
-                    c = c.fill_null(pc.round(pc.approximate_median(c), precision))
-                elif strategy == 'mode':
-                    c = c.fill_null(pc.round(pc.mode(c), precision))
-                elif strategy == 'knn_uniform' or strategy == 'knn_distance':
-                    weights = strategy[4:]
-                    model = KNNImputer(n_neighbors=5, weights=weights)
-                    np_array = c.to_pandas().to_numpy().reshape(-1, 1)
-                    c = pa.Array.from_pandas(model.fit_transform(np_array).reshape(1, -1)[0])
-            elif strategy == 'forward':
-                c = pc.fill_null_forward(c)
-            elif strategy == 'backward':
-                c = c.fill_null_backward(c)
-            else:
-                # get the analysis
-                anal_tbl = self.get_analysis(tbl.num_rows, pa.table([c.drop_null()], names=[n]))
-                c = c.fill_null(anal_tbl.column(n).combine_chunks())
-            if cat_type:
-                c = c.dictionary_encode()
-            rtn_tbl = Commons.table_append(rtn_tbl, pa.table([c], names=[n]))
-        return Commons.table_append(canonical, rtn_tbl)
 
     def model_group(self, canonical: Any, group_by: [str, list], headers: [str, list]=None, regex: bool=None,
                     aggregator: str=None, list_choice: int=None, list_max: int=None, drop_group_by: bool = False,

@@ -229,6 +229,39 @@ class FeatureEngineerCorrelateTest(unittest.TestCase):
         print(result.column_names)
         print(Commons.table_report(result).to_string())
 
+    def test_model_missing(self):
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        tbl = tools.get_synthetic_data_types(100, extend=True, seed=31)
+        self.assertGreater(tbl.column('num_null').null_count, 0)
+        self.assertGreater(tbl.column('date_null').null_count, 0)
+        # default
+        result = tools.correlate_missing(tbl, header='num_null')
+        self.assertEqual(0, result.column('num_null').null_count)
+        # mean
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, extend=True, seed=31)
+        result = tools.correlate_missing(tbl, header='num_null', strategy='mean')
+        self.assertEqual(0, result.column('num_null').null_count)
+        # median
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, extend=True, seed=31)
+        result = tools.correlate_missing(tbl, header='num_null', strategy='median')
+        self.assertEqual(0, result.column('num_null').null_count)
+        # constant
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, extend=True, seed=31)
+        result = tools.correlate_missing(tbl, header='num_null', strategy='constant', constant=0)
+        self.assertEqual(0, result.column('num_null').null_count)
+
+    def test_model_missing_titanic(self):
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        fe.set_source_uri('https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/datasets/toy_sample/titanic.csv')
+        tbl = fe.load_source_canonical()
+        self.assertEqual(263, tbl.column('age').null_count)
+        result = tools.correlate_missing_probability(tbl, header='age')
+        self.assertEqual(0, result.column('age').null_count)
+
+
+
     def test_raise(self):
         with self.assertRaises(KeyError) as context:
             env = os.environ['NoEnvValueTest']
