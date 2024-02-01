@@ -2156,7 +2156,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         if pa.types.is_dictionary(c.type):
             is_dict = True
             c = c.dictionary_decode()
-        sample = self.get_analysis(size=len(c), other=pa.table([c.drop_null()], names=['null_sample']))
+        sample = self.get_analysis(size=len(c), other=pa.table([c.drop_null()], names=['null_sample']), save_intent=False)
         null_sample = sample.column('null_sample').combine_chunks()
         if pa.types.is_floating(c.type) or pa.types.is_integer(c.type):
             null_sample = pc.round(null_sample, Commons.column_precision(c))
