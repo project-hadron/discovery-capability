@@ -279,6 +279,8 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
                 if not pa.types.is_dictionary(column.type):
                     column = column.dictionary_encode()
                 column = pa.array(column.indices, pa.int64())
+            if pa.types.is_dictionary(column.type):
+                column = column.dictionary_decode()
             new_header = f"{prefix}{header}"
             tbl = Commons.table_append(tbl, pa.table([column], names=[new_header]))
         if not tbl:
