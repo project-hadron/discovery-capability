@@ -153,9 +153,9 @@ class AbstractCommonComponent(AbstractComponent):
         """ Creates a report from a pyarrow table in a tabular form
 
         :param canonical: the table to view
-        :param head: The number of rows to show. Default to 5
+        :param head: The number of rows to show. Default to 20
         """
-        head = head if isinstance(head, int) else 5
+        head = head if isinstance(head, int) else 20
         return Commons.table_report(canonical, head=head)
 
     def report_task(self, stylise: bool=True):
