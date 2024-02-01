@@ -207,9 +207,10 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
             return canonical
         return Commons.table_append(canonical, tbl)
 
-    def encode_category_integer(self, canonical: pa.Table, headers: [str, list]=None, ranking: list=None, prefix=None,
-                                seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
-                                intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
+    def encode_category_integer(self, canonical: pa.Table, headers: [str, list]=None, ordinal: bool=None,
+                                label_count: int=None, prefix=None, seed: int=None, save_intent: bool=None,
+                                intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                                remove_duplicates: bool=None):
         """ Integer encoding replaces the categories by digits from 1 to n, where n is the number of distinct
         categories of the variable. Integer encoding can be either nominal or ordinal.
 
@@ -222,12 +223,13 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
 
         If ranking is given, the return will be ordinal values based on the ranking order of the list. If a
         categorical value is not found in the list it is grouped with other missing values and given the last
-        ranking.
+        ranking. This is known as rare-label encoding.
 
         :param canonical: pyarrow Table
         :param headers: the header(s) to apply encoding too
-        :param ranking: (optional) if used, ranks the categorical values to the list given
-        :param prefix: a str to prefix the column
+        :param ordinal: (optional) if the integer encoder is ordinal
+        :param label_count: (optional) if the ordinal is rare-label, the number of categories to rank
+        :param prefix: (optional) a str to prefix the column
         :param seed: seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the intent level that groups intent to create a column
@@ -254,22 +256,29 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         tbl = None
         for header in headers:
             column = canonical.column(header).combine_chunks()
-            if isinstance(ranking, list): # ordinal
-                if pa.types.is_dictionary(column.type):
-                    column = column.dictionary_decode()
-                rank = Commons.list_formatter(ranking)
-                unique = pc.unique(column).to_pylist()
-                missing = Commons.list_diff(unique, rank, symmetric=False)
-                full_rank = rank + missing
+            if isinstance(label_count, int): # rare-label
+                if not pa.types.is_dictionary(column.type):
+                    column = column.dictionary_encode()
+                full_rank = column.dictionary.sort().to_pylist()
+                rank = full_rank[:label_count]
+                missing = full_rank[label_count:]
                 values = list(range(len(rank)))
                 values = values + ([len(rank)] * (len(full_rank) - len(rank)))
                 mapper = dict(zip(full_rank, values))
                 s_column = column.to_pandas()
-                column =  pa.Array.from_pandas(self, s_column.replace(mapper))
+                column =  pa.Array.from_pandas(s_column.replace(mapper))
+            elif isinstance(ordinal, bool) and ordinal: # ordinal
+                if not pa.types.is_dictionary(column.type):
+                    column = column.dictionary_encode()
+                rank = column.dictionary.sort().to_pylist()
+                values = list(range(len(rank)))
+                mapper = dict(zip(rank, values))
+                s_column = column.to_pandas()
+                column = pa.Array.from_pandas(s_column.replace(mapper))
             else: # nominal
                 if not pa.types.is_dictionary(column.type):
                     column = column.dictionary_encode()
-                column = pa.array(column.indicies, pa.int64())
+                column = pa.array(column.indices, pa.int64())
             new_header = f"{prefix}{header}"
             tbl = Commons.table_append(tbl, pa.table([column], names=[new_header]))
         if not tbl:
@@ -319,7 +328,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         d_type = data_type if data_type else pa.int64()
         dummies = pd.get_dummies(canonical.to_pandas(), columns=headers, prefix=prefix, prefix_sep=prefix_sep,
                               dummy_na=dummy_na, drop_first=drop_first, dtype=data_type)
-        return pa.Table.from_pandas(self, dummies)
+        return pa.Table.from_pandas(dummies)
 
     def scale_normalize(self, canonical: pa.Table, headers: [str, list]=None, scalar: [tuple, str]=None,
                         prefix: str=None, precision: int=None, seed: int=None, save_intent: bool=None,

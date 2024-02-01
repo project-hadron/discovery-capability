@@ -61,16 +61,19 @@ class FeatureBuilderTest(unittest.TestCase):
         except OSError:
             pass
 
-    def test_activate(self):
-        tbl = pa.table([pa.array([-3,-2,-1,0,1,2,3], pa.int64())], names=['int'])
+    def test_encoder_integer(self):
+        tbl = pa.table([pa.array(['C', 'B', 'C', 'B', 'A', 'B', 'A', 'D'], pa.string()),
+                        pa.array(['C', 'B', 'C', 'B', 'A', 'B', 'A', 'D'], pa.string()),
+                       ], names=['cross', 'count'])
         ft = FeatureTransform.from_memory()
         tools: FeatureTransformIntent = ft.tools
-        result = tools.activate_sigmoid(tbl,'int', precision=2)
-        self.assertEqual([0.05, 0.12, 0.27, 0.5, 0.73, 0.88, 0.95], result.column('int').to_pylist())
-        result = tools.activate_tanh(tbl,'int', precision=2)
-        self.assertEqual([-1.0, -0.96, -0.76, 0.0, 0.76, 0.96, 1.0], result.column('int').to_pylist())
-        result = tools.activate_relu(tbl,'int', precision=2)
-        self.assertEqual([0, 0, 0, 0, 1, 2, 3], result.column('int').to_pylist())
+        result = tools.encode_category_integer(tbl, headers='cross')
+        self.assertEqual([0, 1, 0, 1, 2, 1, 2, 3], result['cross'].to_pylist())
+        result = tools.encode_category_integer(tbl, headers='cross', ordinal=True)
+        self.assertEqual([2, 1, 2, 1, 0, 1, 0, 3], result['cross'].to_pylist())
+        result = tools.encode_category_integer(tbl, headers='cross', label_count=2)
+        self.assertEqual([2, 1, 2, 1, 0, 1, 0, 2], result['cross'].to_pylist())
+
 
     def test_scale_normalize(self):
         tbl = pa.table([pa.array([1,2,3,4,5], pa.int64()),
