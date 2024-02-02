@@ -16,7 +16,7 @@ class AutoMLIntent(AbstractAutoMLIntentModel, CommonsIntentModel):
     TRAIN_INTENT_LEVEL = 'train_level'
     PREDICT_INTENT_LEVEL = 'predict_level'
 
-    def label_predict(self, canonical: pa.Table, *, model_name: str=None, id_header: str=None, save_intent: bool=None,
+    def label_predict(self, canonical: pa.Table, model_name: str, *, id_header: str=None, save_intent: bool=None,
                       intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                       remove_duplicates: bool=None):
         """ Retrieves a trained model and applies it to the canonical, returning the canonical with prediction labels.
@@ -24,7 +24,7 @@ class AutoMLIntent(AbstractAutoMLIntentModel, CommonsIntentModel):
         removed from the feature and reapplied with the predictions.
 
         :param canonical: the model canonical
-        :param model_name: (optional) a unique name for the model
+        :param model_name: a unique name for the model
         :param id_header: (optional) the name of a header that is not a feature that uniquely identifies each row
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the level name that groups intent by a reference name
@@ -45,10 +45,9 @@ class AutoMLIntent(AbstractAutoMLIntentModel, CommonsIntentModel):
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
-        connector_name = model_name if isinstance(model_name, str) else self._pm.CONNECTOR_ML_TRAINED
-        if self._pm.has_connector(connector_name):
+        if self._pm.has_connector(model_name):
             canonical = self._get_canonical(canonical)
-            handler = self._pm.get_connector_handler(connector_name)
+            handler = self._pm.get_connector_handler(model_name)
             model = handler.load_canonical()
             model = model.column(model_name).combine_chunks()
             model = pickle.loads(model[0].as_py())
@@ -62,5 +61,5 @@ class AutoMLIntent(AbstractAutoMLIntentModel, CommonsIntentModel):
             if isinstance(_id, pa.Array):
                 return pa.table([_id, score], names=[id_header, 'score'])
             return pa.table([score], names=['score'])
-        raise FileNotFoundError("The trained model cannot be found. Check it has been set using the ModelsBuilder")
+        raise FileNotFoundError("The trained model cannot be found. Ensure the trained model has been added.")
 

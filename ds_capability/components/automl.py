@@ -79,24 +79,36 @@ class AutoML(AbstractCommonComponent):
     def tools(self) -> AutoMLIntent:
         return self._intent_model
 
-    def add_trained_model(self, trained_model: Any, model_name: str=None, save: bool=None):
+    def add_trained_model(self, model_name: str, trained_model: Any,  uri: str=None, save: bool=None):
         """ A utility method to save the trained model ready for prediction.
 
+        :param model_name: a unique name for the model.
         :param trained_model: model object that has been trained
-        :param model_name: (optional) a unique name for the model
+        :param uri: a direct uri for the model persistence
         :param save: (optional) override of the default save action set at initialisation.
         """
-        connector_name = model_name if isinstance(model_name, str) else self.pm.CONNECTOR_ML_TRAINED
         byte_model = result = pa.array([pickle.dumps(trained_model)], type=pa.binary())
         tbl = pa.table([byte_model], names=[model_name])
-        uri_file =  self.pm.file_pattern(name=connector_name, file_type='parquet', versioned=True)
-        template = self.pm.get_connector_contract(connector_name=self.pm.TEMPLATE_PERSIST)
-        # uri = ConnectorContract.parse_environ(os.path.join(template.raw_uri, uri_file))
-        uri = os.path.join(template.raw_uri, uri_file)
-        cc = ConnectorContract(uri=uri, module_name=template.raw_module_name, handler=template.raw_handler,
-                               version=self.pm.version)
-        self.add_connector_contract(connector_name=connector_name, connector_contract=cc,
-                                    template_aligned=True, save=save)
-        self.persist_canonical(connector_name=connector_name, canonical=tbl)
+        if not isinstance(uri, str):
+            uri_file =  self.pm.file_pattern(name=model_name, file_type='parquet', versioned=True)
+            template = self.pm.get_connector_contract(connector_name=self.pm.TEMPLATE_PERSIST)
+            uri = os.path.join(template.raw_uri, uri_file)
+        self.add_connector_uri(connector_name=model_name, uri=uri, save=save)
+        self.persist_canonical(connector_name=model_name, canonical=tbl)
         return
+
+    def get_trained_model(self, model_name) -> Any:
+        """ Retrieves a named trained model.
+
+        :param model_name: The name of the model
+        :return: The model class
+        """
+        if self.pm.has_connector(model_name):
+            handler = self.pm.get_connector_handler(model_name)
+            model = handler.load_canonical()
+            model = model.column(model_name).combine_chunks()
+            return pickle.loads(model[0].as_py())
+        raise FileNotFoundError("The trained model cannot be found.")
+
+
 
