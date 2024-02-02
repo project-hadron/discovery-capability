@@ -2,7 +2,7 @@ import inspect
 from ds_capability.components.commons import Commons
 from ds_core.intent.abstract_intent import AbstractIntentModel
 
-from ds_capability import FeatureBuild, FeatureTransform, FeatureSelect, FeatureEngineer
+from ds_capability import FeatureBuild, FeatureTransform, FeatureSelect, FeatureEngineer, AutoML
 from ds_capability.managers.controller_property_manager import ControllerPropertyManager
 
 
@@ -272,21 +272,21 @@ class ControllerIntentModel(AbstractIntentModel):
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # create the event book
-        fs: FeatureSelect = eval(f"AutoML.from_env(task_name=task_name, default_save=False, "
+        aml: AutoML = eval(f"AutoML.from_env(task_name=task_name, default_save=False, "
                                  f"has_contract=True, **{kwargs})", globals(), locals())
-        if source and fs.pm.has_connector(source):
-            canonical = fs.load_canonical(source)
-        elif fs.pm.has_connector(fs.CONNECTOR_SOURCE):
-            canonical = fs.load_source_canonical()
+        if source and aml.pm.has_connector(source):
+            canonical = aml.load_canonical(source)
+        elif aml.pm.has_connector(aml.CONNECTOR_SOURCE):
+            canonical = aml.load_source_canonical()
         else:
             canonical = None
-        canonical = fs.intent_model.run_intent_pipeline(canonical=canonical, intent_levels=intent_level, seed=seed)
+        canonical = aml.intent_model.run_intent_pipeline(canonical=canonical, intent_levels=intent_level, seed=seed)
         if persist:
             for out in Commons.list_formatter(persist):
-                if fs.pm.has_connector(out):
-                    fs.save_canonical(connector_name=out, canonical=canonical)
+                if aml.pm.has_connector(out):
+                    aml.save_canonical(connector_name=out, canonical=canonical)
         else:
-            fs.save_persist_canonical(canonical=canonical)
+            aml.save_persist_canonical(canonical=canonical)
         return canonical.shape
 
     def _set_intend_signature(self, intent_params: dict, intent_level: [int, str]=None, intent_order: int=None,
