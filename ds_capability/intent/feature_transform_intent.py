@@ -547,75 +547,49 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
             return canonical
         return Commons.table_append(canonical, tbl)
 
-    # def scale_activation(self, canonical: pa.Table, activation: str, headers: [str, list]=None, prefix: str=None,
-    #                      precision: int=None, seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
-    #                      intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
-    #     """ An activation function determines the output of a neuron or a node in a neural network or binary
-    #     classification problems. Tanh (Hyperbolic Tangent), Sigmoid, and ReLU (Rectified Linear Unit) are three
-    #     commonly used activation functions. Only applied to numeric values
-    #
-    #     Sigmoid Function: Defined as f(x) = 1 / (1 + e^(-x)), the sigmoid function maps its input to a range
-    #     between 0 and 1, which can be interpreted as probabilities. It's often used in the output layer for
-    #     binary classification tasks.
-    #
-    #     Hyperbolic Tangent (tanh) Function: Defined as f(x) = (e^(x) - e^(-x)) / (e^(x) + e^(-x)), the tanh
-    #     function maps its input to a range between -1 and 1. It is zero-centered, which can be advantageous
-    #     in some cases.
-    #
-    #     Rectified Linear Unit (ReLU): Defined as f(x) = max(0, x), ReLU is a piecewise linear function that
-    #     outputs the input for positive values and zero for negative values. It's computationally efficient
-    #     and has become a popular choice in many deep learning architectures.
-    #
-    #     :param canonical: a pyarrow table
-    #     :param headers: the header(s) to apply scaling too
-    #     :param activation: The activation function, 'tanh', 'sigmoid' or 'ReLu'
-    #     :param prefix: (optional) a str prefix for generated headers
-    #     :param precision: (optional) how many decimal places. default to 3
-    #     :param seed: seed: (optional) a seed value for the random function: default to None
-    #     :param save_intent: (optional) if the intent contract should be saved to the property manager
-    #     :param intent_level: (optional) the intent level that groups intent to create a column
-    #     :param intent_order: (optional) the order in which each intent should run.
-    #                 - If None: default's to -1
-    #                 - if -1: added to a level above any current instance of the intent section, level 0 if not found
-    #                 - if int: added to the level specified, overwriting any that already exist
-    #
-    #     :param replace_intent: (optional) if the intent method exists at the level, or default level
-    #                 - True - replaces the current intent method with the new
-    #                 - False - leaves it untouched, disregarding the new intent
-    #
-    #     :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-    #     :return: a pa.Table
-    #     """
-    #     self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-    #                                intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
-    #                                remove_duplicates=remove_duplicates, save_intent=save_intent)
-    #     # intend code block on the canonical
-    #     canonical = self._get_canonical(canonical)
-    #     headers = Commons.list_formatter(headers) if isinstance(headers, (str, list)) else canonical.column_names
-    #     _seed = seed if isinstance(seed, int) else self._seed()
-    #     tbl = None
-    #     for n in headers:
-    #         c = canonical.column(n).combine_chunks()
-    #         if not (pa.types.is_floating(c.type) or pa.types.is_integer(c.type)):
-    #             continue
-    #         precision = precision if isinstance(precision, int) else Commons.column_precision(c)+2
-    #         s_values = c.to_pandas()
-    #         null_idx = s_values[s_values.isna()].index
-    #         s_values = s_values.fillna(0)
-    #         if activation.startswith('sigmoid'):
-    #             s_values = np.round(1 / (1 + np.exp(-s_values)), precision)
-    #         elif activation.startswith('tanh'):
-    #             s_values = np.round((np.exp(s_values)-np.exp(-s_values))/(np.exp(s_values)+np.exp(-s_values)), precision)
-    #         elif activation.startswith('relu'):
-    #             s_values = np.round(s_values * (s_values > 0), precision)
-    #         else:
-    #             raise ValueError(f"The activation function '{activation}' is not supported. Current available options "
-    #                              f"are 'sigmoid', 'tanh' and 'ReLu'")
-    #         s_values = pd.Series(s_values)
-    #         if null_idx.size > 0:
-    #             s_values.iloc[null_idx] = np.nan
-    #         new_header = f"{prefix}{n}"
-    #         tbl = Commons.table_append(tbl, pa.table([s_values], names=[n]))
-    #     if not tbl:
-    #         return canonical
-    #     return Commons.table_append(canonical, tbl)
+    def scale_mapping(self, canonical: pa.Table, numerator: str, denominator: str, prefix: str=None,
+                      precision: int=None, to_header: str=None, seed: int=None, save_intent: bool=None,
+                      intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                      remove_duplicates: bool=None):
+        """ Scales a numeric column against another numeric column providing mapped standardisation.
+        An example might be a churn problem for a bank with the hypothesis that older customers are
+        more like to stay. Therefore, scaling 'Tenure' against 'age' gives us a mapped scalar of
+        the hypothesis.
+
+        :param canonical: pyarrow Table
+        :param numerator: the column name of the numerator
+        :param denominator:  the column name of the denominator
+        :param prefix: (optional) a str prefix for generated headers
+        :param precision: (optional) how many decimal places. default to 3
+        :param to_header: (optional) an optional name to call the column
+        :param seed: seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the intent level that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: a pa.Table
+        """
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # intend code block on the canonical
+        canonical = self._get_canonical(canonical)
+        _seed = seed if isinstance(seed, int) else self._seed()
+        a = canonical.column(numerator).cast(pa.float64())
+        b = canonical.column(denominator)
+        precision = precision if isinstance(precision, int) else Commons.column_precision(a) + 3
+        arr = pc.round(pc.divide(a, b), precision)
+        arr = pc.if_else(pc.equal(arr, np.inf), 0, arr)
+        to_header = to_header if isinstance(to_header, str) else numerator
+        if to_header == numerator:
+            canonical = canonical.drop_columns([numerator, denominator])
+        return Commons.table_append(canonical, pa.table(canonical, pa.table([arr], names=[to_header])))
+
