@@ -118,6 +118,18 @@ class FeatureBuilderTest(unittest.TestCase):
         result = tools.scale_transform(tbl, transform='log')
         tprint(result)
 
+    def test_scale_mapping(self):
+        tbl = pa.table([pa.array([2,4,6,8], pa.int64()), pa.array([1,2,3,4], pa.int64())], names=['A', 'B'])
+        ft = FeatureTransform.from_memory()
+        tools: FeatureTransformIntent = ft.tools
+        result = tools.scale_mapping(tbl, numerator='A', denominator='B')
+        self.assertEqual(['A'], result.column_names)
+        result = tools.scale_mapping(tbl, numerator='A', denominator='B', to_header='AB')
+        self.assertEqual(['A','B','AB'], result.column_names)
+        self.assertEqual([2,2,2,2], result.column('AB').to_pylist())
+
+
+
     def test_discrete(self):
         tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, seed=0)
         ft = FeatureTransform.from_memory()

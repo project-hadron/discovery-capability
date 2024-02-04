@@ -592,7 +592,7 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         to_header = to_header if isinstance(to_header, str) else numerator
         if to_header == numerator:
             canonical = canonical.drop_columns([numerator, denominator])
-        return Commons.table_append(canonical, pa.table(canonical, pa.table([arr], names=[to_header])))
+        return Commons.table_append(canonical, pa.table([arr], names=[to_header]))
 
     def discrete_intervals(self, canonical: pa.Table, header: str, interval: [int, list]=None, categories: list=None,
                            to_header: str=None, precision: int=None, duplicates: str=None, seed: int=None,
