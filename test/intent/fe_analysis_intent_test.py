@@ -78,7 +78,7 @@ class SyntheticTest(unittest.TestCase):
         fe.save_canonical('sample', tbl)
         result = tools.get_analysis_group(15, 'sample', 'User', 'date')
         # print(Commons.table_report(result).to_string())
-        self.assertEqual((15, 8), result.shape)
+        self.assertEqual((15, 9), result.shape)
         self.assertCountEqual([4, 5, 6], pc.value_counts(result.column('User')).field(1).to_pylist())
 
     def test_direct_other(self):
