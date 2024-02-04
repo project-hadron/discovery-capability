@@ -118,6 +118,43 @@ class FeatureBuilderTest(unittest.TestCase):
         result = tools.scale_transform(tbl, transform='log')
         tprint(result)
 
+    def test_discrete(self):
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, seed=0)
+        ft = FeatureTransform.from_memory()
+        tools: FeatureTransformIntent = ft.tools
+        result = tools.discrete_intervals(tbl, header='num', to_header='num')
+        self.assertEqual(100, result.num_rows)
+        self.assertCountEqual([1,2,3,4,5], result.column('num').unique().to_pylist())
+        result = tools.discrete_intervals(tbl, header='num', interval=3, categories=['low', 'mid', 'high'], to_header='num')
+        self.assertEqual(100, result.num_rows)
+        self.assertCountEqual(['low', 'mid', 'high'], result.column('num').unique().to_pylist())
+        result = tools.discrete_intervals(tbl, header='num', interval=[-10, -5, 0, 5, 10], to_header='num')
+        self.assertEqual(100, result.num_rows)
+        self.assertCountEqual([1,2,3,4], result.column('num').unique().to_pylist())
+        result = tools.discrete_intervals(tbl, header='num', to_header='num', duplicates='rank')
+        self.assertEqual(100, result.num_rows)
+        self.assertCountEqual([1,2,3,4,5], result.column('num').unique().to_pylist())
+
+
+    def test_discrete_quantile(self):
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100, seed=0)
+        ft = FeatureTransform.from_memory()
+        tools: FeatureTransformIntent = ft.tools
+        result = tools.discrete_quantiles(tbl, header='num', to_header='num')
+        self.assertEqual(100, result.num_rows)
+        self.assertCountEqual([1,2,3,4], result.column('num').unique().to_pylist())
+        result = tools.discrete_quantiles(tbl, header='num', to_header='num', interval=5)
+        self.assertEqual(100, result.num_rows)
+        self.assertCountEqual([1,2,3,4,5], result.column('num').unique().to_pylist())
+        result = tools.discrete_quantiles(tbl, header='num', interval=[0,0.25,0.5,0.75,1],
+                                                    categories=['0%->25%', '25%->50%', '50%->75%', '75%->100%'], to_header='num')
+        self.assertEqual(100, result.num_rows)
+        self.assertCountEqual(['0%->25%', '25%->50%', '50%->75%', '75%->100%'], result.column('num').unique().to_pylist())
+        result = tools.discrete_quantiles(tbl, header='num', to_header='num', duplicates='rank')
+        self.assertEqual(100, result.num_rows)
+        self.assertCountEqual([1,2,3,4], result.column('num').unique().to_pylist())
+
+
     def test_raise(self):
         startTime = datetime.now()
         with self.assertRaises(KeyError) as context:
