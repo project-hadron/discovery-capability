@@ -982,6 +982,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         if isinstance(order_by, str) and order_by in rtn_df.columns:
             rtn_df = rtn_df.sort_values(order_by, ascending=False).reset_index(drop=True)
         rtn_tbl = pa.Table.from_pandas(rtn_df)
+        if '__index_level_0__' in rtn_tbl.column_names:
+            rtn_tbl = rtn_tbl.drop_columns('__index_level_0__')
         return Commons.table_append(canonical, rtn_tbl)
 
     def get_analysis(self, size: int, other: [str, pa.Table], canonical: pa.Table=None, category_limit: int=None,
