@@ -64,17 +64,6 @@ class FeatureEngineerCorrelateTest(unittest.TestCase):
         tbl = tools.get_synthetic_data_types(100)
         self.assertEqual((100, 6), tbl.shape)
 
-    def test_correlate_discrete_intervals(self):
-        fe = FeatureEngineer.from_memory()
-        tools: FeatureEngineerIntent = fe.tools
-        tbl = tools.get_synthetic_data_types(100)
-        result = tools.correlate_discrete_intervals(tbl, header='num', to_header='num')
-        self.assertEqual(5, pc.count(result.column('num').combine_chunks().dictionary).as_py())
-        result = tools.correlate_discrete_intervals(tbl, header='num', categories=['low', 'mid', 'high'], to_header='num')
-        self.assertCountEqual(['high', 'mid', 'low'], result.column('num').combine_chunks().dictionary.to_pylist())
-        result = tools.correlate_discrete_intervals(tbl, header='num', granularity=[0.25,0.5,0.75],
-                                                    categories=['0%->25%', '25%->50%', '50%->75%', '75%->100%'], to_header='num')
-        self.assertCountEqual(['0%->25%', '25%->50%', '50%->75%', '75%->100%'], result.column('num').combine_chunks().dictionary.to_pylist())
 
     def test_correlate_on_pandas(self):
         fe = FeatureEngineer.from_memory()

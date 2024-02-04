@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
+from ds_capability.components.discovery import DataDiscovery
 from scipy.stats import stats
 
 from ds_capability.components.commons import Commons
@@ -592,4 +593,189 @@ class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentM
         if to_header == numerator:
             canonical = canonical.drop_columns([numerator, denominator])
         return Commons.table_append(canonical, pa.table(canonical, pa.table([arr], names=[to_header])))
+
+    def discrete_intervals(self, canonical: pa.Table, header: str, interval: [int, list]=None, categories: list=None,
+                           to_header: str=None, precision: int=None, duplicates: str=None, seed: int=None,
+                           save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                           replace_intent: bool=None, remove_duplicates: bool=None):
+        """ Converts continuous values into discrete values through interval categorisation based on
+        quantile discretization. Intervals can be either a single value representing the number of
+        quantiles or an ordered list of quantiles between 0 and 1, e.g. [0, .25, .5, .75, 1.]
+
+        If intervals are not unique duplicates provide a strategy to 'raise' a ValueError, 'drop'
+        duplicate bins or 'rank' values from 1 to n before binning. Ranking might be used for sparse
+        date with predominant zeros as an example.
+
+        :param canonical: a pa.Table as the reference table
+        :param header: the header in the Table to correlate
+        :param interval: (optional) the granularity of the analysis across the range. Default is 3
+                int passed - represents the number of periods
+                list[int] - specific interval periods e.g []
+
+        :param to_header: (optional) an optional name to call the column
+        :param precision: (optional) The precision of the range and boundary values. by default set to 5.
+        :param categories: (optional) a set of labels the same length as the intervals to name the categories
+        :param duplicates: (optional) If intervals are not unique, 'raise' ValueError, 'drop' intervals or 'rank' values
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: an equal length list of correlated values
+        """
+        self._set_intend_signature( self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header = self._extract_value(to_header)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        interval = interval if isinstance(interval, (int, list)) else 5
+        n = interval if isinstance(interval, int) else len(interval)
+        categories = categories if isinstance(categories, list) else range(1, n+1) if isinstance(interval, int) else range(1, n)
+        precision = precision if isinstance(precision, int) else 3
+        duplicates = duplicates if isinstance(duplicates, str) and duplicates in ['drop', 'rank'] else 'raise'
+        seed = seed if isinstance(seed, int) else self._seed()
+        c = canonical.column(header).combine_chunks()
+        if not (pa.types.is_floating(c.type) or pa.types.is_integer(c.type)):
+            raise ValueError(f"The header '{header}' value type must be numerical, '{c.type}' was passed")
+        s = c.to_pandas()
+        if duplicates == 'rank':
+            s = s.rank(method="first")
+            duplicates = 'raise'
+        s = pd.cut(s, interval, labels=categories, precision=precision, duplicates=duplicates)
+        c = pa.Array.from_pandas(s)
+        if pa.types.is_dictionary(c.type):
+            c = c.dictionary_decode()
+        to_header = to_header if isinstance(to_header, str) else header
+        return Commons.table_append(canonical, pa.table([c], names=[to_header]))
+
+    def discrete_quantiles(self, canonical: pa.Table, header: str, interval: [int, list]=None, categories: list=None,
+                           to_header: str=None, precision: int=None, duplicates: str=None, seed: int=None,
+                           save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                           replace_intent: bool=None, remove_duplicates: bool=None):
+        """ Converts continuous values into discrete values through interval categorisation based on
+        interval bins. Intervals can be either a single value number of bins or a list of bin edges
+        allowing for non-uniform width.
+
+        If intervals are not unique duplicates provide a strategy to 'raise' a ValueError, 'drop'
+        duplicate bins or 'rank' values from 1 to n before binning. Ranking might be used for sparse
+        date with predominant zeros as an example.
+
+        :param canonical: a pa.Table as the reference table
+        :param header: the header in the Table to correlate
+        :param interval: (optional) the granularity of the analysis across the range. Default is 3
+                int passed - represents the number of periods
+                list[float] - the percentile or quantities, All should fall between 0 and 1
+
+        :param to_header: (optional) an optional name to call the column
+        :param precision: (optional) The precision of the range and boundary values. by default set to 5.
+        :param categories: (optional)  a set of labels the same length as the intervals to name the categories
+        :param duplicates: (optional) If intervals are not unique, 'raise' ValueError, 'drop' intervals or 'rank' values
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: an equal length list of correlated values
+        """
+        self._set_intend_signature( self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header = self._extract_value(to_header)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        interval = interval if isinstance(interval, (int, list)) else 4
+        n = interval if isinstance(interval, int) else len(interval)
+        categories = categories if isinstance(categories, list) else False
+        precision = precision if isinstance(precision, int) else 3
+        duplicates = duplicates if isinstance(duplicates, str) and duplicates in ['drop', 'rank'] else 'raise'
+        seed = seed if isinstance(seed, int) else self._seed()
+        c = canonical.column(header).combine_chunks()
+        if not (pa.types.is_floating(c.type) or pa.types.is_integer(c.type)):
+            raise ValueError(f"The header '{header}' value type must be numerical, '{c.type}' was passed")
+        s = c.to_pandas()
+        if duplicates == 'rank':
+            s = s.rank(method="first")
+            duplicates = 'raise'
+        s = pd.qcut(s, interval, labels=categories, precision=precision, duplicates=duplicates)
+        if categories is False:
+            s += 1
+        c = pa.Array.from_pandas(s)
+        if pa.types.is_dictionary(c.type):
+            c = c.dictionary_decode()
+        to_header = to_header if isinstance(to_header, str) else header
+        return Commons.table_append(canonical, pa.table([c], names=[to_header]))
+
+    def discrete_custom(self, canonical: pa.Table, header: str, interval: [int, float, list]=None,
+                        lower: [int, float]=None, upper: [int, float]=None, categories: list=None,
+                        to_header: str=None, precision: int=None, seed: int=None, save_intent: bool=None,
+                        intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                        remove_duplicates: bool=None) -> pa.Table:
+        """ converts continuous representation into discrete representation through interval
+        categorisation based on custom intervals
+
+        :param canonical: a pa.Table as the reference table
+        :param header: the header in the Table to correlate
+        :param interval: (optional) the granularity of the analysis across the range. Default is 3
+                float passed - the length of each interval
+                list[tuple] - specific interval periods e.g []
+
+        :param lower: (optional) the lower limit of the number value. Default min()
+        :param upper: (optional) the upper limit of the number value. Default max()
+        :param to_header: (optional) an optional name to call the column
+        :param precision: (optional) The precision of the range and boundary values. by default set to 5.
+        :param categories: (optional)  a set of labels the same length as the intervals to name the categories
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: an equal length list of correlated values
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        to_header  = self._extract_value(to_header)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        seed = seed if isinstance(seed, int) else self._seed()
+        rtn_arr = DataDiscovery.to_discrete_intervals(column=canonical.column(header), granularity=interval,
+                                                      lower=lower, upper=upper, categories=categories,
+                                                      precision=precision)
+        to_header = to_header if isinstance(to_header, str) else header
+        return Commons.table_append(canonical, pa.table([rtn_arr.dictionary_encode()], names=[to_header]))
 

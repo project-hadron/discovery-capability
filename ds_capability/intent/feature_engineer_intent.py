@@ -1720,58 +1720,6 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             canonical = canonical.drop_columns(target)
         return canonical
 
-    def correlate_discrete_intervals(self, canonical: pa.Table, header: str, granularity: [int, float, list]=None,
-                                     lower: [int, float]=None, upper: [int, float]=None, categories: list=None,
-                                     to_header: str=None, precision: int=None, seed: int=None, save_intent: bool=None,
-                                     intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                                     remove_duplicates: bool=None) -> pa.Table:
-        """ converts continuous representation into discrete representation through interval categorisation
-
-        :param canonical: a pa.Table as the reference table
-        :param header: the header in the Table to correlate
-        :param granularity: (optional) the granularity of the analysis across the range. Default is 3
-                int passed - represents the number of periods
-                float passed - the length of each interval
-                list[tuple] - specific interval periods e.g []
-                list[float] - the percentile or quantities, All should fall between 0 and 1
-
-        :param lower: (optional) the lower limit of the number value. Default min()
-        :param upper: (optional) the upper limit of the number value. Default max()
-        :param to_header: (optional) an optional name to call the column
-        :param precision: (optional) The precision of the range and boundary values. by default set to 5.
-        :param categories: (optional)  a set of labels the same length as the intervals to name the categories
-        :param seed: (optional) the random seed. defaults to current datetime
-        :param save_intent: (optional) if the intent contract should be saved to the property manager
-        :param intent_level: (optional) the column name that groups intent to create a column
-        :param intent_order: (optional) the order in which each intent should run.
-                    - If None: default's to -1
-                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
-                    - if int: added to the level specified, overwriting any that already exist
-
-        :param replace_intent: (optional) if the intent method exists at the level, or default level
-                    - True - replaces the current intent method with the new
-                    - False - leaves it untouched, disregarding the new intent
-
-        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
-        :return: an equal length list of correlated values
-        """
-        # intent persist options
-        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
-                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
-                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
-        # remove intent params
-        canonical = self._get_canonical(canonical)
-        header = self._extract_value(header)
-        to_header  = self._extract_value(to_header)
-        if not isinstance(header, str) or header not in canonical.column_names:
-            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
-        seed = seed if isinstance(seed, int) else self._seed()
-        rtn_arr = DataDiscovery.to_discrete_intervals(column=canonical.column(header), granularity=granularity,
-                                                      lower=lower, upper=upper, categories=categories,
-                                                      precision=precision)
-        to_header = to_header if isinstance(to_header, str) else header
-        return Commons.table_append(canonical, pa.table([rtn_arr.dictionary_encode()], names=[to_header]))
-
     def correlate_on_pandas(self, canonical: pa.Table, header: str, code_str: str, to_header: str=None, seed: int=None,
                             save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
                             replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
