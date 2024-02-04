@@ -944,7 +944,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             tbl = tbl.rename_columns(rename_columns)
         return Commons.table_append(canonical, tbl)
 
-    def get_analysis_group(self, size: int, other: [str, pa.Table], group_by: [str, list], order_by: [str, list],
+    def get_analysis_group(self, size: int, other: [str, pa.Table], group_by: [str, list], order_by: [str, list]=None,
                            canonical: pa.Table=None, category_limit: int=None, date_jitter: int=None,
                            date_units: str=None, offset: [int, float]=None, seed: int=None, save_intent: bool=None,
                            intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
@@ -979,7 +979,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                        save_intent=False)
             result = result.to_pandas()
             rtn_df = pd.concat([rtn_df, result], axis=0, ignore_index=True)
-        rtn_df = rtn_df.sort_values(order_by, ascending=False).reset_index(drop=True)
+        if isinstance(order_by, str) and order_by in rtn_df.columns:
+            rtn_df = rtn_df.sort_values(order_by, ascending=False).reset_index(drop=True)
         rtn_tbl = pa.Table.from_pandas(rtn_df)
         return Commons.table_append(canonical, rtn_tbl)
 
