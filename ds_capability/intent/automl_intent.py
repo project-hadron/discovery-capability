@@ -57,9 +57,8 @@ class AutoMLIntent(AbstractAutoMLIntentModel, CommonsIntentModel):
                 canonical = canonical.drop_columns(id_header)
             features = np.asarray(canonical)
             score = model.predict(features).ravel()
-            rtn_tbl = pa.table([score], names=['score'])
             if isinstance(_id, pa.Array):
-                return pa.table([_id, score], names=[id_header, 'score'])
-            return pa.table([score], names=['score'])
+                return pa.table([_id, score], names=[id_header, 'predict'])
+            return pa.table([score], names=['predict'])
         raise FileNotFoundError("The trained model cannot be found. Ensure the trained model has been added.")
 
