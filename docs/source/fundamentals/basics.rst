@@ -5,14 +5,25 @@ Project Hadron is designed using Microservices. Microservices are an
 architectural patterns that structures an application as a collection
 of services, which, themselves are a component or collection of components.
 
+Fundamentals
+------------
+
 Capabilities and their separation of concern are fundamental principles
 in the design of Project Hadron. Capabilities can be thought of as
 specialist components that refer to the range of functionalities and
 features a software solution possesses, in our case, to handle and
 process data for a downstream objective.
 
-This tutorial shows the fundamentals of a capability, its ingress
-throughput and egress of a dataset.
+Each capability class, at it is root, is defined as a concrete implementation
+of a shared abstract parent class. This means that all capability instances
+share common behavior in initialization, connectivity management, reporting
+and running the component.
+
+Through initialization capabilities are also responsible for the capture and up
+keep of **recipe**. A recipe can be thought of as a runbook of instruction
+of the lineage of that instance. The recipe  By referencing the name of the instance, the
+recipe can be re-loaded and re-run creating a referencable and reusable capability.
+
 
 Capability Setup
 ----------------
@@ -25,6 +36,9 @@ This set up process can be applied to any of the capability classes
 as each class is built upon a common abstract class. The difference comes
 when we consider actions for each capability component.
 
+import
+^^^^^^
+
 Initially we import the capability class, all of which can be found
 in the root package tree.
 
@@ -32,157 +46,186 @@ in the root package tree.
 
     from ds_capability import FeatureSelect
 
+initialise
+^^^^^^^^^^
+
 We can now create the instance of our FeatureSelect capability, but it is
 important to note we don't instantiate the class directly, but years one
 of the factory class methods, in this case ``from_env`` to look in the
-environment for any special settings. This is the most common way to start
-any of the capability components.
+:ref:`environment<Environment Variables>` for any special settings. This
+is the most common way to start any of the capability components.
 
 .. code-block:: python
 
     fs = FeatureSelect.from_env('my_select', has_contract=False)
 
 The first parameter is a named identifier for this instance and used to create and
-retrieve the capabilities recipe. A **receipt** can be thought of as a runbook
-of instruction of the lineage of that instance. By referencing the name of
-the instance, the recipe can be re-loaded and re-run creating the reusable
-capability.
+retrieve the capabilities recipe containing the current state of the capability.
 
 The final parameter `has_contract` is a fail-safe, only used on first creation
-of a capability instance to validate the receipt should be empty.
+of a capability instance to validate the recipe should be empty.
 
----
+connectivity
+^^^^^^^^^^^^
 
-Connectivity of our capability can be added using the method
+A key component of our capability is to be able to get data in and out. This
+is achieved through the capabilities connectivity methods. In order to retrieve
+data, we initially set up a connector contract which contains the information
+for a data source, be it a database, file or cloud storage. This does not
+retrieve the data but sets up the parameters needed to retrieve the data.
 
-* add_connector_uri('<name>', '<uri>')
+The base methods call is:
 
+* add_connector_uri('<connector_name>', '<uri>')
 
+where `connector_name` is the connector reference name and the`uri` is a
+fully qualified URI reference to the data or feature set.
+
+For ease of coding this method has been extended to mirror the source
+and the persist, where source is a read-only sub-class of the persist class.
+Though you can use persist for all your connectivity, it is good practice
+to use the read-only source calls when reference in downstream data to
+protected from accidental overwrite.
+
+The methods `set_source(...)` and `set_persist()` use the environment variable
+`HADRON_DEFAULT_PATH`, which, by default, is set to point to a local path.
+You can find more on this at `Environment Variables`_. With `set_persist()`
+there is the option to be able to set the name of the target file otherwise
+a default name is used.
+
+All the `set_` methods automatically set a standard name reference for ease,
+more of which is in the next section. While the `add_connector_` still use a
+reference name to allow new connect pipelines bot to restrict those pipelines
+according to the connector method been used.
+
+**source**
 
 * set_source('<file_name.ext>')
 * set_source_uri('<uri>')
-* add_connector_source('<name>', '<file_name.ext>')
+* add_connector_source('<connector_name>', '<uri>')
+
+**persist**
 
 * set_persist()
 * set_persist_uri('<uri>')
-* add_connector_persist('<name>', '<file_name.ext>')
+* add_connector_persist('<connector_name>', '<uri>')
 
+An example of using these connectivity methods might be:
 
 .. code-block:: python
 
     fs.set_source_uri('https://www.openml.org/data/get_csv/16826755/phpMYEkMl.csv')
     fs.set_persist()
 
-Run Capability
---------------
+where the source is pointing to a remote URL data source and the persist is using
+default settings.
 
-To run a capability we use the common method ``run_component_pipeline``
-which loads the source data, executes the capability task then persists
-the results. This is the only method you can use to run the tasks of a
-capability and produce its results and should be a familiarized method.
+load and save
+^^^^^^^^^^^^^
+
+Once we have created our connector contract it is ready to use. We have three
+options to load the data or feature set, returning a canonical, and two options
+to persist, passing a canonical. As a mirror of the set methods the core methods
+are `load_canonical` and `save_canonical`, passing through the `connector_name`
+as reference. The other method calls are shortcuts read the connector name is
+assumed from the call.
+
+**load**
+
+* load_canonical('<connector_name>')
+* load_source_canonical()
+* load_persist_canonical()
+
+**save**
+
+* save_canonical('<connector_name>', canonical)
+* save_persist_canonical(canonical)
+
+For ease, the add and set connectivity methods return the class instance
+allowing you to chain the set with the load for example:
+
+.. code-block:: python
+
+    tbl = fs.set_source('myfile.parquet').load_source_canonical()
+
+Both setting the source and returning the canonical table
+
+run pipeline
+^^^^^^^^^^^^
+To this point we have we have created our core recipe for this capability.
+Though there are no actions associated, using the common method calls
+we have created a working capability that ingest data from where we required,
+passes it through our component and persists it to a location specified.
+
+But rather than write this each time we want to be able to run our capability,
+we use our recipe, created in the background from our activities, to repeat
+those activities. We do this through the `run_component_pipeline` method
+call.
+
+This call reads the recipe loading the source data, executing the capability
+task, of which there are non, then persists the results. As this is a background
+process, it expects the source and persist connector contracts to be set.
 
 .. code-block:: python
 
     fs.run_component_pipeline()
 
-This concludes building a capability and though the capability doesn’t
-change the throughput, it shows the core steps to building any capability
-component.
-
-Retrieval and Reuse
--------------------
-
-Project Hadron came from a desire to improve the availability of objective
-relevant data, increase the transparency and traceability of data lineage
-and facilitate knowledge transfer, retrieval and reuse.
-
-It was born from the frustration of working on machine learning projects
-with so many indecipherable jupyter notebooks a data scientists produce,
-each repeating common activities using arbitrary,localised datasets. This
-indecipherability clouded the retrieval of the data scientists thinking
-and the knowledge they gained from the subject matter experts they
-interacted with.
-
-
-Though this is a single notebook, one of the powers of Project Hadron is
-the ability to reload capability state across new notebooks, not just
-locally but even across locations and teams. To load the capability state
-we use the same factory method ``from_env`` passing the unique capability
-name ``my_select`` which reloads the named capability. We have now
-reinstated the original capability state and can continue to work on
-this capability.
+To view the results of the run you're simply load the persisted data.
 
 .. code-block:: python
 
-    fs = FeatureSelect.from_env('my_select')
+    tbl = fs.load_persist_canonical()
 
-Lets look at a sample of some commonly used features that allow us to
-peek inside the capabilities. These features are extremely useful to
-navigate the capability and should become familiar.
-
-The first and probably most useful method call is to be able to retrieve
-the results of ``run_component_pipeline``. We do this using the
-capability method ``load_persist_canonical``. Because of the retained
-state the capability already knows the location of the results, and in
-this instance returns a report.
-
-Note: All the capabilities from a package internally work with a canonical
-data set. With this package of capabilities, because they are data science
-based, use Pandas Dataframes as their canonical, therefore wherever you
-see the word canonical this will relate to a Pandas Dataframe.
+To view the connectivity of where the data came from and went to use the
+connectivity report
 
 .. code-block:: python
 
-    df = fs.load_persist_canonical()
+    report = fs.report_connectors()
 
-The second most used feature is the reporting tool for the canonical. It
-allows us to look at the results of the run as an informative
-dictionary, this gives a deeper insight into the canonical results.
-Though unlike other reports it requests the canonical of interest, this
-means it can be used on a wider trajectory of circumstances such as
-looking at source or other data that is being injested by the task.
-
-Below we have an example of the processed canonical where we can see the
-results of the pipeline that was persisted. The report has a wealth of
-information and is worth taking time to explore as it is likely to speed
-up your data discovery and the understanding of the dataset.
+To view the data itself as a readable table, the two following calls might
+be useful, and certainly worth of explore for valuable data on your dataset.
 
 .. code-block:: python
 
-    fs.canonical_report(df)
+    data_dictionary = fs.canonical_report(canonical=tbl)
 
+    data_head = fs.table_report(canonical=tbl, head=5)
 
-When we set up the source and persist we use something called Connector
-contracts, these act like brokers between external data and the internal
-canonical. These are powerful tools that we will talk more about in a
-dedicated tutorial but for now consider them as the means to talk data
-to different data storage solutions. In this instance we are only using
-a local connection and thus a Connector contract that manages this type
-of connectivity.
-
-In order to report on where the source and persist are located, along
-with any other data we have connected to, we can use
-``report_connectors`` which gives us, in part, the name of the connector
-and the location of the data.
-
-.. code-block:: python
-
-    fs.report_connectors()
-
-
-This gives a flavour of the tools available to look inside a capability
-and time should be taken viewing the different reports a capability
-offers.
-
+Understanding the first order calls in a capability gives you access to understanding
+all capabilities at there base methods and create components quickly ready to add
+the actions pertinent to each capability.
 
 Environment Variables
 ---------------------
 
 To this point we have been using the default settings of where to store the
-named contract and the persisted dataset. These are in general local
-and within your working directory. The use of environment variables
-frees us up to use an extensive list of connector contracts to store the
-data to a location of choice.
+named contract and the persisted dataset. These are set up at initialization
+as environment variables for you and are in general local to your working directory.
+
+The current set of environment variables can be viewed with the report
+
+.. code-block:: python
+
+    report = fs.report_environ()
+
+Due to most important environment variables are environment variables are
+
+* HADRON_DEFAULT_PATH
+* HADRON_PM_PATH
+
+These point to where the
+
+
+
+
+
+
+
+The use of environment variables
+gives flexibility to the list of connector contracts where data can be stored.
+
+Not only this, but environmental variables can be used within actions
 
 Hadron provides an extensive list of environment variables to tailor how
 your capabilities retrieve and persist their information, this is beyond
