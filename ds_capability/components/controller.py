@@ -289,9 +289,8 @@ class Controller(AbstractComponent):
         """ Creates a report from a pyarrow table in a tabular form
 
         :param canonical: the table to view
-        :param head: The number of rows to show. Default to 5
+        :param head: The number of rows to show.
         """
-        head = head if isinstance(head, int) else 5
         return Commons.table_report(canonical, head=head)
 
     def reset_use_case(self, save: bool=None):

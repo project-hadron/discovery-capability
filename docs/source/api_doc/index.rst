@@ -21,9 +21,10 @@ as such is a filter step for extracting features of interest.
 
 Methods::
 
-    auto_clean_header
     auto_aggregate
+    auto_append_tables
     auto_cast_types
+    auto_clean_header
     auto_drop_columns
     auto_drop_correlated
     auto_drop_duplicates
@@ -31,8 +32,6 @@ Methods::
     auto_projection
     auto_reinstate_nulls
     auto_sample_rows
-    auto_append_tables
-    auto_to_string
 
 Feature Engineering - correlate
 -------------------------------
@@ -44,13 +43,14 @@ Feature Engineering - correlate
 Methods::
 
     correlate_column_join
-    correlate_custom
     correlate_date_diff
     correlate_date_element
     correlate_dates
-    correlate_discrete_intervals
+    correlate_missing
+    correlate_missing_probability
     correlate_number
     correlate_on_condition
+    correlate_on_pandas
     correlate_outliers
     correlate_replace
 
@@ -63,10 +63,11 @@ Feature Engineering - model
 
 Methods::
 
-    model_group 
-    model_merge 
-    model_missing 
+    model_cat_cast
     model_concat_remote
+    model_group
+    model_merge
+    model_num_cast
 
 Feature Transformation
 ----------------------
@@ -81,9 +82,14 @@ Methods::
     activate_relu
     activate_sigmoid
     activate_tanh
+    discrete_custom
+    discrete_intervals
+    discrete_quantiles
     encode_category_integer
     encode_category_one_hot
     encode_date_integer
+    run_intent_pipeline
+    scale_mapping
     scale_normalize
     scale_standardize
     scale_transform
@@ -135,6 +141,7 @@ Methods::
     get_dist_bounded_normal
     get_noise
     get_synthetic_data_types
+    get_synthetic_persona_usa
     get_sample_list
     get_sample_map
     sample_inspect
