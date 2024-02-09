@@ -199,9 +199,10 @@ the actions pertinent to each capability.
 Environment Variables
 ---------------------
 
-To this point we have been using the default settings of where to store the
-named contract and the persisted dataset. These are set up at initialization
-as environment variables for you and are in general local to your working directory.
+To this point we have been using the default settings of where to find the named
+source and store the persisted dataset. In addition the default location of
+where to store the capability recipes is also set. These are set up at initialization
+as environment variables and are relative to your working directory.
 
 The current set of environment variables can be viewed with the report
 
@@ -209,105 +210,30 @@ The current set of environment variables can be viewed with the report
 
     report = fs.report_environ()
 
-Due to most important environment variables are environment variables are
+The first notable environment variable observed from the report is:
 
 * HADRON_DEFAULT_PATH
-* HADRON_PM_PATH
 
-These point to where the
+Indicating the location of a default path were data can be retrieved and placed. By
+changing the paths to an shared location, for example, word allow cooperation between
+team members through sharing common data resources.
 
+This templated path only applies to `set_source('<file_name.ext>')` and
+`set_persist()`, where the others require a fully qualified URI.
 
-
-
-
-
-
-The use of environment variables
-gives flexibility to the list of connector contracts where data can be stored.
-
-Not only this, but environmental variables can be used within actions
-
-Hadron provides an extensive list of environment variables to tailor how
-your capabilities retrieve and persist their information, this is beyond
-the scope of this tutorial and tends to be for specialist use, therefore
-we are going to focus on the two most commonly used for the majority of
-projects.
-
-We initially import Python’s ``os`` package.
+In addition environment variables can be user-defined, for example if you wanted
+to have a dynamic URI, set up at run time. This is simply achieved by included as
+an environment variable the name of your adhoc reference and then referring to it
+in your call as a string with the $ side and wrapped {}.
 
 .. code-block:: python
 
-    import os
+    os.environ['HADRON_EXAMPLE_URI'] = 's3://bucket/path/file.csv'
 
-In general and as good practice, most notebooks would ``run`` a set up
-file that contains imports and environment variables that are common
-across all notebooks. In this case, for visibility, because this is a
-tutorial, we will import the packages and set up the two environment
-variables within each notebook.
+    fs.set_source_uri('${HADRON_EXAMPLE_URI}')
 
-The first environment variable we set up is for the location of the
-Domain Contract. Domain Contracts are the outcome of named capability
-instances and collect together metadata that are pertinent to the
-specific capability tasks and actions. Domain Contracts are critical
-references of the capabilities and other capabilities that rely on them.
-
-From this point on we use the name 'Domain Contract' to represent the
-outcome of the named capability instance which constitute the capabilities
-task and used to run the capability.
-
-In this case we are setting the Domain Contract location to be in a
-common local directory of our naming.
-
-.. code-block:: python
-
-    os.environ['HADRON_PM_PATH'] = '0_hello_meta/demo/contracts'
-
-The second environment variable is for the location of where the data is
-to be persisted. This allows us to place data away from the working
-files and have a common directory where data can be sourced or
-persisted. This is also used internally within the capability to avoid
-having to remember where data is located.
-
-.. code-block:: python
-
-    os.environ['HADRON_DEFAULT_PATH'] = '0_hello_meta/demo/data'
-
-As a tip we can see where the default path environment variable is set
-by using ``report_connectors``. By passing the parameter
-``inc_template=True`` to the ``report_connectors`` method, showing us
-the connector names. By each name is the location path (uri) where, by
-default, the capability will source or persist the data set, this is
-taken from the environment variable set. Likewise we can see where the
-Domain Contract is being persisted by including the parameter ``inc_pm``
-giving the location path (uri) given by the environment variable.
-
-.. code-block:: python
-
-    fs.report_connectors(inc_template=True)
-
-Because we have now changed the location of where the Domain Contract
-can be found we need to reset things from the start giving the source
-location and using the default persist location which we now know has
-been set by the environment variable.
-
-.. code-block:: python
-
-    fs = FeatureSelect.from_env('hello_tr,', has_contract=False)
-
-.. code-block:: python
-
-    fs.set_source_uri('https://www.openml.org/data/get_csv/16826755/phpMYEkMl.csv')
-    fs.set_persist()
-
-Finally we run the pipeline with the new environment variables in place
-and check everything runs okay.
-
-.. code-block:: python
-
-    fs.run_component_pipeline()
-
-And we are there! We now know how to build a capability and set its
-environment variables. The next step is to build a real pipeline and
-join that with other pipelines to construct the complete master Domain
-Contract.
-
+Here we set the environment variable, and then set the dynamic value as our source
+URI. This same technique applies to some action parameters that can take a special
+variable as its value. As good practice, reduce conflicts and to ensure compatibility
+with the `report_environ()`, you should always start your environment variable with
+`HADRON_`.
