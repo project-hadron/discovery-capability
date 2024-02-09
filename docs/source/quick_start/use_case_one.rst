@@ -67,7 +67,7 @@ store, and finally load the data as our canonical, a PyArrow Table.
 
 .. code-block::  python
 
-    fs = FeatureSelect.from_env('survivours', has_contract=False)
+    fs = FeatureSelect.from_env('survived', has_contract=False)
     fs.set_source_uri('${HADRON_PREDICT_SOURCE_DATA}')
     fs.set_persist_uri('event://select')
     tbl = fs.load_source_canonical()
@@ -113,7 +113,7 @@ FeatureSelect capability output, and set the persist, then load the canonical.
 
 .. code-block::  python
 
-    fe = FeatureEngineer.from_env('survivours', has_contract=False)
+    fe = FeatureEngineer.from_env('survived', has_contract=False)
     
     fe.set_source_uri('event://select')
     fe.set_persist_uri('event://engineer')
@@ -169,7 +169,7 @@ FeatureEngineer capability output, and set the persist, then load the canonical.
 
 .. code-block::  python
 
-    ft = FeatureTransform.from_env('survivours', has_contract=False)
+    ft = FeatureTransform.from_env('survived', has_contract=False)
     
     ft.set_source_uri('event://engineer')
     ft.set_persist_uri('event://transform')
@@ -297,10 +297,10 @@ Controller recipe complete the project Hadron pipeline is ready to run.
 
 .. code-block::  python
 
-    ctrl.register.feature_select('survivours')
-    ctrl.register.feature_engineer('survivours')
-    ctrl.register.feature_transform('survivours')
-    ctrl.register.automl('survivours')
+    ctrl.register.feature_select('survived')
+    ctrl.register.feature_engineer('survived')
+    ctrl.register.feature_transform('survived')
+    ctrl.register.automl('survived')
 
 To run the pipeline will run the Controller instance using the method call `run_controller`,
 which will run the our end-to-end pipeline from raw data to our modules prediction.
@@ -317,7 +317,7 @@ We can review our results by loading the AutoML output canonical.
 
 .. code-block::  python
 
-    aml.load_persist_canonical()
+    AutoML.from_env('survived').load_persist_canonical()
 
 .. parsed-literal::
 
@@ -326,6 +326,20 @@ We can review our results by loading the AutoML output canonical.
     ----
     predict: [[1,1,1,0,1,...,0,1,0,0,0]]
 
+Summary
+-------
 
+At this point we have
+
+* Performed Exploratory Data Analysis(EDA) to gain more clear insights
+of the data.
+* Completed Data Preprocessing to produce a set of capability recipes
+representing the actions we took.
+* Build, train and optimise models to select the best performing for
+our requirements.
+* Save the trained model for prediction retrieval in our AutoML capability.
+* Make Predictions using our model and the testing data set
+
+The batch that will be to run it as a microservice using synthetic data.
 
 
