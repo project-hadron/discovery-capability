@@ -5,4 +5,8 @@ FeatureEngineer - model
 
 .. autoclass:: FeatureEngineerIntent
     :noindex:
-    :members: model_group, model_merge, model_missing, model_concat_remote
+    :members: model_group,
+        model_merge,
+        model_concat_remote,
+        model_num_cast,
+        model_cat_cast

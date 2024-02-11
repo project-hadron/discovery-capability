@@ -14,5 +14,4 @@ FeatureSelect
         auto_drop_noise,
         auto_projection,
         auto_reinstate_nulls,
-        auto_sample_rows,
-        auto_to_string
+        auto_sample_rows

@@ -6,12 +6,13 @@ FeatureEngineer - correlate
 .. autoclass:: FeatureEngineerIntent
     :noindex:
     :members: correlate_column_join,
-        correlate_custom,
         correlate_date_diff,
         correlate_date_element,
         correlate_dates,
-        correlate_discrete_intervals,
+        correlate_missing,
+        correlate_missing_probability,
         correlate_number,
         correlate_on_condition,
+        correlate_on_pandas,
         correlate_outliers,
         correlate_replace

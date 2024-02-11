@@ -1,7 +1,8 @@
 .. _api:
 
-API
-===
+Intent Actions API
+==================
+
 This provides the intent action API documentation for Project Hadron
 
 Feature Selection
@@ -88,7 +89,6 @@ Methods::
     encode_category_integer
     encode_category_one_hot
     encode_date_integer
-    run_intent_pipeline
     scale_mapping
     scale_normalize
     scale_standardize

@@ -73,7 +73,7 @@ traceability.
 
 Where does it sit within a system pipeline?
 -------------------------------------------
-Project Hadron provides a set of `capabilities<What are capabilities?>`_ fundamental to the
+Project Hadron provides a set of :ref:`capabilities<What are capabilities?>` fundamental to the
 optimisation and appropriateness of tabular data for a downstream business objective. As such it
 places itself as a machine learning preprocessing or data processing step, though its application
 can be applied far wider.
@@ -272,8 +272,8 @@ Performance
 * MicroServices
 * Reuse
 
-Reporting
-~~~~~~~~~
+Data Reporting
+~~~~~~~~~~~~~~
 
 * Data Lineage
 * Data Profiling
