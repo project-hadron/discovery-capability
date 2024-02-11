@@ -9,7 +9,6 @@ data sources, transformations, and dependencies that enable organizations to tra
 flow and lineage, understand its impact on various business processes, and ensure its accuracy,
 consistency, and security.
 
-*
 Each capability has a common set of reports that provide Data lineage, identifying where the
 data originated, how it has changed, and its ultimate destination.
 
@@ -88,7 +87,7 @@ name of the attribute and description.
 Capture observations
 ~~~~~~~~~~~~~~~~~~~~
 
-As with attributes, we use `sdd_notes` to capture feedback from an SME or data owner, for
+As with attributes, we use `add_notes` to capture feedback from an SME or data owner, for
 example. In this case we capture ‘observations’ as our catalogue and
 ‘describe’ as our label which we maintain for both descriptions.
 
@@ -108,8 +107,22 @@ and those re-exploring the intended actions to understand why.
 
 .. code-block:: python
 
-    tr.add_intent_description(level='clean_header', text="Tidy headers with spaces and set to lower case")
-    tr.add_intent_description(level='reinstate_nulls', text="replace question marks with nulls")
+    fs.add_intent_description(level='clean_header', text="Tidy headers with spaces and set to lower case")
+    fs.add_intent_description(level='reinstate_nulls', text="replace question marks with nulls")
+
+Create Run Books
+~~~~~~~~~~~~~~~~
+
+If not provided, the actions of the Intent will be aligned in the order
+given but if one wishes to change this order we have the ability to
+taylor the sequence using a Run Book. A Run Book provides the facility
+to define the run order of a capabilities intent actions to insure those
+actions are run appropriate to the sequence they were intended.
+
+.. code-block:: python
+
+    fs.add_run_book(run_levels=['clean_header', 'to_remove', 'reinstate_nulls', 'auto_categorize', 'to_numeric', 'to_int'])
+
 
 ----
 
@@ -123,106 +136,16 @@ our case we are visually displaying the reports for the purpose of
 demonstration but would normally be connected to a reporting tool for
 information capture.
 
-
-
-
-
-
-
-
-
-
-The Intent, once applied, can now be observed through the Intent’s
-report which outlines each activity which displays each line of the
-Intent. So it is worth observing that the Intent report is presented in
-alphabetical order and not the order in which it will run.
-
-From the report one can clearly see each Intent and its Parameterization
-that can be modified by applying either a new Intent or a replacement of
-the already existing line of code.
-
-.. code-block:: python
-
-    tr.report_intent()
-
-.. image:: /images/reports/int_img01.png
-  :align: center
-  :width: 450
-
-Intent Metadata
----------------
-
-To enhance the readability and understanding of each intended action one
-can also add metadata to help explain ones thinking. This can be used in
-conjunction with the Intent report to provided a full picture of the
-actions that were taken and their changes and those actions changes to
-the outgoing dataset.
-
-.. code-block:: python
-
-    tr.add_intent_level_description(level='clean_header', text="Tidy headers with spaces and set to lower case")
-    tr.add_intent_level_description(level='reinstate_nulls', text="replace question marks with nulls")
-
-
-.. code-block:: python
-
-    tr.report_intent_description()
-
-.. image:: /images/reports/int_img02.png
-  :align: center
-  :width: 500
-
-Run Book
---------
-
-If not provided, the actions of the Intent will be aligned in the order
-given but if one wishes to change this order it has the ability to
-taylor the sequence using a Run Book. A Run Book provides the facility
-to define run order to insure actions are run appropriate to the
-Sequence they were intended. This is particulary useful when editing an
-existing Intent pipeline or where changes effect other actions.
-
-Run books can also be used to create multiple pipelines whereby a
-sequence of Intent is created with multiple outcomes available for a
-particular dataset. This is an advanced topic and not covered here.
-
-As usual the Run Book comes with its own reporting tool for easy
-visualisation.
-
-.. code-block:: python
-
-    tr.add_run_book(run_levels=['clean_header', 'to_remove', 'reinstate_nulls', 'auto_categorize', 'to_numeric', 'to_int'])
-
-.. code-block:: python
-
-    tr.report_run_book()
-
-.. image:: /images/reports/int_img03.png
-  :align: center
-  :width: 500
-
-
-
-
-
-
-Reports
--------
-
-
-
 Capability Reporting
 ~~~~~~~~~~~~~~~~~~~~
 
 Our initial report shows information capture about our capability.
+See `Add identification`_
 
 .. code-block:: python
 
     fs.report_task()
 
-.. image:: /source/_images/reports/rpt_cit_01.png
-  :align: center
-  :width: 300
 
 Connectivity Reporting
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -237,16 +160,11 @@ how we retrieved it.
 
     fs.report_connectors()
 
-.. image:: /source/_images/reports/rpt_cit_02.png
-  :align: center
-  :width: 700
-
 Provenance Reporting
 ~~~~~~~~~~~~~~~~~~~~
 
-Finally and specifically to the transitioning capability, we citate
-the provider of our data and that citation can be added to as knowledge
-is gained.
+Specifically to the FeatureSelection capability, we identify
+the provider of our data as knowledge gained. see `Add provenance`_
 
 This information not only shows us the domain and description of the
 provider but also the providers details, the datas author and
@@ -259,6 +177,38 @@ sourcing for data reuse.
 
     fs.report_provenance()
 
-.. image:: /source/_images/reports/rpt_cit_03.png
-  :align: center
-  :width: 650
+Intent Action Reporting
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Each individual capability has their own set of actions associated with that
+capability. With the intent actions report we can observe the activities or
+actions applied to a dataset by the capability.
+
+.. code-block:: python
+
+    fs.report_intent()
+
+
+Run Book Reporting
+~~~~~~~~~~~~~~~~~~
+
+Once a run book has been defined, we can observe that run book through the run book report.
+see `Create Run Books`_
+
+.. code-block:: python
+
+    fs.report_run_book()
+
+Environment Reporting
+~~~~~~~~~~~~~~~~~~~~~
+
+Finally we have the environment report report that provides a view of environment
+variables starting with HADRON. Specifically the report carries the default location
+of the data path, the location of capability recipes and the location of remote read-only
+component pipelines.
+
+.. code-block:: python
+
+    report = fs.report_environ()
+
+

@@ -46,17 +46,17 @@ profiling. This gives us a view of the attributes, the data quality and observat
   :align: center
   :width: 700
 
-\
 
 Preprocessing
 -------------
+
 In our preprocessing we are going to use FeatureSelect to remove columns of no interest, use
 FeatureEngineer to impute missing data, and FeatureTransition to encode categorical.
 
-----
 
-Feature Selection
-~~~~~~~~~~~~~~~~~
+Selection
+~~~~~~~~~
+
 Common across all capabilities, we initialize our component and use the factory class method
 `from_env` to create an instance of our FeatureSelect. The method call looks to the environment
 to reference any global variables, in this case `HADRON_PREDICT_SOURCE_DATA`, which is a pointer
@@ -99,10 +99,9 @@ Finally we run the capability pipeline to ensure everything works.
 
     fs.run_component_pipeline()
 
-----
 
-Feature Engineering
-~~~~~~~~~~~~~~~~~~~
+Engineering
+~~~~~~~~~~~
 
 Now our dataset is more focussed on the features of interest we can start engineering those
 features to tidy them up. In our case, to impute missing data.
@@ -157,10 +156,9 @@ Finally we run the capability pipeline to ensure everything works.
 
     fe.run_component_pipeline()
 
-----
 
-Feature Transformation
-~~~~~~~~~~~~~~~~~~~~~~
+Transformation
+~~~~~~~~~~~~~~
 
 FeatureTransition capability provides scaling, discretion and, for us, encoding but as before
 we initialize our component and use the factory class method `from_env` to create an
@@ -204,13 +202,11 @@ of the pipeline of capabilities and see how it looks.
   :align: center
   :width: 700
 
-\
 
 We ensure our feature set looks how we want it and our features are optimised or we need to improve any
 features. If we do we make the changes and run each of the capabilities again. Once happy we can
 move on to model optimisation.
 
-----
 
 Model Discovery
 ---------------
@@ -236,7 +232,6 @@ Hadron
 Once the model is selected, optimised, trained and tested it is ready to predict. At this point
 we pass the trained model to our AutoML capability.
 
-----
 
 Classifier Predict
 ------------------
@@ -278,7 +273,6 @@ As with the other components, we run the capability pipeline to ensure everythin
 
     aml.run_component_pipeline()
 
-----
 
 Controller
 ----------
@@ -332,14 +326,15 @@ Summary
 At this point we have
 
 * Performed Exploratory Data Analysis(EDA) to gain more clear insights
-of the data.
+  of the data.
 * Completed Data Preprocessing to produce a set of capability recipes
-representing the actions we took.
-* Build, train and optimise models to select the best performing for
-our requirements.
+  representing the actions we took.
+* Build, train and optimise models to select the best performing for our
+  requirements.
 * Save the trained model for prediction retrieval in our AutoML capability.
 * Make Predictions using our model and the testing data set
 
-The batch that will be to run it as a microservice using synthetic data.
+The next step will be to run the re-usable project Hadron pipeline with
+representative synthetic data.
 
 

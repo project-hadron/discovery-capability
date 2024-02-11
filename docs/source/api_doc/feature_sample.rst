@@ -12,6 +12,7 @@ FeatureEngineer - sample
         get_dist_bounded_normal,
         get_noise,
         get_synthetic_data_types,
+        get_synthetic_persona_usa,
         get_sample_list,
         get_sample_map,
         sample_inspect,

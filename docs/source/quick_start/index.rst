@@ -7,3 +7,4 @@ Getting Started
 
    before_we_begin
    use_case_one
+   use_case_one_remote
