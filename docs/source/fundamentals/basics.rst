@@ -25,8 +25,8 @@ of the lineage of that instance. By referencing the name of the instance, the
 recipe can be re-loaded and re-run creating a referencable and reusable capability.
 
 
-Capability Setup
-----------------
+Structure
+---------
 
 For this example we are going to use the FeatureSelect capability class.
 Other capability classes include FeatureEngineer, FeatureTransform,
@@ -52,7 +52,7 @@ initialise
 We can now create the instance of our FeatureSelect capability, but it is
 important to note we don't instantiate the class directly, but make use
 of the factory class methods. In this case ``from_env`` is used to look in the
-:ref:`environment<Environment Variables>` for any special settings. This
+:ref:`environment<Environment>` for any special settings. This
 is the most common way to start any of the capability components.
 
 .. code-block:: python
@@ -89,7 +89,7 @@ protect from accidental overwrite.
 
 The methods `set_source(...)` and `set_persist()` use the environment variable
 `HADRON_DEFAULT_PATH`, which, by default, is set to point to a local path.
-You can find more on this at `Environment Variables`_. With `set_persist()`
+You can find more on this at `Environment`_. With `set_persist()`
 there is the option to be able to set the name of the target file, otherwise
 a default name is used.
 
@@ -196,8 +196,8 @@ Understanding these first order calls in a capability, gives you access to under
 all capabilities at there base methods and create components quickly ready to add
 the actions pertinent to each capability.
 
-Environment Variables
----------------------
+Environment
+-----------
 
 To this point we have been using the default settings of where to find the named
 source and store the persisted dataset. In addition the default location of
