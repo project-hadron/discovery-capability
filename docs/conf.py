@@ -1,15 +1,18 @@
 # Configuration file for the Sphinx documentation builder.
+import os
+import sys
 import sphinx_rtd_theme
+from ds_capability import __version__
 
 # -- Project information
-project = 'discovery-capability'
+project = 'Project Hadron'
 copyright = '2024, gigas64'
 author = 'gigas64'
 
 # The short X.Y version.
-version = '1.2.2'
+version = __version__
 # The full version, including alpha/beta/rc tags.
-release = '1.2'
+release = version
 
 # -- General configuration
 extensions = [

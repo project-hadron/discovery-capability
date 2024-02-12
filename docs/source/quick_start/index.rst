@@ -8,3 +8,5 @@ Getting Started
    before_we_begin
    use_case_one
    use_case_one_remote
+   use_case_two
+   use_case_two_remote
