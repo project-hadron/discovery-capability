@@ -1,3 +1,6 @@
+Use Case One Pipeline
+=====================
+
 To this point we have created our project Hadron pipeline and the associated capability
 recipes for that pipeline. This next section shows how to build associative synthetic
 data and use that through our pre-defined and re-usable pipeline.
