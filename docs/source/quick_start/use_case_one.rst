@@ -20,7 +20,7 @@ the data.
 
 Setup
 ~~~~~
-Initially reload all our capability classes, and then any environment variables required. In this
+Initially import our capability classes, and then any environment variables required. In this
 case we are dynamically annotating for the input of the raw data location and the output of the
 model prediction.
 
@@ -89,6 +89,7 @@ next line)
     fs.save_canonical('label', label)
 
 Using the same method we now drop all unwanted columns and return our new reduced canonical.
+
 .. code-block::  python
 
     tbl = fs.tools.auto_drop_columns(tbl, headers=['name', 'boat', 'body', 'home.dest', 'ticket', 'survived'])
@@ -203,10 +204,8 @@ of the pipeline of capabilities and see how it looks.
   :width: 700
 
 
-We ensure our feature set looks how we want it and our features are optimised or we need to improve any
-features. If we do we make the changes and run each of the capabilities again. Once happy we can
-move on to model optimisation.
-
+We ensure our feature set looks how we want it and our features are optimised. Once happy
+we can move on to model optimisation.
 
 Model Discovery
 ---------------
@@ -328,8 +327,8 @@ At this point we have
 * Performed Exploratory Data Analysis(EDA) to gain more clear insights
   of the data.
 * Completed Data Preprocessing to produce a set of capability recipes
-  representing the actions we took.
-* Build, train and optimise models to select the best performing for our
+  to optimize the features of interest to a model algorithm.
+* Build, train and train a model to select the best performing for our
   requirements.
 * Save the trained model for prediction retrieval in our AutoML capability.
 * Make Predictions using our model and the testing data set
