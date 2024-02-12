@@ -27,6 +27,5 @@ jump straight to :ref:`Getting Started` once you have :ref:`installed<Installati
    source/introduction/installing
    source/quick_start/index
    source/fundamentals/basics
-   source/fundamentals/intent_actions
-   source/api_doc/index
+   source/intent_actions/index
    source/reports/index

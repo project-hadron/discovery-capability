@@ -1,4 +1,5 @@
 # Configuration file for the Sphinx documentation builder.
+import sphinx_rtd_theme
 
 # -- Project information
 project = 'discovery-capability'
@@ -18,6 +19,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosectionlabel',
+    'sphinx_rtd_theme'
 ]
 
 intersphinx_mapping = {
@@ -31,7 +33,7 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', '.DS_Store', '.ipynd_checkpoints', 'Thumbs.db']
 
 # -- Options for HTML output
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
 # -- Options for EPUB output
 # epub_show_urls = 'footnote'

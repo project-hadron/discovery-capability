@@ -1,15 +1,14 @@
 Why Project Hadron?
 ===================
-Project Hadron came from a desire to improve the availability of objective
-relevant data, increase the transparency and traceability of data lineage
-and facilitate knowledge transfer, retrieval and reuse.
+Project Hadron came from a desire to improve the availability of objective relevant data,
+increase the transparency and traceability of data lineage and facilitate knowledge
+transfer, retrieval and reuse.
 
-It was born from the frustration of working on machine learning projects
-with so many indecipherable jupyter notebooks a data scientist produces,
-each repeating common activities using arbitrary, localised datasets. This
-indecipherability clouded the retrieval of the data scientists thinking
-and the knowledge they gained from the subject matter experts they
-interacted with.
+It was born from the frustration of working on machine learning projects with so many
+indecipherable jupyter notebooks a data scientist produces,each repeating common
+activities using arbitrary, localised datasets. This indecipherability clouded the
+retrieval of the data scientists thinking and the knowledge they gained from the subject
+matter experts they interacted with.
 
 What are we solving?
 --------------------

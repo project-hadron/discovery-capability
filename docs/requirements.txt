@@ -1,3 +1,4 @@
 # Hadron foundation
 discovery-core
 discovery-capability
+sphinx_rtd_theme
