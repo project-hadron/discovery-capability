@@ -1,5 +1,5 @@
-Use Case Two
-============
+Use Case Two: Churn
+===================
 
 In this second use case we will look at something a little more practical, in this case
 customer churn. We are going to work through preprocessing followed by model predict,
@@ -211,9 +211,9 @@ for later interrogation if required, then pass in the trained model instance.
     aml.add_trained_model(model_name='GradientBoost', trained_model=model_GB)
 
 With our model stored, we can now add our action to run our canonical against the model
-and return its predictions. Unlike our first use case :ref:`Use Case One`, this time
-will have an identifier we want to carry alongside our prediction to potentially align
-with downstream objectives. The identifier is removed from the model prediction,
+and return its predictions. Unlike our first use case :ref:`Use Case One: Disaster`, this
+time will have an identifier we want to carry alongside our prediction to potentially
+align with downstream objectives. The identifier is removed from the model prediction,
 then realigned with the prediction outcome.
 
 .. code-block::  python
@@ -285,6 +285,7 @@ At this point we have
 * Build, train and tested a model to select the best performance for our requirements.
 * Save the trained model for prediction retrieval in our AutoML capability.
 * Make Predictions using our model, aligned to our chosen identifier.
+* Created a capability pipeline of our preprocessing and model predict.
 
 The next step will be to run the re-usable project Hadron pipeline with
 representative synthetic data.

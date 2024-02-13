@@ -5,7 +5,7 @@ increase the transparency and traceability of data lineage and facilitate knowle
 transfer, retrieval and reuse.
 
 It was born from the frustration of working on machine learning projects with so many
-indecipherable jupyter notebooks a data scientist produces,each repeating common
+indecipherable jupyter notebooks a data scientist produces, each repeating common
 activities using arbitrary, localised datasets. This indecipherability clouded the
 retrieval of the data scientists thinking and the knowledge they gained from the subject
 matter experts they interacted with.
@@ -127,12 +127,14 @@ How are capabilities reusable?
 
 While using the actions of a capability, those actions, and other metadata, are recorded as a
 runbook of instruction of the lineage of that instance. This runbook is known as a capability
-**recipe**. By referencing the name of the instance, the recipe can be re-loaded and re-run
-creating the reusable capability.
+**recipe** that contain all information relating to a capability, capturing the state of a
+capability at that moment in time. By referencing a capability by name at initialization
+you load the receipt from its previous state, which can be modified, enhanced or re-run.
 
-Recipes can also be edited as actions are immutable. If you write an action with the same name as a
-previously added action, the original action parameters will be replaced with the parameters of
-the overwriting action. Actions can also be deleted by specifying their name.
+The content of a recipe can be interrogated through the various
+:ref:`reports<Capability Reports>` common across all capabilities.
+
+Recipes define the identity and re-usability of capabilities capturing the standard modeboundaries.
 
 What is a capability pipeline?
 ------------------------------

@@ -1,5 +1,5 @@
-Use Case One
-============
+Use Case One: Disaster
+======================
 
 The best way to get started is jump straight in to a Project Hadron pipeline, giving context to the
 purpose of the package. We are going to work through preprocessing followed by model predict,
@@ -332,6 +332,7 @@ At this point we have
   requirements.
 * Save the trained model for prediction retrieval in our AutoML capability.
 * Make Predictions using our model and the testing data set
+* Created a capability pipeline of our preprocessing and model predict.
 
 The next step will be to run the re-usable project Hadron pipeline with
 representative synthetic data.

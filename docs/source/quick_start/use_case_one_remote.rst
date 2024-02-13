@@ -1,5 +1,5 @@
-Use Case One Pipeline
-=====================
+Use Case One: Disaster Reuse
+============================
 
 To this point we have created our project Hadron pipeline and the associated capability
 recipes for that pipeline. This next section shows how to build associative synthetic
