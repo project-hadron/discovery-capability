@@ -23,9 +23,11 @@ jump straight to :ref:`Getting Started` once you have :ref:`installed<Installati
    :maxdepth: 2
    :caption: Contents:
 
+   source/others/glossary
    source/introduction/overview
    source/introduction/installing
    source/quick_start/index
    source/fundamentals/basics
    source/intent_actions/index
    source/reports/index
+   source/others/contribute
