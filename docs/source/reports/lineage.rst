@@ -12,27 +12,11 @@ consistency, and security.
 Each capability has a common set of reports that provide Data lineage, identifying where the
 data originated, how it has changed, and its ultimate destination.
 
-.. code-block:: python
-
-    from ds_capability import FeatureSelect
-    from ds_core.handlers.abstract_handlers import ConnectorContract
-
-\
-
-----
-
 Capturing Knowledge
 -------------------
 As part of the set-up process, or at anytime during the capability
 development cycle, information can be gathered and added to the
 capability's already existing knowledge.
-
-Firstly we reload the instance we wish to add the knowledge to.
-
-.. code-block:: python
-
-    fs = FeatureSelect.from_env('demo_citation', has_contract=False)
-
 
 Add identification
 ~~~~~~~~~~~~~~~~~~
@@ -42,9 +26,9 @@ identify its purpose and placement in a project.
 
 .. code-block:: python
 
-    fs.set_description("Every arrest effected in NYC by the NYPD from 2006 to the end of the previous calendar year")
-    fs.set_version('0.0.1')
-    fs.set_status('discovery')
+    capability.set_description("Every arrest effected in NYC by the NYPD from 2006 to the end of the previous calendar year")
+    capability.set_version('0.0.1')
+    capability.set_status('discovery')
 
 Add provenance
 ~~~~~~~~~~~~~~
@@ -56,7 +40,7 @@ and the data’s author.
 
 .. code-block:: python
 
-    fs.set_provenance(title='NYPD Historic Arrest Data',
+    capability.set_provenance(title='NYPD Historic Arrest Data',
                       domain='Public Safety',
                       license_type='Public Consumption',
                       description="List of every arrest in NYC going back to 2006 through the end of the previous calendar year.",
@@ -76,13 +60,13 @@ name of the attribute and description.
 .. code-block:: python
 
     ## Add some attribute descriptions
-    fs.add_notes(catalog='attributes', label='age', text='The age of the passenger has limited null values')
-    fs.add_notes(catalog='attributes', label='deck', text='cabin has already been split into deck from the originals')
-    fs.add_notes(catalog='attributes', label='fare', text='the price of the fair')
-    fs.add_notes(catalog='attributes', label='pclass', text='The class of the passenger')
-    fs.add_notes(catalog='attributes', label='sex', text='The gender of the passenger')
-    fs.add_notes(catalog='attributes', label='survived', text='If the passenger survived or not as the target')
-    fs.add_notes(catalog='attributes', label='embarked', text='The code for the port the passengered embarked')
+    capability.add_notes(catalog='attributes', label='age', text='The age of the passenger has limited null values')
+    capability.add_notes(catalog='attributes', label='deck', text='cabin has already been split into deck from the originals')
+    capability.add_notes(catalog='attributes', label='fare', text='the price of the fair')
+    capability.add_notes(catalog='attributes', label='pclass', text='The class of the passenger')
+    capability.add_notes(catalog='attributes', label='sex', text='The gender of the passenger')
+    capability.add_notes(catalog='attributes', label='survived', text='If the passenger survived or not as the target')
+    capability.add_notes(catalog='attributes', label='embarked', text='The code for the port the passengered embarked')
 
 Capture observations
 ~~~~~~~~~~~~~~~~~~~~
@@ -93,9 +77,9 @@ example. In this case we capture ‘observations’ as our catalogue and
 
 .. code-block:: python
 
-    fs.add_notes(catalog='observations', label='describe',
+    capability.add_notes(catalog='observations', label='describe',
                  text='The original Titanic dataset has been engineered to fit Seaborn functionality')
-    fs.add_notes(catalog='observations', label='describe',
+    capability.add_notes(catalog='observations', label='describe',
                  text='The age and deck attributes still maintain their null values')
 
 Describe Actions
@@ -107,8 +91,8 @@ and those re-exploring the intended actions to understand why.
 
 .. code-block:: python
 
-    fs.add_intent_description(level='clean_header', text="Tidy headers with spaces and set to lower case")
-    fs.add_intent_description(level='reinstate_nulls', text="replace question marks with nulls")
+    capability.add_intent_description(level='clean_header', text="Tidy headers with spaces and set to lower case")
+    capability.add_intent_description(level='reinstate_nulls', text="replace question marks with nulls")
 
 Create Run Books
 ~~~~~~~~~~~~~~~~
@@ -121,7 +105,7 @@ actions are run appropriate to the sequence they were intended.
 
 .. code-block:: python
 
-    fs.add_run_book(run_levels=['clean_header', 'to_remove', 'reinstate_nulls', 'auto_categorize', 'to_numeric', 'to_int'])
+    capability.add_run_book(run_levels=['clean_header', 'to_remove', 'reinstate_nulls', 'auto_categorize', 'to_numeric', 'to_int'])
 
 
 ----
@@ -144,7 +128,7 @@ See `Add identification`_
 
 .. code-block:: python
 
-    fs.report_task()
+    capability.report_task()
 
 
 Connectivity Reporting
@@ -158,7 +142,7 @@ how we retrieved it.
 
 .. code-block:: python
 
-    fs.report_connectors()
+    capability.report_connectors()
 
 Provenance Reporting
 ~~~~~~~~~~~~~~~~~~~~
@@ -175,7 +159,7 @@ sourcing for data reuse.
 
 .. code-block:: python
 
-    fs.report_provenance()
+    capability.report_provenance()
 
 Intent Action Reporting
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -186,7 +170,7 @@ actions applied to a dataset by the capability.
 
 .. code-block:: python
 
-    fs.report_intent()
+    capability.report_intent()
 
 
 Run Book Reporting
@@ -197,7 +181,7 @@ see `Create Run Books`_
 
 .. code-block:: python
 
-    fs.report_run_book()
+    capability.report_run_book()
 
 Environment Reporting
 ~~~~~~~~~~~~~~~~~~~~~
@@ -209,6 +193,6 @@ component pipelines.
 
 .. code-block:: python
 
-    report = fs.report_environ()
+    report = capability.report_environ()
 
 

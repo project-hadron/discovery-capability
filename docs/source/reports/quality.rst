@@ -23,7 +23,7 @@ their distribution, along with an opinion on overall quality and usability.
 
 .. code-block:: python
 
-    fs.quality_report(canonical)
+    capability.quality_report(canonical)
 
 
 Data Dictionary Report
@@ -35,7 +35,7 @@ observable values in order of count.
 
 .. code-block:: python
 
-    fs.canonical_report(canonical)
+    capability.canonical_report(canonical)
 
 Data Schema Report
 ------------------
@@ -46,7 +46,7 @@ as well as relevant statistics pertaining to the attribute type.
 
 .. code-block:: python
 
-    fs.schema_report(canonical)
+    capability.schema_report(canonical)
 
 
 Data Profiling as an Action
@@ -59,7 +59,7 @@ pipeline throughput
 
 .. code-block:: python
 
-    fb.tools.build_profiling(canonical, profiling='quality')
-    fb.tools.build_profiling(canonical, profiling='dictionary')
-    fb.tools.build_profiling(canonical, profiling='schema')
+    capability.tools.build_profiling(canonical, profiling='quality')
+    capability.tools.build_profiling(canonical, profiling='dictionary')
+    capability.tools.build_profiling(canonical, profiling='schema')
 

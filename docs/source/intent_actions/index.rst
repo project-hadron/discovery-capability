@@ -26,6 +26,8 @@ sit within the workflow.
   :align: center
   :width: 800
 
+ref: UML Machine Learning flow diagram
+
 The rectangles with a dotted outline box, that surround the processes, represent the components used at that
 point within the workflow. Found within the rectangle is the name of the component used.
 This may not fit every workflow but when building a model, be it for production or as a proof of concept, each
