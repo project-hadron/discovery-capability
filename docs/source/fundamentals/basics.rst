@@ -14,15 +14,21 @@ specialist components that refer to the range of functionalities and
 features a software solution, in our case, to handle and
 process data for a downstream objective.
 
-Each capability class, at its root, is defined as a concrete implementation
-of a shared abstract parent class. This means that all capability instances
-share common behavior in initialization, connectivity management, reporting
-and running the component.
+Each capability class has a parent abstract component class. This means that all
+capability instances share common behavior in initialization, connectivity management,
+reporting and running the component.
+
+.. image:: /source/_images/fundamentals/component_class_uml.png
+  :align: center
+  :width: 700
+
+* UML capability component class diagram
 
 Through initialization, capabilities are also responsible for the capture and up
-keep of a **recipe**. A recipe can be thought of as a runbook of instructions
-of the lineage of that instance. By referencing the name of the instance, the
-recipe can be re-loaded and re-run creating a referencable and reusable capability.
+keep of its recipe and the running of its intent actions. A recipe can be thought of
+as a runbook of instructions of the lineage of that instance. By referencing the name
+of the instance, the recipe can be re-loaded and re-run creating a referencable and
+reusable capability.
 
 
 Structure
