@@ -195,3 +195,11 @@ component pipelines.
 
     report = capability.report_environ()
 
+Lineage API
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   lineage_add
+   lineage_reports
