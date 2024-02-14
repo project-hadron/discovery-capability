@@ -243,13 +243,3 @@ variable as its value. As good practice, reduce conflicts and to ensure compatib
 with the `report_environ()`, you should always start your environment variable with
 `HADRON_`.
 
-Capability API
---------------
-
-.. toctree::
-   :maxdepth: 1
-
-   capability_connect
-   capability_io
-   capability_run
-
