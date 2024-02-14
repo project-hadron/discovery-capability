@@ -14,8 +14,8 @@ For the purposes of re-running our pipeline only Controller is required.
     import os
     from ds_capability import FeatureSelect, FeatureEngineer, AutoML, Controller
 
-Synthesize
-----------
+uc1: Synthesize
+---------------
 
 Our next step is to build the synthetic data using the sample data. Will initialize our two
 classes using the `from_memory()` factory class method. These instantiate the classes in
@@ -58,8 +58,8 @@ We then directly save our synthetic dataset for retrieval by our predictive mode
 
     syn_fe.save_persist_canonical(tbl)
 
-Remote Run
-----------
+uc1: Remote Run
+---------------
 With our synthetic data now created, we are ready to run our component pipeline.
 In the first instance we set our our predictive source, in this case our synthetic
 data, and the location of where to put the results. As you can see the use of
@@ -84,8 +84,8 @@ class method, and running the controller.
     ctrl = Controller.from_env()
     ctrl.run_controller()
 
-View Remote
------------
+uc1: View Remote
+----------------
 
 We can check our results by loading the canonical at the end of our pipeline. We
 do this by creating the instance of our named capability, AutoML, and loading the

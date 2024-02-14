@@ -6,8 +6,8 @@ purpose of the package. We are going to work through preprocessing followed by m
 then wrap the capabilities as a pipeline :ref:`recipe<How are capabilities reusable?>` that
 defines our microservice.
 
-Business Objective
-------------------
+uc1: Business Objective
+-----------------------
 
 Survival Prediction
 ~~~~~~~~~~~~~~~~~~~
@@ -18,8 +18,8 @@ For our use case we are going to use the trusted and familiar Titanic dataset. I
 example of a classification model, and uses each of Project Hadron's capabilities to pre-process
 the data.
 
-Setup
-~~~~~
+Setup uc1
+~~~~~~~~~
 Initially import our capability classes, and then any environment variables required. In this
 case we are dynamically annotating for the input of the raw data location and the output of the
 model prediction.
@@ -36,8 +36,8 @@ model prediction.
     os.environ['HADRON_PREDICT_PERSIST_DATA'] = './hadron/data/hadron_docs_titanic_predict.parquet'
 
 
-Exploratory Data Analysis
--------------------------
+uc1: Exploratory Data Analysis
+------------------------------
 With any preprocessing, the initial stages are to do exploratory data analysis, but this is outside
 the scope of this lesson and as such is briefly shown as one of the pre-processing reports on data
 profiling. This gives us a view of the attributes, the data quality and observations of its content.
@@ -47,15 +47,15 @@ profiling. This gives us a view of the attributes, the data quality and observat
   :width: 700
 
 
-Preprocessing
--------------
+uc1: Preprocessing
+------------------
 
 In our preprocessing we are going to use FeatureSelect to remove columns of no interest, use
 FeatureEngineer to impute missing data, and FeatureTransition to encode categorical.
 
 
-Selection
-~~~~~~~~~
+Selection uc1
+~~~~~~~~~~~~~
 
 Common across all capabilities, we initialize our component and use the factory class method
 `from_env` to create an instance of our FeatureSelect. The method call looks to the environment
@@ -101,8 +101,8 @@ Finally we run the capability pipeline to ensure everything works.
     fs.run_component_pipeline()
 
 
-Engineering
-~~~~~~~~~~~
+Engineering uc1
+~~~~~~~~~~~~~~~
 
 Now our dataset is more focussed on the features of interest we can start engineering those
 features to tidy them up. In our case, to impute missing data.
@@ -158,8 +158,8 @@ Finally we run the capability pipeline to ensure everything works.
     fe.run_component_pipeline()
 
 
-Transformation
-~~~~~~~~~~~~~~
+Transformation uc1
+~~~~~~~~~~~~~~~~~~
 
 FeatureTransition capability provides scaling, discretion and, for us, encoding but as before
 we initialize our component and use the factory class method `from_env` to create an
@@ -207,8 +207,8 @@ of the pipeline of capabilities and see how it looks.
 We ensure our feature set looks how we want it and our features are optimised. Once happy
 we can move on to model optimisation.
 
-Model Discovery
----------------
+uc1: Model Discovery
+--------------------
 This is a model discovery train and test process optimising a chosen models metadata to produce
 a trained model class.
 
@@ -232,8 +232,8 @@ Once the model is selected, optimised, trained and tested it is ready to predict
 we pass the trained model to our AutoML capability.
 
 
-Classifier Predict
-------------------
+uc1: Classifier Predict
+-----------------------
 
 At this point we have our preprocessed feature set and our trained model through discovers.
 We can now set up our model predict against new feature sets coming through the pipeline.
@@ -273,8 +273,8 @@ As with the other components, we run the capability pipeline to ensure everythin
     aml.run_component_pipeline()
 
 
-Controller
-----------
+uc1: Controller
+---------------
 
 As with or previous capabilities, we initialize our component and use the factory class method
 `from_env` to create an instance of our Controller, but this time we don't need to give it a name
@@ -302,8 +302,8 @@ which will run the our end-to-end pipeline from raw data to our modules predicti
 
     ctrl.run_controller()
 
-Review Run
-~~~~~~~~~~
+Review Run uc1
+~~~~~~~~~~~~~~
 
 We can review our results by loading the AutoML output canonical.
 
@@ -319,8 +319,8 @@ We can review our results by loading the AutoML output canonical.
     ----
     predict: [[1,1,1,0,1,...,0,1,0,0,0]]
 
-Summary
--------
+uc1: Summary
+------------
 
 At this point we have
 

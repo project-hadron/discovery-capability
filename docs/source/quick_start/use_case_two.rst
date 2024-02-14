@@ -6,8 +6,8 @@ customer churn. We are going to work through preprocessing followed by model pre
 then wrap the capabilities as a pipeline :ref:`recipe<How are capabilities reusable?>`
 that defines our microservice.
 
-Business Objective
-------------------
+uc2: Business Objective
+-----------------------
 
 Churn prediction
 ~~~~~~~~~~~~~~~~
@@ -18,8 +18,8 @@ For this use case we are going to use a customer banking dataset for a classific
 model. In this use case the emphasis is much more on the transition of the data to
 optimize the features for the chosen model.
 
-Setup
-~~~~~
+Setup uc2
+~~~~~~~~~
 
 Initially import our capability classes, and then any environment variables required. In this
 case we are dynamically annotating for the input of the raw data location and the output of the
@@ -36,8 +36,8 @@ model prediction.
     os.environ['HADRON_CHURN_SOURCE_PATH'] = 'https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/datasets/toy_sample/churn.csv'
     os.environ['HADRON_CHURN_PERSIST_PATH'] = './hadron/data/hadron_docs_churn_predict.parquet'
 
-Exploratory Data Analysis
--------------------------
+uc2: Exploratory Data Analysis
+------------------------------
 
 With any preprocessing, the initial stages are to do exploratory data analysis, but this
 is outside the scope of this lesson and as such is briefly shown as one of the
@@ -48,14 +48,14 @@ data quality and observations of its content.
   :align: center
   :width: 700
 
-Preprocessing
--------------
+uc2: Preprocessing
+------------------
 
 In our preprocessing we are going to use FeatureSelect to remove columns of no interest,
 and FeatureTransition for feature optimization.
 
-Selection
-~~~~~~~~~~~~~~~~~
+Selection uc2
+~~~~~~~~~~~~~
 
 Common across all capabilities, we initialize our component and use the factory class method
 `from_env` to create an instance of our FeatureSelect. The method call looks to the environment
@@ -101,8 +101,8 @@ Finally we run the capability pipeline to ensure everything works.
 
     fs.run_component_pipeline()
 
-Transformation
-~~~~~~~~~~~~~~~~~~~~~~
+Transformation uc2
+~~~~~~~~~~~~~~~~~~
 
 FeatureTransition capability provides scaling, discretion and encoding but as before
 we initialize our component and use the factory class method `from_env` to create an
@@ -164,8 +164,8 @@ As before, we run the capability pipeline to ensure everything works.
 We ensure our feature set looks how we want it and our features are optimised. Once happy
 we can move on to model optimisation.
 
-Model Discovery
----------------
+uc2: Model Discovery
+--------------------
 
 This is a model discovery train and test process optimising a chosen models metadata to
 produce a trained model class. It is worth noting but the data carries an identifier
@@ -190,8 +190,8 @@ Hadron.
 Once the model is selected, optimised, trained and tested it is ready to predict. At this point
 we pass the trained model to our AutoML capability.
 
-Classifier Predict
-------------------
+uc2: Classifier Predict
+-----------------------
 At this point we have our preprocessed feature set and our trained model through discovers.
 We can now set up our model predict against new feature sets coming through the pipeline.
 
@@ -226,8 +226,8 @@ As with the other components, we run the capability pipeline to ensure everythin
 
     aml.run_component_pipeline()
 
-Controller
-----------
+uc2: Controller
+---------------
 
 As with or previous capabilities, we initialize our component and use the factory class method
 `from_env` to create an instance of our Controller, but this time we don't need to give it a name
@@ -254,8 +254,8 @@ which will run the our end-to-end pipeline from raw data to our modules predicti
 
     ctrl.run_controller()
 
-Review Run
-~~~~~~~~~~
+Review Run uc2
+~~~~~~~~~~~~~~
 
 We can review our results by loading the AutoML output canonical. Notice we now include
 the `CustomerId` aligned with the prediction result.
@@ -274,8 +274,8 @@ the `CustomerId` aligned with the prediction result.
     CustomerId: [[15634602,15647311,15619304,15701354,15737888,...,15606229,15569892,15584532,15682355,15628319]]
     predict: [[0,0,1,0,0,...,0,0,0,0,0]]
 
-Summary
--------
+uc2: Summary
+------------
 
 At this point we have
 

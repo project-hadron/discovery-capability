@@ -30,4 +30,5 @@ jump straight to :ref:`Getting Started` once you have :ref:`installed<Installati
    source/fundamentals/basics
    source/intent_actions/index
    source/reports/index
+   source/connectors/basics
    source/others/contribute

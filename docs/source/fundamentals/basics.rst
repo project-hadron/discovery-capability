@@ -83,8 +83,8 @@ The base methods call is:
 
 * add_connector_uri('<connector_name>', '<uri>')
 
-where `connector_name` is the connector reference name and the`uri` is a
-fully qualified URI reference to the data or feature set.
+where `connector_name` is the :ref:`connector<Introducing Connectors>` reference name
+and the `uri` is a fully qualified URI reference to the data or feature set.
 
 For ease of coding this method has been extended to mirror the source
 and the persist, where source is a read-only sub-class of the persist class.
