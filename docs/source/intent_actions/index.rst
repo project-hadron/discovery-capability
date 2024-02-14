@@ -1,14 +1,13 @@
-.. _api:
-
 Capability Intent Actions
 =========================
 
 Introduction
 ------------
 
-The Project Hadron package comes with a number of component capabilities, listed below.
-Each capability represents a separation of concerns across the stakeholders and
-data science teams model build workflow.
+The Project Hadron package comes with a number of component
+:ref:`capabilities<What are capabilities?>`, listed below. Each capability represents a
+separation of concerns across the stakeholders and data science teams model build
+workflow.
 
 * FeatureSelect: Reduce dimensionality of a dataset through reduction techniques.
 * FeatureEngineer:
@@ -18,9 +17,9 @@ data science teams model build workflow.
 * FeatureTransform: Transformation of data for model optimisation.
 * AutoML: Automatically run model predictions.
 
-The diagram illustrates a typical workflow for stakeholders and data science teams looking to
-implement business objectives. Highlighted within the diagram are where the capability components
-sit within the workflow.
+The diagram illustrates a typical workflow for stakeholders and data science teams
+looking to implement business objectives. Highlighted within the diagram are where the
+capability components sit within the workflow.
 
 .. image:: /source/_images/fundamentals/ml_flow.png
   :align: center
@@ -28,16 +27,18 @@ sit within the workflow.
 
 ref: UML Machine Learning flow diagram
 
-The rectangles with a dotted outline box, that surround the processes, represent the components used at that
-point within the workflow. Found within the rectangle is the name of the component used.
-This may not fit every workflow but when building a model, be it for production or as a proof of concept, each
-of these capabilities are at the core of any model build.
+The rectangles with a dotted outline box, that surround the processes, represent the
+components used at that point within the workflow. Found within the rectangle is the name
+of the component used. This may not fit every workflow but when building a model, be it
+for production or as a proof of concept, each of these capabilities are at the core of
+any model build.
+
 Feature Selection
 -----------------
 
-This class represents feature selection focusing on dimensionality and specifically columnar
-reduction. Its purpose is to disregard irrelevant features to remove, amongst other things,
-constants, duplicates and statistically uninteresting columns.
+This class represents feature selection focusing on dimensionality and specifically
+columnar reduction. Its purpose is to disregard irrelevant features to remove, amongst
+other things, constants, duplicates and statistically uninteresting columns.
 
 As an early stage data pipeline process, FeatureSelect focuses on data preprocessing, and
 as such is a filter step for extracting features of interest.
@@ -63,6 +64,11 @@ Methods::
 
 Feature Engineering - correlate
 -------------------------------
+
+This class represents feature engineering intent actions that, depending on its application,
+represent data's statistical and distributive characteristics to provide targeted features
+of interests. Its focus is around correlate of two value streams to produce a third.
+
 .. toctree::
    :maxdepth: 1
 
@@ -84,6 +90,11 @@ Methods::
 
 Feature Engineering - model
 ---------------------------
+
+This class represents feature engineering intent actions that, depending on its application,
+represent data's statistical and distributive characteristics to provide targeted features
+of interests. Its focus is modelling the complete dataset to produce a new dataset.
+
 .. toctree::
    :maxdepth: 1
 
@@ -99,6 +110,10 @@ Methods::
 
 Feature Transformation
 ----------------------
+
+This class represents feature transformation intent actions whereby features are converted
+from one format or structure to another. This includes, scaling, encoding, discretization
+and activation trigger algorithms.
 
 .. toctree::
    :maxdepth: 1
@@ -124,6 +139,9 @@ Methods::
 Feature Build
 -------------
 
+This class is for feature builds intent actions which are bespoke to a certain used case
+but have broader reuse beyond this use case.
+
 .. toctree::
    :maxdepth: 1
 
@@ -136,6 +154,12 @@ Methods::
 
 Feature Engineering - synthesis
 -------------------------------
+
+This class represents feature engineering intent actions that, depending on its application,
+represent data's statistical and distributive characteristics to provide targeted features
+of interests. Its focus is around building synthetic data through statistical modelling
+and observational logic.
+
 .. toctree::
    :maxdepth: 1
 
@@ -154,6 +178,12 @@ Methods::
 
 Feature Engineering - sample
 ----------------------------
+
+This class represents feature engineering intent actions that, depending on its application,
+represent data's statistical and distributive characteristics to provide targeted features
+of interests. Its focus is around building synthetic data through distributions algorithms
+and sampled data.
+
 .. toctree::
    :maxdepth: 1
 

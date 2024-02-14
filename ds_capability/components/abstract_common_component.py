@@ -9,6 +9,12 @@ from ds_capability.components.discovery import DataDiscovery
 # noinspection PyArgumentList
 class AbstractCommonComponent(AbstractComponent):
 
+    """
+    An abstract common component class that contains the methods shared across all
+    capabilities. This allows all capability instances to share common behavior in
+    initialization, connectivity management, reporting and running the component.
+    """
+
     @classmethod
     @abstractmethod
     def from_uri(cls, task_name: str, uri_pm_path: str, creator: str, uri_pm_repo: str=None, pm_file_type: str=None,

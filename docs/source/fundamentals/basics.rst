@@ -242,3 +242,13 @@ URI. This same technique applies to some action parameters that can take a speci
 variable as its value. As good practice, reduce conflicts and to ensure compatibility
 with the `report_environ()`, you should always start your environment variable with
 `HADRON_`.
+
+Capability API
+--------------
+
+.. toctree::
+   :maxdepth: 1
+
+   capability_connect
+   capability_io
+   capability_run
