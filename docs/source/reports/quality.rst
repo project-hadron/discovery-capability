@@ -63,3 +63,11 @@ pipeline throughput
     capability.tools.build_profiling(canonical, profiling='dictionary')
     capability.tools.build_profiling(canonical, profiling='schema')
 
+Profiling API
+-------------
+
+.. toctree::
+   :maxdepth: 1
+
+   quality_reports
+   quality_actions

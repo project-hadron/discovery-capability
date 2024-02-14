@@ -13,8 +13,8 @@ from ds_capability.intent.abstract_feature_transform_intent import AbstractFeatu
 
 class FeatureTransformIntent(AbstractFeatureTransformIntentModel, CommonsIntentModel):
     """This class represents feature transformation intent actions whereby features are converted
-    from one format or structure to another. This includes, scaling and activation trigger
-    algorithms.
+    from one format or structure to another. This includes, scaling, encoding,
+    discretization and activation trigger algorithms.
     """
 
     def activate_sigmoid(self, canonical: pa.Table, header: str, precision: int=None, seed: int=None,

@@ -2,9 +2,10 @@ Getting Started
 ===============
 
 The best way to get started is to walk through a couple of use case that take us from
-raw data to model predict, then onto a capability pipeline. The two use case are both
-classification challenges, with the first using the titanic dataset to show each
-capability and the second, a more real world situation of customer churn.
+raw data to model predict, then onto a :ref:`capability<What are capabilities?>` pipeline.
+The two use case are both classification challenges, with the first using the titanic
+dataset to show each capability and the second, a more real world situation of customer
+churn.
 
 Following each use case is the re-usable pipeline where the capability recipes
 have been placed on a remote repository. We create a new synthetic dataset and

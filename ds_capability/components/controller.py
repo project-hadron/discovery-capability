@@ -13,7 +13,10 @@ from ds_capability.components.discovery import DataDiscovery
 
 # noinspection PyArgumentList
 class Controller(AbstractComponent):
-    """Controller Class for the management and overview of task components"""
+    """Controller Class is a special capability that controls a pipeline flow. It still
+    inherits core AbstractComponent but not child AbstractCommonComponent that the other
+    capabilities inherit from.
+    """
 
     REPORT_USE_CASE = 'use_case'
     URI_PM_REPO = None
