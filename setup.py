@@ -26,7 +26,7 @@ setup(
     name='discovery-capability',
     version=find_version('ds_capability', '__init__.py'),
     description='Data Science to production accelerator',
-    long_description=read('README.rst'),
+    long_description=read('README.md'),
     url='https://github.com/gigas64/discovery-capability',
     author='Gigas64',
     author_email='gigas64@opengrass.net',
