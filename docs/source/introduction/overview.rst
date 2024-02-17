@@ -104,23 +104,33 @@ illustrates where the processing sits within the three stage pipeline pipeline.
 What are capabilities?
 ----------------------
 
-Capabilities and their separation of concern are fundamental principles in the design of Project
-Hadron. Capabilities can be thought of as specialist components that refer to the range of
-functionalities and features a software solution possesses, in our case, to handle and process
-ata efficiently. Within Project Hadron these capabilities can be identified as
+In project Hadron capabilities are components that adhere to the fundamental concepts
+of `capability  patterns`_ and `separation of concern`_ (SoC). They are design principle
+that advocates breaking a software system into distinct, independent modules or
+components, each addressing a specific concern or aspect of the system's functionality
+while applying low coupling and high cohesion.
+
+Capabilities are reusable process which can be applied at any stage of the life cycle
+and prescribes a work breakdown structure of functionalities and features a software
+solution possesses, in our case, to handle preprocess and model predict pipelines.
+
+Within Project Hadron these capabilities can be identified as:
 
     * data selection
     * feature engineering for creation
     * feature engineering for correlation
     * feature engineering for modelling
     * feature transition
+    * model predict
 
-Separation of concerns (SoC) is a design principle that advocates breaking a software system
-into distinct, independent modules or components, each addressing a specific concern or aspect of
-the system's functionality. Together, defining capabilities helps in understanding what a software
-system should achieve, while separation of concerns ensures that the system is designed in a
-modular and maintainable way, with each part addressing a specific aspect of its functionality.
-Both principles contribute to building modular, robust and scalable software solutions.
+Together, capability patterns help in understanding what a reusable component task should
+achieve, while separation of concerns ensures that the component task is designed in a
+modular and maintainable way, with each part addressing a specific aspect of its
+functionality. Both principles contribute to building modular, robust and scalable
+software solutions.
+
+.. _capability  patterns: https://www.ibm.com/docs/en/engineering-lifecycle-management-suite/lifecycle-optimization-method-composer/7.6.0?topic=processes-capability-patterns
+.. _separation of concern: https://en.wikipedia.org/wiki/Separation_of_concerns
 
 How are capabilities reusable?
 ------------------------------
@@ -134,10 +144,17 @@ you load the receipt from its previous state, which can be modified, enhanced or
 The content of a recipe can be interrogated through the various
 :ref:`reports<Capability Reports>` common across all capabilities.
 
-Recipes define the identity and re-usability of capabilities capturing the standard modeboundaries.
+Recipes define the identity and re-usability of capabilities capturing its activities
+and boundaries and ensuring separation from other capability recipes.
 
 What is a capability pipeline?
 ------------------------------
+
+A capability does not relate to any specific part of a lifecycle, only to the task it has
+been designed, FeatureSelect for dimensionality, AutoML for model predict, etc. It is
+designed in a way that it is applicable to any related a use case, thereby enabling
+its activities to be flexibly assigned to a delivery process to which it is being applied.
+
 Capabilities, on their own, are tightly focused on their concerns, albeit with a use case in mind.
 It is not till we collectively link our capabilities in a meaningful order that we build our
 reusable use case or microservice. In order to capture a set of capabilities into a reusable
