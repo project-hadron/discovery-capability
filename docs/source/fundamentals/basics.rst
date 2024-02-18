@@ -10,8 +10,8 @@ Fundamentals
 
 :ref:`Capabilities<What are capabilities?>` and their separation of concern are
 fundamental principles in the design of Project Hadron. Capabilities can be thought of as
-specialist components that refer to the range of functionalities and features a software
-solution, in our case, to handle and process data for a downstream objective.
+specialist components that provide common methods shared across all capabilities that may
+or may not be accompanied by an action intention, or 'capability intent'.
 
 Each capability class has a parent abstract component class. This means that all
 capability instances share common behavior in initialization, connectivity management,

@@ -4,10 +4,21 @@ Capability Intent Actions
 Introduction
 ------------
 
-The Project Hadron package comes with a number of component
-:ref:`capabilities<What are capabilities?>`, listed below. Each capability represents a
-separation of concerns across the stakeholders and data science teams model build
-workflow.
+The Project Hadron, and its scope is defined by :ref:`capabilities<What are capabilities?>`
+by design, each capability is accompanied by a set of action intentions, or 'capability
+intent'. Though capabilities share common parentage, it is the associative intent that
+define the encapsulated actions of that capability.
+
+Capability intent derives from an abstract intent class and associated with a capability
+namesake. Intent is therefor accessed through a capability
+
+.. image:: /source/_images/intent_actions/component_intent_class_uml.png
+  :align: center
+  :width: 700
+
+* component intent class UML
+
+The following capabilities provide accompanying intent actions:
 
 * FeatureSelect: Reduce dimensionality of a dataset through reduction techniques.
 * FeatureEngineer:
@@ -17,21 +28,21 @@ workflow.
 * FeatureTransform: Transformation of data for model optimisation.
 * AutoML: Automatically run model predictions.
 
-The diagram illustrates a typical workflow for stakeholders and data science teams
-looking to implement business objectives. Highlighted within the diagram are where the
-capability components sit within the workflow.
+To give context, the diagram illustrates a typical workflow for Machine Learning looking
+to implement business objectives. Highlighted within the diagram are where the capability
+action intent apply within the workflow.
 
 .. image:: /source/_images/fundamentals/ml_flow.png
   :align: center
   :width: 800
 
-ref: UML Machine Learning flow diagram
+* UML Machine Learning flow diagram
 
 The rectangles with a dotted outline box, that surround the processes, represent the
-components used at that point within the workflow. Found within the rectangle is the name
-of the component used. This may not fit every workflow but when building a model, be it
-for production or as a proof of concept, each of these capabilities are at the core of
-any model build.
+action intent used at that point within the workflow. Found within the rectangle is the
+name of the component used. This may not fit every workflow but when building a ML
+solution, be it for production or as a proof of concept, each of these capabilities are
+at the core of any model build.
 
 Feature Selection
 -----------------

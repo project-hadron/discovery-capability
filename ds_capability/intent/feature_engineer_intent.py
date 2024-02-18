@@ -1767,7 +1767,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
-    def correlate_on_condition(self, canonical: pa.Table, header: str, other: str, condition: list,
+    def correlate_on_condition(self, canonical: pa.Table, header: str, condition: list,
                                value: [int, float, bool, str], mask_null: bool=None,
                                default: [int, float, bool, str]=None, to_header: str=None, seed: int=None,
                                save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
@@ -1785,12 +1785,11 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
 
         The operator and logic are taken from pyarrow.compute and are:
 
-                operator => extract_regex, equal, greater, less, greater_equal, less_equal, not_equal, is_in, is_null
+                operator => match_substring, match_substring_regex, equal, greater, less, greater_equal, less_equal, not_equal, is_in, is_null
                 logic => and, or, xor, and_not
 
         :param canonical: a pa.Table as the reference table
         :param header: the header for the target values to change
-        :param other: the other header to correlate
         :param condition: a tuple or tuples of
         :param value: a constant value. If the value is a string starting @ then a header values are taken
         :param default: (optional) a default constant if not value. A string starting @ then a default name is taken
@@ -1823,8 +1822,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             raise ValueError(f"The header '{header}' can't be found in the canonical headers")
         seed = seed if isinstance(seed, int) else self._seed()
         h_col = canonical.column(header).combine_chunks()
-        o_col = canonical.column(other).combine_chunks()
-        _mask = self._extract_mask(o_col, condition=condition, mask_null=mask_null)
+        _mask = self._extract_mask(h_col, condition=condition, mask_null=mask_null)
         # check the value
         if isinstance(value, str) and value.startswith('@'):
             value = canonical.column(value[1:]).combine_chunks()

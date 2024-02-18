@@ -81,9 +81,10 @@ class AbstractFeatureIntentModel(AbstractIntentModel):
                     c_bool = pc.greater_equal(column, comparison)
                 elif operator == 'less_equal':
                     c_bool = pc.less_equal(column, comparison)
-                elif operator == 'extract_regex':
-                    c_bool = pc.extract_regex(column, comparison)
-                    c_bool = c_bool.is_valid()
+                elif operator == 'match_substring':
+                    c_bool = pc.match_substring(column, comparison)
+                elif operator == 'match_substring_regex':
+                    c_bool = pc.match_substring_regex(column, comparison)
                 elif operator == 'equal':
                     c_bool = pc.equal(column, comparison)
                 elif operator == 'not_equal':

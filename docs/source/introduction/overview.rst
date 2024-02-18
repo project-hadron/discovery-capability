@@ -4,11 +4,10 @@ Project Hadron came from a desire to improve the availability of objective relev
 increase the transparency and traceability of data lineage and facilitate knowledge
 transfer, retrieval and reuse.
 
-It was born from the frustration of working on machine learning projects with so many
-indecipherable jupyter notebooks a data scientist produces, each repeating common
-activities using arbitrary, localised datasets. This indecipherability clouded the
-retrieval of the data scientists thinking and the knowledge they gained from the subject
-matter experts they interacted with.
+It was born from the frustration of working on machine learning projects in Jupyter that
+lent itself to indecipherable collection of notebooks a data scientist produces, and
+its separation from the expected production solution bundle. It also masked the thinking
+and knowledge gained from the subject matter experts they interacted with.
 
 What are we solving?
 --------------------
@@ -30,13 +29,15 @@ stakeholders directly effects success of business objectives.
 Where does Project Hadron fit?
 ------------------------------
 **Project Hadron** is an open-source application framework, taking raw data and identifying,
-analysing and extracting prepared data for the purposes of a down stream business objective.
+analysing and extracting prepared data along with the management of ML trained models
+and their prediction for the purposes of a down stream business objective.
 
-**Project Hadron** is a comprehensive set of tools to build, improved and targeted features of
-interest within a data preprocessing pipeline. It complements and enhances both communication and
-redistribution within a data science project, while providing clear boundaries between the
-preprocessing of data and algorythm optimisation. This separation promotes
-transparency and reuse, vastly improving the identification and extraction of features of interest.
+**Project Hadron** is a comprehensive set of tools to build, improved, optimise features of
+interest and auto run predictions within a data preprocessing pipeline. It complements and
+enhances both communication and redistribution within a data science project, while
+providing clear boundaries between the preprocessing of data and algorythm optimisation.
+This separation promotes transparency and reuse, vastly improving the identification and
+extraction of features of interest.
 
 **Project Hadron**, within a data processing step, executing business driven analysis, is a
 quick-to-market, robust set of tools that build reusable pipelines for the interrogation and
@@ -74,14 +75,14 @@ Where does it sit within a system pipeline?
 -------------------------------------------
 Project Hadron provides a set of :ref:`capabilities<What are capabilities?>` fundamental to the
 optimisation and appropriateness of tabular data for a downstream business objective. As such it
-places itself as a machine learning preprocessing or data processing step, though its application
+places itself as a machine learning preprocessing and model processing step, though its application
 can be applied far wider.
 
 When applied to preprocessing for data science and machine learning, the scope of reference is to
 data selection, feature engineering, feature build and feature transformation as steps to clean,
 create, format, and organize source data into a suitable format for the process of model
-evaluation and tuning. The following diagram illustrates where preprocessing sits within the
-machine learning pipeline.
+evaluation and tuning. AutoML manages trained model classes and runs ML model predict.
+The following diagram illustrates where preprocessing sits within the machine learning pipeline.
 
 .. image:: /source/_images/introduction/machine_learning_pipeline_v01.png
   :align: center
@@ -107,12 +108,12 @@ What are capabilities?
 In project Hadron capabilities are components that adhere to the fundamental concepts
 of `capability  patterns`_ and `separation of concern`_ (SoC). They are design principle
 that advocates breaking a software system into distinct, independent modules or
-components, each addressing a specific concern or aspect of the system's functionality
-while applying low coupling and high cohesion.
+components with, low coupling and high cohesion each addressing a specific concern or
+aspect of the system's functionality.
 
-Capabilities are reusable process which can be applied at any stage of the life cycle
-and prescribes a work breakdown structure of functionalities and features a software
-solution possesses, in our case, to handle preprocess and model predict pipelines.
+Capabilities are reusable and encapsulated tasks which can be applied at any stage of the
+life cycle and prescribes a work breakdown structure of functionalities and features a
+software solution possesses.
 
 Within Project Hadron these capabilities can be identified as:
 
@@ -207,7 +208,7 @@ Where can Project Hadron be applied?
 ------------------------------------
 Project Hadron can run as (1) a complementary functional toolkit in
 Jupyter Notebooks for Data Scientists, (2) an object oriented collection of abstract and concrete
-classes for building softare solutions in PyCharm or Visual Studio, (3) or an implementation of a
+classes for building software solutions in PyCharm or Visual Studio, (3) or an implementation of a
 script image into a Docker environment or as a collection of Microservices in a cloud-native
 architecture.
 
@@ -279,6 +280,8 @@ Capabilities
 * Feature Transformers
 * Time series
 * Knowledge Augmentation
+* ML Model Management
+* ML Prediction
 
 Performance
 ~~~~~~~~~~~
