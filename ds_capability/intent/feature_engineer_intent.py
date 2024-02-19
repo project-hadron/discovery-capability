@@ -961,24 +961,26 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         group_by = Commons.list_formatter(group_by)
         # change to pandas
         df = other.to_pandas()
-        user_group = df.groupby(group_by)
+        user_groups = df.groupby(group_by).indices
         rtn_df = pd.DataFrame()
-        count = 0
-        for one_group in user_group:
-            #size of new group
-            grp_len = one_group[0][0] if isinstance(one_group[0], tuple) else one_group[0]
-            if int(grp_len) == len(user_group) - 1:
-                sub_size = size - count
+        size_count = 0
+        itr_count = 0
+        for key in user_groups.keys():
+            itr_count += 1
+            if  itr_count == len(user_groups):
+                sub_size = size - size_count
             else:
-                p = len(one_group[1]) / len(df)
+                p = len(user_groups.get(key, {})) / len(df)
                 sub_size = int(round(size * p, 0))
-                count += sub_size
+                size_count += sub_size
             # get the synthetic sub set
-            result = self.get_analysis(size=sub_size, other=pa.Table.from_pandas(one_group[1]), category_limit=category_limit,
+            tbl = pa.Table.from_pandas(df.iloc[user_groups.get(key)])
+            result = self.get_analysis(size=sub_size, other=tbl, category_limit=category_limit,
                                        date_jitter=date_jitter, date_units=date_units, offset=offset, seed=seed,
                                        save_intent=False)
             result = result.to_pandas()
             rtn_df = pd.concat([rtn_df, result], axis=0, ignore_index=True)
+
         if isinstance(order_by, str) and order_by in rtn_df.columns:
             rtn_df = rtn_df.sort_values(order_by, ascending=False).reset_index(drop=True)
         rtn_tbl = pa.Table.from_pandas(rtn_df)

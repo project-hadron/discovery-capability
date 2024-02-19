@@ -106,9 +106,9 @@ class SyntheticTest(unittest.TestCase):
         tbl = fe.tools.correlate_on_condition(tbl, header='resolution', condition=condition, value='negative',
                                               default='@sentiment', to_header='sentiment')
         # Analysis
-        size = 10_000
+        size = 100
         tbl = fe.tools.get_analysis_group(size=size, other=tbl, group_by='sentiment')
-        print(fe.table_report(tbl, head=2))
+        print(tbl.shape)
 
     def test_group_analysis(self):
         fe = FeatureEngineer.from_memory()
