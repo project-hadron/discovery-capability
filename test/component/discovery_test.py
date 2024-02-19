@@ -81,9 +81,11 @@ class DiscoveryTest(unittest.TestCase):
     def test_data_dictionary(self):
         sb = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = sb.tools
-        tbl = tools.get_synthetic_data_types(1_000, extend=True)
-        result = DataDiscovery.data_dictionary(tbl, stylise=True)
-        pprint(result.to_string())
+        tbl = tools.get_synthetic_data_types(1_000)
+        result = DataDiscovery.data_dictionary(tbl, stylise=False)
+        self.assertEqual(['Attributes', 'DataType', 'Nulls', 'Dominate', 'Valid', 'Unique', 'Observations'], result.column_names)
+        result = DataDiscovery.data_dictionary(tbl, stylise=False, ordered=True)
+        pprint(result.column('Attributes'))
 
     def test_data_quality(self):
         sb = FeatureEngineer.from_memory()

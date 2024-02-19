@@ -177,7 +177,7 @@ class DataDiscovery(object):
 
     @staticmethod
     def data_dictionary(canonical: pa.Table, table_cast: bool=None, display_width: int=None, stylise: bool=None,
-                        capped_at: int=None):
+                        capped_at: int=None, ordered: bool=None):
         """ The data dictionary for a given canonical
 
         :param canonical: The canonical to interpret
@@ -185,6 +185,7 @@ class DataDiscovery(object):
         :param display_width: the width of the display
         :param stylise: if the output is stylised for jupyter display
         :param capped_at: the row and column cap or 0 to ignore. default 5_000_000
+        :param ordered: if the columns are sorted by name.
         :return: a pa.Table or stylised pandas
         """
         display_width = display_width if isinstance(display_width, int) else 50
@@ -198,7 +199,10 @@ class DataDiscovery(object):
         # attempt cast
         if isinstance(table_cast, bool) and table_cast:
             canonical = Commons.table_cast(canonical)
-        for c in canonical.column_names:
+        column_names = canonical.column_names
+        if isinstance(ordered, bool) and ordered:
+            column_names.sort()
+        for c in column_names:
             column = canonical.column(c).combine_chunks()
             if pa.types.is_nested(column.type):
                 s = str(column.slice(0,20).to_pylist())

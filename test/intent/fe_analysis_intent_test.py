@@ -5,7 +5,7 @@ import shutil
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
-from ds_capability import FeatureEngineer
+from ds_capability import FeatureEngineer, FeatureSelect
 from ds_capability.components.commons import Commons
 from ds_capability.intent.feature_engineer_intent import FeatureEngineerIntent
 from ds_core.properties.property_manager import PropertyManager
@@ -68,6 +68,48 @@ class SyntheticTest(unittest.TestCase):
         result = tools.get_analysis(1000, 'sample')
         self.assertEqual((1000, 17), result.shape)
 
+    def test_group_analysis_sample(self):
+        fs = FeatureSelect.from_memory()
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        # preprocess
+        tbl = fs.set_source_uri('/Users/doatridge/code/jupyter/telecom/sentiment/source/TroubleTicket-20221213-115607.csv').load_source_canonical()
+        tbl = fs.tools.auto_clean_header(tbl, case='lower')
+        tbl = fs.tools.auto_drop_noise(tbl)
+        tbl = fs.tools.auto_drop_duplicates(tbl)
+        tbl = fe.tools.correlate_on_pandas(tbl, header='issue_notes',
+                                           code_str="str.decode('utf-8', errors='replace')",
+                                           to_header='issue_notes', intent_order=-1)
+        tbl = fe.tools.correlate_on_pandas(tbl, header='resolution',
+                                           code_str="str.decode('utf-8', errors='replace')",
+                                           to_header='resolution', intent_order=-1)
+        tbl = fs.tools.auto_reinstate_nulls(tbl)
+        # Negative
+        condition = []
+        for w in ['complai', 'unable', 'not able', 'constantly', 'not receiv', "didn't receiv"]:
+            condition.append((w, 'match_substring', 'or'))
+
+        tbl = fe.tools.correlate_on_condition(tbl, header='issue_notes', condition=condition, value='negative',
+                                              default='neutral', to_header='sentiment')
+        # Positive
+        condition = []
+        for w in ['mistakenly', 'requesting']:
+            condition.append((w, 'match_substring', 'or'))
+
+        tbl = fe.tools.correlate_on_condition(tbl, header='issue_notes', condition=condition, value='positive',
+                                              default='@sentiment', to_header='sentiment')
+        # Negative
+        condition = []
+        for w in ['Escalated', 'escalated']:
+            condition.append((w, 'match_substring', 'or'))
+
+        tbl = fe.tools.correlate_on_condition(tbl, header='resolution', condition=condition, value='negative',
+                                              default='@sentiment', to_header='sentiment')
+        # Analysis
+        size = 10_000
+        tbl = fe.tools.get_analysis_group(size=size, other=tbl, group_by='sentiment')
+        print(fe.table_report(tbl, head=2))
+
     def test_group_analysis(self):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools
@@ -78,7 +120,7 @@ class SyntheticTest(unittest.TestCase):
         fe.save_canonical('sample', tbl)
         result = tools.get_analysis_group(15, 'sample', 'User', 'date')
         # print(Commons.table_report(result).to_string())
-        self.assertEqual((15, 9), result.shape)
+        self.assertEqual((15, 8), result.shape)
         self.assertCountEqual([4, 5, 6], pc.value_counts(result.column('User')).field(1).to_pylist())
 
     def test_direct_other(self):
