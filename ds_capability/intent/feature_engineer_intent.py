@@ -945,7 +945,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         return Commons.table_append(canonical, tbl)
 
     def get_analysis_group(self, size: int, other: [str, pa.Table], group_by: [str, list], sort_by: [str, list]=None,
-                           canonical: pa.Table=None, category_limit: int=None, date_jitter: int=None,
+                           canonical: [str, pa.Table]=None, category_limit: int=None, date_jitter: int=None,
                            date_units: str=None, offset: [int, float]=None, seed: int=None, save_intent: bool=None,
                            intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                            remove_duplicates: bool=None) -> pa.Table:

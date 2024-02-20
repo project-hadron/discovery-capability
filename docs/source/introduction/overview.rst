@@ -73,7 +73,7 @@ traceability.
 
 Where does it sit within a system pipeline?
 -------------------------------------------
-Project Hadron provides a set of :ref:`capabilities<What are capabilities?>` fundamental to the
+Project Hadron provides a set of :ref:`capabilities<Introducing Capabilities>` fundamental to the
 optimisation and appropriateness of tabular data for a downstream business objective. As such it
 places itself as a machine learning preprocessing and model processing step, though its application
 can be applied far wider.
@@ -138,16 +138,10 @@ How are capabilities reusable?
 
 While using the actions of a capability, those actions, and other metadata, are recorded
 as a runbook of instruction of the :ref:`lineage<Reports: Data Lineage>` of that instance.
-This runbook is known as a capability **recipe** that contain all information relating to
-a capability, capturing the state of a capability at that moment in time. By referencing
-a capability by name at initialization you load the receipt from its previous state,
-which can be modified, enhanced or re-run.
-
-The content of a recipe can be interrogated through the various
-:ref:`reports<Capability Reports>` common across all capabilities.
-
-Recipes define the identity and re-usability of capabilities capturing its activities
-and boundaries and ensuring separation from other capability recipes.
+This runbook is known as a capability :ref:`recipe<Capability Design>` that contain all
+information relating to a capability, capturing the state of a capability at that moment
+in time. By referencing a capability by name at initialization you load the receipt from
+its previous state, which can be modified, enhanced or re-run.
 
 What is a capability pipeline?
 ------------------------------

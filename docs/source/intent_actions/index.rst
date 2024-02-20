@@ -1,12 +1,28 @@
 Capability Intent Actions
 =========================
 
+Project Hadron is designed using Microservices. Microservices are an
+architectural patterns that structures an application as a collection
+of services, which, themselves are a component or collection of components.
+
+are components that adhere to the
+fundamental concepts
+of capability  patterns and separation of concern
+
 Introduction
 ------------
+In Project Hadron these components are known as :ref:`Capabilities<Introducing Capabilities>`
 
-The Project Hadron, and its scope is defined by :ref:`capabilities<What are capabilities?>`
-by design, each capability is accompanied by a set of action intentions, or 'capability
-intent'. Though capabilities share common parentage, it is the associative intent that
+Capabilities, by design, demonstrates the ability to execute a specified set of action
+that are coupled with an intention_. These intended actions or
+:ref:`intent actions<Capability Intent Actions>` are associated classes that present
+a finite set of methods that can be selected and optimized within the capabilities
+separation of concerns.
+
+
+
+
+TThough capabilities share common parentage, it is the associative intent that
 define the encapsulated actions of that capability.
 
 Capability intent derives from an abstract intent class and associated with a capability
@@ -43,6 +59,8 @@ action intent used at that point within the workflow. Found within the rectangle
 name of the component used. This may not fit every workflow but when building a ML
 solution, be it for production or as a proof of concept, each of these capabilities are
 at the core of any model build.
+
+.. _intention: https://web.archive.org/web/20081123014953/http://www.dtic.mil/doctrine/jel/new_pubs/jp1_02.pdf
 
 Feature Selection
 -----------------
