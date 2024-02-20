@@ -136,11 +136,12 @@ software solutions.
 How are capabilities reusable?
 ------------------------------
 
-While using the actions of a capability, those actions, and other metadata, are recorded as a
-runbook of instruction of the lineage of that instance. This runbook is known as a capability
-**recipe** that contain all information relating to a capability, capturing the state of a
-capability at that moment in time. By referencing a capability by name at initialization
-you load the receipt from its previous state, which can be modified, enhanced or re-run.
+While using the actions of a capability, those actions, and other metadata, are recorded
+as a runbook of instruction of the :ref:`lineage<Reports: Data Lineage>` of that instance.
+This runbook is known as a capability **recipe** that contain all information relating to
+a capability, capturing the state of a capability at that moment in time. By referencing
+a capability by name at initialization you load the receipt from its previous state,
+which can be modified, enhanced or re-run.
 
 The content of a recipe can be interrogated through the various
 :ref:`reports<Capability Reports>` common across all capabilities.

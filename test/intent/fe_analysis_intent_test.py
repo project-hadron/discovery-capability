@@ -122,6 +122,8 @@ class SyntheticTest(unittest.TestCase):
         # print(Commons.table_report(result).to_string())
         self.assertEqual((15, 8), result.shape)
         self.assertCountEqual([4, 5, 6], pc.value_counts(result.column('User')).field(1).to_pylist())
+        self.assertEqual(result.column('date')[0], pc.min(result.column('date')))
+        self.assertEqual(result.column('date')[-1], pc.max(result.column('date')))
 
     def test_direct_other(self):
         fe = FeatureEngineer.from_memory()

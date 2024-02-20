@@ -1,5 +1,7 @@
 Implementation in Docker
 ========================
+Docker
+------
 
 `Docker`_ is a platform for developing, shipping, and running applications in containers.
 Containers are lightweight, portable, and self-contained environments that encapsulate 

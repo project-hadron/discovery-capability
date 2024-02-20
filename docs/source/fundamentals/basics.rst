@@ -5,13 +5,30 @@ Project Hadron is designed using Microservices. Microservices are an
 architectural patterns that structures an application as a collection
 of services, which, themselves are a component or collection of components.
 
-Fundamentals
-------------
+Capability Fundamentals
+-----------------------
 
-:ref:`Capabilities<What are capabilities?>` and their separation of concern are
-fundamental principles in the design of Project Hadron. Capabilities can be thought of as
-specialist components that provide common methods shared across all capabilities that may
-or may not be accompanied by an action intention, or 'capability intent'.
+In project Hadron capabilities are components that adhere to the fundamental concepts
+of `capability  patterns`_ and `separation of concern`_ (SoC). They are design principle
+that advocates breaking a software system into distinct, independent modules or
+components with, low coupling and high cohesion each addressing a specific concern or
+aspect of the system's functionality.
+
+Capabilities are reusable and encapsulated tasks which can be applied at any stage of the
+life cycle and prescribes a work breakdown structure of functionalities and features a
+software solution possesses.
+
+Together, capability patterns help in understanding what a reusable component task should
+achieve, while separation of concerns ensures that the component task is designed in a
+modular and maintainable way, with each part addressing a specific aspect of its
+functionality. Both principles contribute to building modular, robust and scalable
+software solutions.
+
+.. _capability  patterns: https://www.ibm.com/docs/en/engineering-lifecycle-management-suite/lifecycle-optimization-method-composer/7.6.0?topic=processes-capability-patterns
+.. _separation of concern: https://en.wikipedia.org/wiki/Separation_of_concerns
+
+Capability Design
+-----------------
 
 Each capability class has a parent abstract component class. This means that all
 capability instances share common behavior in initialization, connectivity management,
@@ -23,15 +40,16 @@ reporting and running the component.
 
 * UML capability component class diagram
 
-Through initialization, capabilities are also responsible for the capture and up
-keep of its recipe and the running of its intent actions. A recipe can be thought of
-as a runbook of instructions of the lineage of that instance. By referencing the name
-of the instance, the recipe can be re-loaded and re-run creating a referencable and
-reusable capability.
+Though capabilities share common actions, those actions, and other metadata, are recorded
+as a unique runbook of instruction of the :ref:`lineage<Reports: Data Lineage>` of that
+instance. This runbook is known as a capability **recipe** that contain all information
+relating to a capability, capturing the state of a capability at that moment in time. At
+creation the creator gives the capability a unique name that is used identify its recipe.
+At initialization, by passing the name, you load the receipt from its previous state,
+whereby it can be modified, enhanced or re-run, and then re-saved in its new state.
 
-
-Structure
----------
+Capability Structure
+--------------------
 
 For this example we are going to use the FeatureSelect capability class.
 Other capability classes include FeatureEngineer, FeatureTransform,

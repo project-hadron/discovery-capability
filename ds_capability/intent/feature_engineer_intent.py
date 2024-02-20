@@ -944,21 +944,55 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             tbl = tbl.rename_columns(rename_columns)
         return Commons.table_append(canonical, tbl)
 
-    def get_analysis_group(self, size: int, other: [str, pa.Table], group_by: [str, list], order_by: [str, list]=None,
+    def get_analysis_group(self, size: int, other: [str, pa.Table], group_by: [str, list], sort_by: [str, list]=None,
                            canonical: pa.Table=None, category_limit: int=None, date_jitter: int=None,
                            date_units: str=None, offset: [int, float]=None, seed: int=None, save_intent: bool=None,
                            intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                            remove_duplicates: bool=None) -> pa.Table:
-        """"""
+        """ builds a set of synthetic data columns based on other and separated by
+        group_by at analysis. If common columns exist in the named canonical, those
+        columns will remain as the canonical. This allows already constructed association
+        to be used as reference for a sub category.
+
+        :param size: The number of rows
+        :param other: a direct or generated pa.Table.
+        :param group_by: Name of the column to use to group by
+        :param sort_by: (optional) Name of the column to use to sort (ascending), or a
+                list of multiple sorting conditions where each entry is a tuple with
+                column name and sorting order (“ascending” or “descending”)
+
+        :param canonical: (optional) a pa.Table to append the result table to
+        :param category_limit: (optional) a global cap on categories captured. zero value returns no limits
+        :param date_jitter: (optional) The size of the jitter. Default to 2
+        :param date_units: (optional) The date units. Options ['W', 'D', 'h', 'm', 's', 'milli', 'micro']. Default 'D'
+        :param offset: (optional) an offset value of a numeric column
+        :param seed: seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table
+        """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
         other = self._get_canonical(other)
+        date_jitter = date_jitter if isinstance(date_jitter, int) else 2
+        units_allowed = ['W', 'D', 'h', 'm', 's', 'milli', 'micro']
+        date_units = date_units if isinstance(date_units, str) and date_units in units_allowed else 'D'
+        offset = offset if isinstance(offset, (int, float)) else 0
         if other is None or other.num_rows == 0:
             raise ValueError(f"The data sample given is None or is empty")
-        group_by = Commons.list_formatter(group_by)
         # change to pandas
         df = other.to_pandas()
         user_groups = df.groupby(group_by).indices
@@ -975,35 +1009,37 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                 size_count += sub_size
             # get the synthetic sub set
             tbl = pa.Table.from_pandas(df.iloc[user_groups.get(key)])
-            result = self.get_analysis(size=sub_size, other=tbl, category_limit=category_limit,
-                                       date_jitter=date_jitter, date_units=date_units, offset=offset, seed=seed,
-                                       save_intent=False)
+            result = self.get_analysis(size=sub_size, other=tbl, category_limit=category_limit, date_jitter=date_jitter,
+                                       date_units=date_units, offset=offset, seed=seed, save_intent=False)
             result = result.to_pandas()
             rtn_df = pd.concat([rtn_df, result], axis=0, ignore_index=True)
 
-        if isinstance(order_by, str) and order_by in rtn_df.columns:
-            rtn_df = rtn_df.sort_values(order_by, ascending=False).reset_index(drop=True)
+        rtn_df = rtn_df.sample(frac=1).reset_index(drop=True)
         rtn_tbl = pa.Table.from_pandas(rtn_df)
         if '__index_level_0__' in rtn_tbl.column_names:
             rtn_tbl = rtn_tbl.drop_columns('__index_level_0__')
+        if isinstance(sort_by, str) and sort_by in rtn_tbl.columns:
+            rtn_tbl = rtn_tbl.sort_by(sorting=sort_by)
         return Commons.table_append(canonical, rtn_tbl)
 
-    def get_analysis(self, size: int, other: [str, pa.Table], canonical: pa.Table=None, category_limit: int=None,
-                     date_jitter: int=None, date_units: str=None, dates_ordered: [str, list]=None,
+    def get_analysis(self, size: int, other: [str, pa.Table], canonical: [str, pa.Table]=None, category_limit: int=None,
+                     date_jitter: int=None, date_units: str=None, sort_by: [str, list]=None,
                      offset: [int, float]=None, seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
                      intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
-        """ builds a set of columns based on another (see analyse_association)
-        if a reference Table is passed then as the analysis is run if the column already exists the row
-        value will be taken as the reference to the sub category and not the random value. This allows already
-        constructed association to be used as reference for a sub category.
+        """ builds a set of synthetic data columns based on other. If common columns
+        exist in the named canonical, those columns will remain as the canonical. This
+        allows already constructed association to be used as reference for a sub category.
 
         :param size: The number of rows
         :param other: a direct or generated pa.Table.
         :param canonical: (optional) a pa.Table to append the result table to
         :param category_limit: (optional) a global cap on categories captured. zero value returns no limits
+        :param sort_by: (optional) Name of the column to use to sort (ascending), or a
+                list of multiple sorting conditions where each entry is a tuple with
+                column name and sorting order (“ascending” or “descending”)
+
         :param date_jitter: (optional) The size of the jitter. Default to 2
         :param date_units: (optional) The date units. Options ['W', 'D', 'h', 'm', 's', 'milli', 'micro']. Default 'D'
-        :param dates_ordered: (optional) sort the data by the given columns
         :param offset: (optional) an offset value of a numeric column
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
@@ -1035,7 +1071,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         date_jitter = date_jitter if isinstance(date_jitter, int) else 2
         units_allowed = ['W', 'D', 'h', 'm', 's', 'milli', 'micro']
         date_units = date_units if isinstance(date_units, str) and date_units in units_allowed else 'D'
-        dates_ordered = Commons.list_formatter(dates_ordered)
+        sort_by = Commons.list_formatter(sort_by)
         offset = offset if isinstance(offset, (int, float)) else 0
         seed = self._seed(seed=seed)
         rtn_tbl = None
@@ -1098,16 +1134,15 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                     _ = pd.Series(pd.to_timedelta(_, unit='micro'), index=s_values.index)
                     result = pd.concat([result, s_values.add(_)], axis=0)
                 result = result.iloc[:size].astype(column.type.to_pandas_dtype())
-                if c in dates_ordered:
-                    result = result.sort_values(ascending=False).reset_index(drop=True)
-                else:
-                    result = result.sample(frac=1).reset_index(drop=True)
+                result = result.sample(frac=1).reset_index(drop=True)
                 result = pd.Series(self._set_quantity(result, quantity=self._quantity(1-nulls), seed=seed))
                 result = pa.table([pa.TimestampArray.from_pandas(result)], names=[c])
             else:
                 # return nulls for other types
                 result = pa.table([pa.nulls(size)], names=[c])
             rtn_tbl = Commons.table_append(rtn_tbl, result)
+        if isinstance(sort_by, str) and sort_by in rtn_tbl.columns:
+            rtn_tbl = rtn_tbl.sort_by(sorting=sort_by)
         return Commons.table_append(canonical, rtn_tbl)
 
     def get_synthetic_persona_usa(self, size: int, canonical: pa.Table=None, seed: int=None, category_encode: bool=None,
