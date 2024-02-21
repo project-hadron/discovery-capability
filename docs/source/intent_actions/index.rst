@@ -166,6 +166,10 @@ Methods::
 FeaturePredict
 --------------
 
+This class represents feature predict intent actions whereby a saved model is
+automatically run against a set of features to produce a prediction based upon a model
+and its training.
+
 .. toctree::
    :maxdepth: 1
 

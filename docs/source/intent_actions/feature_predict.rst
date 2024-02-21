@@ -1,5 +1,5 @@
-Feature Predivt
-======
+Feature Predict
+===============
 
 .. autoclass:: ds_capability.FeaturePredict
     :members: add_trained_model, get_trained_model
