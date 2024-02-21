@@ -12,7 +12,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from ds_core.properties.property_manager import PropertyManager
 from ds_capability import *
-from ds_capability.components.automl import AutoML
+from ds_capability.components.feature_predict import FeaturePredict
 from ds_capability.components.commons import Commons
 
 from sklearn import model_selection
@@ -80,7 +80,7 @@ class TemplateTest(unittest.TestCase):
         # Fit the model on training set
         model = LogisticRegression()
         model.fit(X_train, Y_train)
-        ml = AutoML.from_env('tester', has_contract=False)
+        ml = FeaturePredict.from_env('tester', has_contract=False)
         ml.add_trained_model(model_name='logreg', trained_model=model)
         self.assertTrue(ml.pm.has_connector('logreg'))
         result = ml.load_canonical('logreg')

@@ -3,9 +3,9 @@ from ds_capability.components.feature_select import FeatureSelect
 from ds_capability.components.feature_engineer import FeatureEngineer
 from ds_capability.components.feature_transform import FeatureTransform
 from ds_capability.components.feature_build import FeatureBuild
-from ds_capability.components.automl import AutoML
+from ds_capability.components.feature_predict import FeaturePredict
 from ds_capability.components.controller import Controller
 
 
 # release version number picked up in the setup.py
-__version__ = '0.20.6'
+__version__ = '0.21.0'

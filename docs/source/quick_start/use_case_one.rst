@@ -28,7 +28,7 @@ model prediction.
 
     import os
     from ds_capability import FeatureSelect, FeatureEngineer,
-    from ds_capability import FeatureTransform, AutoML, Controller
+    from ds_capability import FeatureTransform, FeaturePredict, Controller
 
 .. code-block::  python
 
@@ -217,7 +217,7 @@ Hadron
 
 .. code-block::  python
 
-   a = AutoML.from_memory()
+    a = FeaturePredict.from_memory()
     # set the pointers
     a.set_source_uri('event://transform')
     a.add_connector_uri('label', 'event://label')
@@ -229,7 +229,7 @@ Hadron
     y = np.asarray(label)
 
 Once the model is selected, optimised, trained and tested it is ready to predict. At this point
-we pass the trained model to our AutoML capability.
+we pass the trained model to our FeaturePredict capability.
 
 
 uc1: Classifier Predict
@@ -239,8 +239,8 @@ At this point we have our preprocessed feature set and our trained model through
 We can now set up our model predict against new feature sets coming through the pipeline.
 
 As with or previous capabilities, we initialize our component and use the factory class method
-`from_env` to create an instance of ourAutoML. We create pointers to our source, being a pointer
-to our previous AutoML capability output, and set the persist, then load the feature set to be
+`from_env` to create an instance of our FeaturePredict. We create pointers to our source, being a pointer
+to our previous FeaturePredict capability output, and set the persist, then load the feature set to be
 predicted.
 
 .. code-block::  python
@@ -293,7 +293,7 @@ Controller recipe complete the project Hadron pipeline is ready to run.
     ctrl.register.feature_select('survived')
     ctrl.register.feature_engineer('survived')
     ctrl.register.feature_transform('survived')
-    ctrl.register.automl('survived')
+    ctrl.register.feature_predict('survived')
 
 To run the pipeline will run the Controller instance using the method call `run_controller`,
 which will run the our end-to-end pipeline from raw data to our modules prediction.
@@ -305,12 +305,12 @@ which will run the our end-to-end pipeline from raw data to our modules predicti
 Review Run uc1
 ~~~~~~~~~~~~~~
 
-We can review our results by loading the AutoML output canonical.
+We can review our results by loading the FeaturePredict output canonical.
 
 
 .. code-block::  python
 
-    AutoML.from_env('survived').load_persist_canonical()
+    FeaturePredict.from_env('survived').load_persist_canonical()
 
 .. parsed-literal::
 
@@ -330,7 +330,7 @@ At this point we have
   to optimize the features of interest to a model algorithm.
 * Build, train and train a model to select the best performing for our
   requirements.
-* Save the trained model for prediction retrieval in our AutoML capability.
+* Save the trained model for prediction retrieval in our FeaturePredict capability.
 * Make Predictions using our model and the testing data set
 * Created a capability pipeline of our preprocessing and model predict.
 

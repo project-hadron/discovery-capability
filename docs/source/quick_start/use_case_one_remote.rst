@@ -6,13 +6,13 @@ recipes for that pipeline. This next section shows how to build associative synt
 data and use that through our pre-defined and re-usable pipeline.
 
 The first step is to import the required packages, with FeatureSelect and FeatureEngineer
-used for our synthetic data build, and AutoML used to observe the pipeline outcome.
+used for our synthetic data build, and FeaturePredict used to observe the pipeline outcome.
 For the purposes of re-running our pipeline only Controller is required.
 
 .. code-block::  python
 
     import os
-    from ds_capability import FeatureSelect, FeatureEngineer, AutoML, Controller
+    from ds_capability import FeatureSelect, FeatureEngineer, FeaturePredict, Controller
 
 uc1: Synthesize
 ---------------
@@ -88,12 +88,12 @@ uc1: View Remote
 ----------------
 
 We can check our results by loading the canonical at the end of our pipeline. We
-do this by creating the instance of our named capability, AutoML, and loading the
+do this by creating the instance of our named capability, FeaturePredict, and loading the
 persisted canonical. We can then view the resulting table.
 
 .. code-block::  python
 
-    AutoML.from_env('survived').load_persist_canonical()
+    FeaturePredict.from_env('survived').load_persist_canonical()
 
 
 .. parsed-literal::

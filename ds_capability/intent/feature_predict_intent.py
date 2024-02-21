@@ -6,12 +6,12 @@ import pandas as pd
 import pyarrow as pa
 from ds_capability.intent.common_intent import CommonsIntentModel
 from ds_core.handlers.abstract_handlers import HandlerFactory
-from ds_capability.intent.abstract_automl_intent import AbstractAutoMLIntentModel
+from ds_capability.intent.abstract_feature_predict_intent import AbstractFeaturePredictIntentModel
 
 __author__ = 'Darryl Oatridge'
 
 
-class AutoMLIntent(AbstractAutoMLIntentModel, CommonsIntentModel):
+class FeaturePredictIntent(AbstractFeaturePredictIntentModel, CommonsIntentModel):
 
     TRAIN_INTENT_LEVEL = 'train_level'
     PREDICT_INTENT_LEVEL = 'predict_level'

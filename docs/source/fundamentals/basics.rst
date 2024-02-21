@@ -66,7 +66,7 @@ Capability Structure
 
 For this example we are going to use the FeatureSelect capability class.
 Other capability classes include FeatureEngineer, FeatureTransform,
-FeatureBuild and AutoML
+FeatureBuild and FeaturePredict
 
 This set up process can be applied to any of the capability classes
 as each class is built upon a common abstract class. The difference comes

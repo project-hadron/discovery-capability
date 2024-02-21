@@ -17,7 +17,7 @@ from sklearn import model_selection
 from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 
-from ds_capability.intent.automl_intent import AutoMLIntent
+from ds_capability.intent.feature_predict_intent import FeaturePredictIntent
 
 # Pandas setup
 pd.set_option('max_colwidth', 320)
@@ -26,7 +26,7 @@ pd.set_option('display.max_columns', 99)
 pd.set_option('expand_frame_repr', True)
 
 
-class AutoMLIntentTest(unittest.TestCase):
+class FeaturePredictIntentTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -73,7 +73,7 @@ class AutoMLIntentTest(unittest.TestCase):
         X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, y, test_size=0.33, random_state=0)
         model = RandomForestClassifier()
         model.fit(X_train, Y_train)
-        ml = AutoML.from_env('tester', has_contract=False)
+        ml = FeaturePredict.from_env('tester', has_contract=False)
         ml.add_trained_model(model, 'RandomForestClassifier')
         # test
         tbl = pa.Table.from_arrays(X_test.T, names=columns)

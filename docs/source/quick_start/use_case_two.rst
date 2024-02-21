@@ -29,7 +29,7 @@ model prediction.
 
     import os
     from ds_capability import FeatureSelect, FeatureEngineer,
-    from ds_capability import FeatureTransform, AutoML, Controller
+    from ds_capability import FeatureTransform, FeaturePredict, Controller
 
 .. code-block::  python
 
@@ -176,7 +176,7 @@ Hadron.
 
 .. code-block::  python
 
-   a = AutoML.from_memory()
+    a = FeaturePredict.from_memory()
     # set the pointers
     a.set_source_uri('event://transform')
     a.add_connector_uri('label', 'event://label')
@@ -188,7 +188,7 @@ Hadron.
     y = np.asarray(label)
 
 Once the model is selected, optimised, trained and tested it is ready to predict. At this point
-we pass the trained model to our AutoML capability.
+we pass the trained model to our FeaturePredict capability.
 
 uc2: Classifier Predict
 -----------------------
@@ -245,7 +245,7 @@ Controller recipe complete the project Hadron pipeline is ready to run.
 
     ctrl.register.feature_select('churn')
     ctrl.register.feature_transform('churn')
-    ctrl.register.automl('churn')
+    ctrl.register.feature_predict('churn')
 
 To run the pipeline will run the Controller instance using the method call `run_controller`,
 which will run the our end-to-end pipeline from raw data to our modules prediction.
@@ -257,12 +257,12 @@ which will run the our end-to-end pipeline from raw data to our modules predicti
 Review Run uc2
 ~~~~~~~~~~~~~~
 
-We can review our results by loading the AutoML output canonical. Notice we now include
+We can review our results by loading the FeaturePredict output canonical. Notice we now include
 the `CustomerId` aligned with the prediction result.
 
 .. code-block::  python
 
-    AutoML.from_env('churn').load_persist_canonical()
+    FeaturePredict.from_env('churn').load_persist_canonical()
 
 
 .. parsed-literal::
@@ -283,7 +283,7 @@ At this point we have
 * Completed Data Preprocessing to produce a set of capability recipes to optimize the
   features of interest to a model algorithm.
 * Build, train and tested a model to select the best performance for our requirements.
-* Save the trained model for prediction retrieval in our AutoML capability.
+* Save the trained model for prediction retrieval in our FeaturePredict capability.
 * Make Predictions using our model, aligned to our chosen identifier.
 * Created a capability pipeline of our preprocessing and model predict.
 

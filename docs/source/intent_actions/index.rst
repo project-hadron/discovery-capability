@@ -14,19 +14,15 @@ Introduction
 In Project Hadron these components are known as :ref:`Capabilities<Introducing Capabilities>`
 
 Capabilities, by design, demonstrates the ability to execute a specified set of action
-that are coupled with an intention_. These intended actions or
-:ref:`intent actions<Capability Intent Actions>` are associated classes that present
-a finite set of methods that can be selected and optimized within the capabilities
-separation of concerns.
+that are coupled with an intention_. These intended actions or **intent actions** are
+associated classes that present a finite set of methods that can be selected and
+optimized within the capabilities separation of concerns.
 
-
-
-
-TThough capabilities share common parentage, it is the associative intent that
-define the encapsulated actions of that capability.
-
-Capability intent derives from an abstract intent class and associated with a capability
-namesake. Intent is therefor accessed through a capability
+Though capabilities share common parentage, it is this associative intent that
+define the encapsulated actions of that capability. Intent actions derives from an
+abstract intent class and are associated with a capability namesake. Intent actions are
+therefor accessed through a concrete and common named capability and captured in that
+capabilities.
 
 .. image:: /source/_images/intent_actions/component_intent_class_uml.png
   :align: center
@@ -34,7 +30,9 @@ namesake. Intent is therefor accessed through a capability
 
 * component intent class UML
 
-The following capabilities provide accompanying intent actions:
+This association means intent actions are captured as part of a capabilities
+:ref:`recipe<Capability Design>`. The following capabilities provide accompanying intent
+actions:
 
 * FeatureSelect: Reduce dimensionality of a dataset through reduction techniques.
 * FeatureEngineer:
@@ -42,7 +40,7 @@ The following capabilities provide accompanying intent actions:
     * model: Remodel a dataset through merge, group and other actions.
     * build: Generate synthetic data through analysis and statistics.
 * FeatureTransform: Transformation of data for model optimisation.
-* AutoML: Automatically run model predictions.
+* FeaturePredict: Automatically run model predictions.
 
 To give context, the diagram illustrates a typical workflow for Machine Learning looking
 to implement business objectives. Highlighted within the diagram are where the capability
@@ -164,6 +162,24 @@ Methods::
     scale_normalize
     scale_standardize
     scale_transform
+
+FeaturePredict
+--------------
+
+.. toctree::
+   :maxdepth: 1
+
+   feature_predict
+
+Methods::
+
+    FeaturePredict
+      add_trained_model
+      get_trained_model
+
+    FeaturePredictIntent
+      label_predict
+
 
 Feature Build
 -------------

@@ -2,7 +2,7 @@ import inspect
 from ds_capability.components.commons import Commons
 from ds_core.intent.abstract_intent import AbstractIntentModel
 
-from ds_capability import FeatureBuild, FeatureTransform, FeatureSelect, FeatureEngineer, AutoML
+from ds_capability import FeatureBuild, FeatureTransform, FeatureSelect, FeatureEngineer, FeaturePredict
 from ds_capability.managers.controller_property_manager import ControllerPropertyManager
 
 
@@ -246,10 +246,10 @@ class ControllerIntentModel(AbstractIntentModel):
             fs.save_persist_canonical(canonical=canonical)
         return canonical.shape
 
-    def automl(self, task_name: str, source: str=None, persist: [str, list]=None, columns: [str, list]=None,
-               seed: int=None, save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
-               replace_intent: bool=None, remove_duplicates: bool=None, **kwargs):
-        """ register an automl component task pipeline
+    def feature_predict(self, task_name: str, source: str=None, persist: [str, list]=None, columns: [str, list]=None,
+                        seed: int=None, save_intent: bool=None, intent_order: int=None, intent_level: [int, str]=None,
+                        replace_intent: bool=None, remove_duplicates: bool=None, **kwargs):
+        """ register feature predict component task pipeline
 
         :param persist:
         :param source:
@@ -272,7 +272,7 @@ class ControllerIntentModel(AbstractIntentModel):
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # create the event book
-        aml: AutoML = eval(f"AutoML.from_env(task_name=task_name, default_save=False, "
+        aml: FeaturePredict = eval(f"FeaturePredict.from_env(task_name=task_name, default_save=False, "
                                  f"has_contract=True, **{kwargs})", globals(), locals())
         if source and aml.pm.has_connector(source):
             canonical = aml.load_canonical(source)

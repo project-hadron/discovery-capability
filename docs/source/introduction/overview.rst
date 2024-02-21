@@ -81,7 +81,7 @@ can be applied far wider.
 When applied to preprocessing for data science and machine learning, the scope of reference is to
 data selection, feature engineering, feature build and feature transformation as steps to clean,
 create, format, and organize source data into a suitable format for the process of model
-evaluation and tuning. AutoML manages trained model classes and runs ML model predict.
+evaluation and tuning. FeaturePredict manages trained model classes and runs ML model predict.
 The following diagram illustrates where preprocessing sits within the machine learning pipeline.
 
 .. image:: /source/_images/introduction/machine_learning_pipeline_v01.png
@@ -147,7 +147,7 @@ What is a capability pipeline?
 ------------------------------
 
 A capability does not relate to any specific part of a lifecycle, only to the task it has
-been designed, FeatureSelect for dimensionality, AutoML for model predict, etc. It is
+been designed, FeatureSelect for dimensionality, FeaturePredict for model predict, etc. It is
 designed in a way that it is applicable to any related a use case, thereby enabling
 its activities to be flexibly assigned to a delivery process to which it is being applied.
 

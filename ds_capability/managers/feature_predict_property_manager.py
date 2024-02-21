@@ -4,7 +4,7 @@ from ds_capability.components.commons import Commons
 __author__ = 'Darryl Oatridge'
 
 
-class AutoMLPropertyManager(AbstractPropertyManager):
+class FeaturePredictPropertyManager(AbstractPropertyManager):
 
     def __init__(self, task_name: str, creator: str, root_keys: list=None, knowledge_keys: list=None):
         root_keys = root_keys if isinstance(root_keys, list) else []
