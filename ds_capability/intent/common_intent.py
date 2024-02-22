@@ -45,7 +45,7 @@ class CommonsIntentModel(object):
         size = int(length * quantity)
         nulls_idx = generator.choice(length, size=size, replace=False)
         result = pd.Series(selection)
-        result.iloc[nulls_idx] = np.nan
+        result.iloc[nulls_idx] = pd.NA
         return result.to_list()
 
     @staticmethod

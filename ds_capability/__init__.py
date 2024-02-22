@@ -8,4 +8,4 @@ from ds_capability.components.controller import Controller
 
 
 # release version number picked up in the setup.py
-__version__ = '0.21.1'
+__version__ = '0.21.2'

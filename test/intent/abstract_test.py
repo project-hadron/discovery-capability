@@ -20,7 +20,7 @@ pd.set_option('display.max_columns', 99)
 pd.set_option('expand_frame_repr', True)
 
 
-class AbstractFeatureIntentTest(unittest.TestCase):
+class AbstractTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -65,24 +65,21 @@ class AbstractFeatureIntentTest(unittest.TestCase):
         fb = FeatureBuild.from_memory()
         tools: FeatureBuildIntent = fb.tools
         tbl = pa.table([pa.array([1,2,1,4,None,-1,7]), pa.array(list('abbbcad'))], names=['A','B'])
-        mask = tools._extract_mask(tbl.column('B'), condition=('b', 'match_substring', None))
-        print(mask)
-
-        # mask = tools._extract_mask(tbl.column('A'), condition=(1, 'equal', None))
-        # self.assertEqual(2, pc.sum(mask).as_py())
-        # self.assertEqual(1, mask.null_count)
-        # mask = tools._extract_mask(tbl.column('A'), condition=(1, 'equal', None), mask_null=True)
-        # self.assertEqual(2, pc.sum(mask).as_py())
-        # self.assertEqual(0, mask.null_count)
-        # # multiple
-        # condition = [(2, 'greater', 'or_'),(0, 'less', None)]
-        # mask = tools._extract_mask(tbl.column('A'), condition=condition)
-        # self.assertEqual(3, pc.sum(mask).as_py())
-        # self.assertEqual(1, mask.null_count)
-        # # wrong compare type
-        # with self.assertRaises(ValueError) as context:
-        #     mask = tools._extract_mask(tbl.column('B'), condition=(1, 'equal', None))
-        # self.assertTrue("The operator 'equal' is not supported for data type 'string'." in str(context.exception))
+        mask = tools._extract_mask(tbl.column('A'), condition=(1, 'equal', None))
+        self.assertEqual(2, pc.sum(mask).as_py())
+        self.assertEqual(1, mask.null_count)
+        mask = tools._extract_mask(tbl.column('A'), condition=(1, 'equal', None), mask_null=True)
+        self.assertEqual(2, pc.sum(mask).as_py())
+        self.assertEqual(0, mask.null_count)
+        # multiple
+        condition = [(2, 'greater', 'or_'),(0, 'less', None)]
+        mask = tools._extract_mask(tbl.column('A'), condition=condition)
+        self.assertEqual(3, pc.sum(mask).as_py())
+        self.assertEqual(1, mask.null_count)
+        # wrong compare type
+        with self.assertRaises(ValueError) as context:
+            mask = tools._extract_mask(tbl.column('B'), condition=(1, 'equal', None))
+        self.assertTrue("The operator 'equal' is not supported for data type 'string'." in str(context.exception))
 
 
     def test_raise(self):

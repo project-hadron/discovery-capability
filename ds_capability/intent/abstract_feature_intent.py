@@ -107,7 +107,9 @@ class AbstractFeatureIntentModel(AbstractIntentModel):
         final_cond = cond_list[0][0]
         for idx in range(len(cond_list) - 1):
             final_cond = eval(f"pc.{cond_list[idx][1]}(final_cond, cond_list[idx+1][0])", globals(), locals())
-        return final_cond.fill_null(mask_null)
+        if mask_null:
+            return final_cond.fill_null(mask_null)
+        return final_cond
 
     def _get_canonical(self, data: [pa.Table, str]) -> pa.Table:
         """
