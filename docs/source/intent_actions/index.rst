@@ -34,13 +34,14 @@ This association means intent actions are captured as part of a capabilities
 :ref:`recipe<Capability Design>`. The following capabilities provide accompanying intent
 actions:
 
-* FeatureSelect: Reduce dimensionality of a dataset through reduction techniques.
-* FeatureEngineer:
+* **FeatureSelect**: Reduce dimensionality of a dataset through reduction techniques.
+* **FeatureEngineer**:
     * correlate: Modify two value sets into a third value set.
     * model: Remodel a dataset through merge, group and other actions.
     * build: Generate synthetic data through analysis and statistics.
-* FeatureTransform: Transformation of data for model optimisation.
-* FeaturePredict: Automatically run model predictions.
+* **FeatureTransform**: Transformation of data for model optimisation.
+* **FeaturePredict**: Automatically run model predictions.
+* **FeatureBuild**: Specifically built action intent that potentially have broader use
 
 To give context, the diagram illustrates a typical workflow for Machine Learning looking
 to implement business objectives. Highlighted within the diagram are where the capability

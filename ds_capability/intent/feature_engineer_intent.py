@@ -931,6 +931,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         _seed = self._seed(seed=seed)
         shuffle = shuffle if isinstance(shuffle, bool) else True
         tbl = eval(f"MappedSample.{sample_map}(size={size}, shuffle={shuffle}, seed={_seed}, **{kwargs})")
+        tbl = Commons.filter_columns(tbl, headers=headers)
         if isinstance(selection, dict):
             full_mask = pa.array([True]*tbl.num_rows)
             for header, condition in selection.items():

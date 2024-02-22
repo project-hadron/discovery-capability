@@ -122,7 +122,7 @@ Within Project Hadron these capabilities can be identified as:
     * feature engineering for correlation
     * feature engineering for modelling
     * feature transition
-    * model predict
+    * feature predict
 
 Together, capability patterns help in understanding what a reusable component task should
 achieve, while separation of concerns ensures that the component task is designed in a
