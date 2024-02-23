@@ -3,15 +3,13 @@ Capability Intent Actions
 
 Project Hadron is designed using Microservices. Microservices are an
 architectural patterns that structures an application as a collection
-of services, which, themselves are a component or collection of components.
+of services, which, themselves are a component_ or collection of components.
+In Project Hadron these components are known as :ref:`Capabilities<Introducing Capabilities>`.
 
-are components that adhere to the
-fundamental concepts
-of capability  patterns and separation of concern
+.. _component:https://en.wikipedia.org/wiki/Component-based_software_engineering
 
 Introduction
 ------------
-In Project Hadron these components are known as :ref:`Capabilities<Introducing Capabilities>`
 
 Capabilities, by design, demonstrates the ability to execute a specified set of action
 that are coupled with an intention_. These intended actions or **intent actions** are

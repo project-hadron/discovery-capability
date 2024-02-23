@@ -81,6 +81,13 @@ class FeatureEngineererTest(unittest.TestCase):
         self.assertEqual(13, result.num_columns)
         print(result.column_names)
 
+    def test_auto_drop_columns(self):
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000)
+        fs = FeatureSelect.from_memory()
+        tools: FeatureSelectIntent = fs.tools
+        result = tools.auto_drop_columns(tbl, headers=['num', 'int'])
+        self.assertCountEqual(['date', 'bool', 'string', 'cat', 'id'], result.column_names)
+
     def test_auto_drop_correlated(self):
         tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, extend=True)
         fs = FeatureSelect.from_memory()

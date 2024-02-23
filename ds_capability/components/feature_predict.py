@@ -79,15 +79,13 @@ class FeaturePredict(AbstractCommonComponent):
     def tools(self) -> FeaturePredictIntent:
         return self._intent_model
 
-    def add_trained_model(self, model_name: str, trained_model: Any,  uri: str=None, save: bool=None):
-        """ A utility method to save the trained model ready for prediction.
-
-        :param model_name: a unique name for the model.
-        :param trained_model: model object that has been trained
-        :param uri: a direct uri for the model persistence
-        :param save: (optional) override of the default save action set at initialisation.
-        """
-        byte_model = result = pa.array([pickle.dumps(trained_model)], type=pa.binary())
+    def add_trained_model(self, model_name: str, trained_model: Any, version: int=None, description: str=None,
+                          hyper_params: dict=None, connector: str=None, save: bool=None):
+        """"""
+        version = version if isinstance(version, int) else 0
+        description = description if isinstance(description, str) else ""
+        hyper_params = hyper_params if isinstance(hyper_params, dict) else {}
+        byte_model = pa.array([pickle.dumps(trained_model)], type=pa.binary())
         tbl = pa.table([byte_model], names=[model_name])
         if not isinstance(uri, str):
             uri_file =  self.pm.file_pattern(name=model_name, file_type='parquet', versioned=True)

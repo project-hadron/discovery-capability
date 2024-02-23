@@ -3,12 +3,15 @@ Introducing Capabilities
 
 Project Hadron is designed using Microservices. Microservices are an
 architectural patterns that structures an application as a collection
-of services, which, themselves are a component or collection of components.
+of services, which, themselves are a component_ or collection of components.
+In Project Hadron these components are known as capabilities.
+
+.. _component:https://en.wikipedia.org/wiki/Component-based_software_engineering
 
 Capability Fundamentals
 -----------------------
 
-In project Hadron capabilities are components that adhere to the fundamental concepts
+Capabilities are components that adhere to the fundamental concepts
 of `capability  patterns`_ and `separation of concern`_ (SoC). They are design patterns
 and principle that advocates breaking a software system into distinct, independent
 modules or components with, low coupling and high cohesion each addressing a specific
