@@ -13,9 +13,6 @@ __author__ = 'Darryl Oatridge'
 
 class FeaturePredictIntent(AbstractFeaturePredictIntentModel, CommonsIntentModel):
 
-    TRAIN_INTENT_LEVEL = 'train_level'
-    PREDICT_INTENT_LEVEL = 'predict_level'
-
     def label_predict(self, canonical: pa.Table, model_name: str, *, id_header: str=None, save_intent: bool=None,
                       intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                       remove_duplicates: bool=None):
@@ -45,20 +42,18 @@ class FeaturePredictIntent(AbstractFeaturePredictIntentModel, CommonsIntentModel
                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
-        if self._pm.has_connector(model_name):
-            canonical = self._get_canonical(canonical)
-            handler = self._pm.get_connector_handler(model_name)
-            model = handler.load_canonical()
-            model = model.column(model_name).combine_chunks()
-            model = pickle.loads(model[0].as_py())
-            _id = None
-            if isinstance(id_header, str) and id_header in canonical.column_names:
-                _id = canonical.column(id_header).combine_chunks()
-                canonical = canonical.drop_columns(id_header)
-            features = np.asarray(canonical)
-            score = model.predict(features).ravel()
-            if isinstance(_id, pa.Array):
-                return pa.table([_id, score], names=[id_header, 'predict'])
-            return pa.table([score], names=['predict'])
-        raise FileNotFoundError("The trained model cannot be found. Ensure the trained model has been added.")
+        canonical = canonical = self._get_canonical(canonical)
+        handler = self._pm.get_connector_handler(model_name)
+        tbl = handler.load_canonical()
+        model = tbl.column('model').combine_chunks()
+        model = pickle.loads(model[0].as_py())
+        _id = None
+        if isinstance(id_header, str) and id_header in canonical.column_names:
+            _id = canonical.column(id_header).combine_chunks()
+            canonical = canonical.drop_columns(id_header)
+        features = np.asarray(canonical)
+        score = model.predict(features).ravel()
+        if isinstance(_id, pa.Array):
+            return pa.table([_id, score], names=[id_header, 'predict'])
+        return pa.table([score], names=['predict'])
 

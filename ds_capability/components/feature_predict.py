@@ -79,30 +79,16 @@ class FeaturePredict(AbstractCommonComponent):
     def tools(self) -> FeaturePredictIntent:
         return self._intent_model
 
-    def add_trained_model(self, model_name: str, trained_model: Any, metrics: tuple=None, description: str=None,
-                          hyper_params: dict=None, connector: str=None, save: bool=None):
+    def add_trained_model(self, model_name: str, trained_model: Any, metrics: dict=None, description: str=None,
+                          hyper_params: dict=None):
         """"""
         descr = description if isinstance(description, str) else ""
         hyper_params = hyper_params if isinstance(hyper_params, dict) else {}
-        metrics = metrics if isinstance(metrics, tuple) else ()
+        metrics = metrics if isinstance(metrics, tuple) else {}
         byte_model = pa.array([pickle.dumps(trained_model)], type=pa.binary())
-        tbl = pa.table([[model_name], byte_model, [descr], [hyper_params], [metrics]],
+        byte_params = pa.array([pickle.dumps(hyper_params)], type=pa.binary())
+        byte_metrics = pa.array([pickle.dumps(metrics)], type=pa.binary())
+        tbl = pa.table([pa.array([model_name]), byte_model, pa.array([descr]), byte_params, byte_metrics],
                        names=['model_name', 'model', 'description', 'hyper_params', 'metrics'])
         self.persist_canonical(connector_name=model_name, canonical=tbl)
         return
-
-    def get_trained_model(self, model_name) -> Any:
-        """ Retrieves a named trained model.
-
-        :param model_name: The name of the model
-        :return: The model class
-        """
-        if self.pm.has_connector(model_name):
-            handler = self.pm.get_connector_handler(model_name)
-            model = handler.load_canonical()
-            model = model.column(model_name).combine_chunks()
-            return pickle.loads(model[0].as_py())
-        raise FileNotFoundError("The trained model cannot be found.")
-
-
-

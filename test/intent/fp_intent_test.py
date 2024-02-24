@@ -13,9 +13,9 @@ from sklearn.linear_model import LogisticRegression
 from ds_capability import *
 from ds_capability.components.commons import Commons
 
-from sklearn import model_selection
+from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_iris
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
 
 from ds_capability.intent.feature_predict_intent import FeaturePredictIntent
 
@@ -68,16 +68,22 @@ class FeaturePredictIntentTest(unittest.TestCase):
             pass
 
     def test_for_smoke(self):
+        # Model build
         X, y = load_iris(return_X_y=True)
         columns = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width']
-        X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, y, test_size=0.33, random_state=0)
-        model = RandomForestClassifier()
-        model.fit(X_train, Y_train)
-        ml = FeaturePredict.from_env('tester', has_contract=False)
-        ml.add_trained_model(model, 'RandomForestClassifier')
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        params = {"solver": "lbfgs", "max_iter": 1000, "multi_class": "auto", "random_state": 8888}
+        model = LogisticRegression(**params)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+        # model register
+        fp = FeaturePredict.from_env('tester', has_contract=False)
+        fp.add_connector_persist('RandomForestClassifier', 'model_test.parquet')
+        fp.add_trained_model('RandomForestClassifier', model, metrics=("accuracy", accuracy), hyper_params=params)
         # test
         tbl = pa.Table.from_arrays(X_test.T, names=columns)
-        predict = ml.tools.label_predict(tbl, model_name='RandomForestClassifier')
+        predict = fp.tools.label_predict(tbl, model_name='RandomForestClassifier')
         print(predict)
 
     def test_raise(self):
