@@ -79,19 +79,15 @@ class FeaturePredict(AbstractCommonComponent):
     def tools(self) -> FeaturePredictIntent:
         return self._intent_model
 
-    def add_trained_model(self, model_name: str, trained_model: Any, version: int=None, description: str=None,
+    def add_trained_model(self, model_name: str, trained_model: Any, metrics: tuple=None, description: str=None,
                           hyper_params: dict=None, connector: str=None, save: bool=None):
         """"""
-        version = version if isinstance(version, int) else 0
-        description = description if isinstance(description, str) else ""
+        descr = description if isinstance(description, str) else ""
         hyper_params = hyper_params if isinstance(hyper_params, dict) else {}
+        metrics = metrics if isinstance(metrics, tuple) else ()
         byte_model = pa.array([pickle.dumps(trained_model)], type=pa.binary())
-        tbl = pa.table([byte_model], names=[model_name])
-        if not isinstance(uri, str):
-            uri_file =  self.pm.file_pattern(name=model_name, file_type='parquet', versioned=True)
-            template = self.pm.get_connector_contract(connector_name=self.pm.TEMPLATE_PERSIST)
-            uri = os.path.join(template.raw_uri, uri_file)
-        self.add_connector_uri(connector_name=model_name, uri=uri, save=save)
+        tbl = pa.table([[model_name], byte_model, [descr], [hyper_params], [metrics]],
+                       names=['model_name', 'model', 'description', 'hyper_params', 'metrics'])
         self.persist_canonical(connector_name=model_name, canonical=tbl)
         return
 
