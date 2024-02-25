@@ -9,4 +9,5 @@ FeatureEngineer - model
         model_merge,
         model_concat_remote,
         model_num_cast,
-        model_cat_cast
+        model_cat_cast,
+        model_reinstate_nulls

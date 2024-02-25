@@ -6,7 +6,7 @@ architectural patterns that structures an application as a collection
 of services, which, themselves are a component_ or collection of components.
 In Project Hadron these components are known as :ref:`Capabilities<Introducing Capabilities>`.
 
-.. _component:https://en.wikipedia.org/wiki/Component-based_software_engineering
+.. _component: https://en.wikipedia.org/wiki/Component-based_software_engineering
 
 Introduction
 ------------
@@ -85,7 +85,6 @@ Methods::
     auto_drop_duplicates
     auto_drop_noise
     auto_projection
-    auto_reinstate_nulls
     auto_sample_rows
 
 Feature Engineering - correlate
@@ -133,6 +132,7 @@ Methods::
     model_group
     model_merge
     model_num_cast
+    model_reinstate_nulls
 
 Feature Transformation
 ----------------------

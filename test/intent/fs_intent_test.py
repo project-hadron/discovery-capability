@@ -64,14 +64,6 @@ class FeatureEngineererTest(unittest.TestCase):
         except OSError:
             pass
 
-    def test_auto_reinstate_nulls(self):
-        c = pa.array(['a', 'y', 'f', '', 'a', '', 'p', ])
-        tbl = pa.table([c], names=['string'])
-        fs = FeatureSelect.from_memory()
-        tools: FeatureSelectIntent = fs.tools
-        result = tools.auto_reinstate_nulls(tbl)
-        self.assertEqual(2, result.column('string').null_count)
-
     def test_auto_drop_noise(self):
         tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, extend=True)
         fs = FeatureSelect.from_memory()

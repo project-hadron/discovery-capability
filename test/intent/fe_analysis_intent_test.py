@@ -83,7 +83,7 @@ class SyntheticTest(unittest.TestCase):
         tbl = fe.tools.correlate_on_pandas(tbl, header='resolution',
                                            code_str="str.decode('utf-8', errors='replace')",
                                            to_header='resolution', intent_order=-1)
-        tbl = fs.tools.auto_reinstate_nulls(tbl)
+        tbl = fe.tools.model_reinstate_nulls(tbl)
         # Negative
         condition = []
         for w in ['complai', 'unable', 'not able', 'constantly', 'not receiv', "didn't receiv"]:

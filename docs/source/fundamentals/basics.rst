@@ -6,7 +6,7 @@ architectural patterns that structures an application as a collection
 of services, which, themselves are a component_ or collection of components.
 In Project Hadron these components are known as capabilities.
 
-.. _component:https://en.wikipedia.org/wiki/Component-based_software_engineering
+.. _component: https://en.wikipedia.org/wiki/Component-based_software_engineering
 
 Capability Fundamentals
 -----------------------

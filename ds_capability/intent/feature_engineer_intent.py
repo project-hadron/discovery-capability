@@ -2481,10 +2481,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             if pa.types.is_dictionary(c.type):
                 c = c.dictionary_decode()
             if remove:
-                p = c.to_pandas()
                 for item in remove:
-                    p = p.str.replace(item, '')
-                c = pa.Array.from_pandas(p)
+                    c = pc.replace_substring(c, item, '')
             if pa.types.is_string(c.type):
                 if any([Commons.valid_date(x) for x in c.drop_null().to_pylist()]):
                     if isinstance(tm_format, str):
@@ -2499,5 +2497,50 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             else:
                 continue
             canonical = Commons.table_append(canonical, pa.table([c], names=[n]))
+        return canonical
+
+    def model_reinstate_nulls(self, canonical: pa.Table, nulls_list=None, headers: [str, list]=None,
+                              data_type: [str, list]=None, regex: [str, list]=None, drop: bool=None,
+                              save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                              replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+        """ reinstates nulls in a string that have been masked with alternate values such as space
+        or question-mark. By default, the nulls list is ['',' ','NaN','nan','None','null','Null','NULL']
+
+        :param canonical: the pa.Table
+        :param nulls_list: (optional) potential null values to replace with a null.
+        :param headers: a list of headers to drop or filter on type
+        :param data_type: the column types to include or exclude. Default None else int, float, bool, object, 'number'
+        :param regex: a regular expression to search the headers
+        :param drop: to drop or not drop the headers
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the level name that groups intent by a reference name
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table.
+        """
+        # resolve intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        nulls_list = nulls_list if isinstance(nulls_list, list) else ['', ' ', 'NaN', 'nan', 'None', 'null', 'Null',
+                                                                      'NULL']
+
+        selected_headers = Commons.filter_headers(canonical, headers=headers, d_types=data_type, regex=regex, drop=drop)
+        rtn_tbl = None
+        for n in selected_headers:
+            c = canonical.column(n).combine_chunks()
+            if pa.types.is_string(c.type):
+                mask = pc.is_in(c, pa.array(nulls_list))
+                c = pc.if_else(mask, None, c)
+                canonical = Commons.table_append(canonical, pa.table([c], names=[n]))
         return canonical
 

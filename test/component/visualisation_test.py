@@ -70,37 +70,41 @@ class VisualisationTest(unittest.TestCase):
 
     def test_show_distribution(self):
         fs = FeatureSelect.from_memory()
+        fe = FeatureEngineer.from_memory()
         _ = fs.add_connector_uri('orders', uri='s3://project-hadron-cs-repo/downloads/data/STOCK_ORDERS.csv')
         orders = fs.load_canonical('orders', delimiter=u"\u0009")
-        orders = fs.tools.auto_reinstate_nulls(orders, nulls_list=['?'])
+        orders = fe.tools.model_reinstate_nulls(orders, nulls_list=['?'])
         orders = fs.tools.auto_cast_types(orders, include_category=False, tm_format="%m/%d/%Y %H:%M:%S.000000")
         result = viz.show_distributions(orders)
         print(result)
 
     def test_show_category_frequency(self):
         fs = FeatureSelect.from_memory()
+        fe = FeatureEngineer.from_memory()
         _ = fs.add_connector_uri('orders', uri='s3://project-hadron-cs-repo/downloads/data/STOCK_ORDERS.csv')
         orders = fs.load_canonical('orders', delimiter=u"\u0009")
-        orders = fs.tools.auto_reinstate_nulls(orders, nulls_list=['?'])
+        orders = fe.tools.model_reinstate_nulls(orders, nulls_list=['?'])
         orders = fs.tools.auto_cast_types(orders, include_category=False, tm_format="%m/%d/%Y %H:%M:%S.000000")
         result = viz.show_category_frequency(orders, target_dt='ORD_DTS')
         print(result)
 
     def test_show_num_density(self):
         fs = FeatureSelect.from_memory()
+        fe = FeatureEngineer.from_memory()
         _ = fs.add_connector_uri('orders', uri='s3://project-hadron-cs-repo/downloads/data/STOCK_ORDERS.csv')
         orders = fs.load_canonical('orders', delimiter=u"\u0009")
-        orders = fs.tools.auto_reinstate_nulls(orders, nulls_list=['?'])
+        orders = fe.tools.model_reinstate_nulls(orders, nulls_list=['?'])
         orders = fs.tools.auto_cast_types(orders, include_category=False, tm_format="%m/%d/%Y %H:%M:%S.000000")
         result = viz.show_numeric_density(orders)
         print(result)
 
     def test_show_categories(self):
         fs = FeatureSelect.from_memory()
+        fe = FeatureEngineer.from_memory()
         _ = fs.add_connector_uri('titanic', uri='s3://project-hadron-cs-repo/downloads/data/titanic_kaggle_train.csv')
         titanic = fs.load_canonical('titanic')
         titanic = fs.tools.auto_drop_columns(titanic, headers=['PassengerId', 'Name'])
-        titanic = fs.tools.auto_reinstate_nulls(titanic)
+        titanic = fe.tools.model_reinstate_nulls(titanic)
         titanic = fs.tools.auto_cast_types(titanic, include_category=False)
         result = viz.show_categories(titanic, headers=['Ticket', 'Cabin'], drop=True)
         print(result)

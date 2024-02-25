@@ -13,5 +13,4 @@ FeatureSelect
         auto_drop_duplicates,
         auto_drop_noise,
         auto_projection,
-        auto_reinstate_nulls,
         auto_sample_rows

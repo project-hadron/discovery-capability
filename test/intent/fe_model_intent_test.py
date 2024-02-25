@@ -61,6 +61,13 @@ class FeatureEngineerModelTest(unittest.TestCase):
         tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(100)
         self.assertEqual(100, tbl.num_rows)
         
+    def test_model_reinstate_nulls(self):
+        c = pa.array(['a', 'y', 'f', '', 'a', '', 'p', ])
+        tbl = pa.table([c], names=['string'])
+        fe = FeatureEngineer.from_memory()
+        result = fe.tools.model_reinstate_nulls(tbl)
+        self.assertEqual(2, result.column('string').null_count)
+
     def test_model_cat_cast(self):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools
