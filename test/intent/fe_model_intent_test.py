@@ -68,6 +68,13 @@ class FeatureEngineerModelTest(unittest.TestCase):
         result = fe.tools.model_reinstate_nulls(tbl)
         self.assertEqual(2, result.column('string').null_count)
 
+    def test_model_drop_columns(self):
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000)
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        result = tools.model_drop_columns(tbl, headers=['num', 'int', 'jim'])
+        self.assertCountEqual(['date', 'bool', 'string', 'cat', 'id'], result.column_names)
+
     def test_model_cat_cast(self):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools

@@ -2544,3 +2544,36 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                 canonical = Commons.table_append(canonical, pa.table([c], names=[n]))
         return canonical
 
+    def model_drop_columns(self, canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,
+                           regex: [str, list]=None, drop: bool=None, save_intent: bool=None,
+                           intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                           remove_duplicates: bool=None) -> pa.Table:
+        """ Removes columns that are selected.
+
+        :param canonical: the pa.Table
+        :param headers: (optional) a filter of headers from the 'other' dataset
+        :param drop: (optional) to drop or not drop the headers if specified
+        :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
+        :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the level name that groups intent by a reference name
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table.
+        """
+        # resolve intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        to_drop = Commons.filter_headers(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
+        to_drop = Commons.list_intersect(canonical.column_names, to_drop)
+        return canonical.drop_columns(to_drop)

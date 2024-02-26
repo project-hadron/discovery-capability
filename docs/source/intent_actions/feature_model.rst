@@ -10,4 +10,5 @@ FeatureEngineer - model
         model_concat_remote,
         model_num_cast,
         model_cat_cast,
-        model_reinstate_nulls
+        model_reinstate_nulls,
+        model_drop_columns

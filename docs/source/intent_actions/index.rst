@@ -91,7 +91,7 @@ Feature Engineering - correlate
 -------------------------------
 
 This class represents feature engineering intent actions that, depending on its application,
-represent data's statistical and distributive characteristics to provide targeted features
+represent datas statistical and distributive characteristics to provide targeted features
 of interests. Its focus is around correlate of two value streams to produce a third.
 
 .. toctree::
@@ -117,7 +117,7 @@ Feature Engineering - model
 ---------------------------
 
 This class represents feature engineering intent actions that, depending on its application,
-represent data's statistical and distributive characteristics to provide targeted features
+represent datas statistical and distributive characteristics to provide targeted features
 of interests. Its focus is modelling the complete dataset to produce a new dataset.
 
 .. toctree::
@@ -133,6 +133,7 @@ Methods::
     model_merge
     model_num_cast
     model_reinstate_nulls
+    model_drop_columns
 
 Feature Transformation
 ----------------------
@@ -204,7 +205,7 @@ Feature Engineering - synthesis
 -------------------------------
 
 This class represents feature engineering intent actions that, depending on its application,
-represent data's statistical and distributive characteristics to provide targeted features
+represent datas statistical and distributive characteristics to provide targeted features
 of interests. Its focus is around building synthetic data through statistical modelling
 and observational logic.
 
@@ -228,7 +229,7 @@ Feature Engineering - sample
 ----------------------------
 
 This class represents feature engineering intent actions that, depending on its application,
-represent data's statistical and distributive characteristics to provide targeted features
+represent datas statistical and distributive characteristics to provide targeted features
 of interests. Its focus is around building synthetic data through distributions algorithms
 and sampled data.
 
@@ -257,3 +258,25 @@ Methods::
 Tools
 -----
 
+This class represents quick win utility methods.
+
+.. toctree::
+   :maxdepth: 1
+
+   commons
+
+Methods::
+
+    filter_columns
+    filter_headers
+    list_formatter
+    list_equal
+    list_diff
+    list_dup
+    list_intersect
+    list_match
+    list_search
+    list_union
+    list_unique
+    table_append
+    table_report

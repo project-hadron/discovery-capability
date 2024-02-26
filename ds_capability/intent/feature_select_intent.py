@@ -233,12 +233,8 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
         to_drop = Commons.filter_headers(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
-        to_keep = Commons.list_diff(canonical.column_names, to_drop)
-        rtn_tbl = None
-        for n in to_keep:
-            c = canonical.column(n).combine_chunks()
-            rtn_tbl = Commons.table_append(rtn_tbl, pa.table([c], names=[n]))
-        return rtn_tbl
+        to_drop = Commons.list_intersect(canonical.column_names, to_drop)
+        return canonical.drop_columns(to_drop)
 
     def auto_drop_duplicates(self, canonical: pa.Table, save_intent: bool=None, intent_level: [int, str]=None,
                              intent_order: int=None, replace_intent: bool=None,
