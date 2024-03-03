@@ -865,7 +865,10 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         quantity = self._quantity(quantity)
         seed = self._seed(seed=seed)
         shuffle = shuffle if isinstance(shuffle, bool) else True
-        selection = eval(f"Sample.{sample_name}(size={size}, shuffle={shuffle}, seed={seed})")
+        selection = eval(f"Sample.{sample_name}(size={sample_size}, shuffle={shuffle}, seed={seed})")
+        if sample_size < size:
+            gen = np.random.default_rng(seed)
+            selection = gen.choice(selectionsize=size, replace=True, shuffle=True)
         rtn_list = self._set_quantity(selection, quantity=quantity, seed=seed)
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([pa.Array.from_pandas(rtn_list)], names=[to_header]))

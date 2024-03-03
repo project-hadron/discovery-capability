@@ -64,6 +64,14 @@ class FeatureEngineererTest(unittest.TestCase):
         except OSError:
             pass
 
+    def test_auto_clean_headers(self):
+        tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, extend=False)
+        fs = FeatureSelect.from_memory()
+        tools: FeatureSelectIntent = fs.tools
+        result = tools.auto_clean_header(tbl, rename_map={'num': 'float'})
+        self.assertEqual(['id', 'cat', 'float', 'int', 'bool', 'date', 'string'], result.column_names)
+
+
     def test_auto_drop_noise(self):
         tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, extend=True)
         fs = FeatureSelect.from_memory()

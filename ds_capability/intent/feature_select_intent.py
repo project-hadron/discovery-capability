@@ -64,7 +64,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                 mapper=None
         # map the headers
         if isinstance(rename_map, dict):
-            names = [rename_map.get(item,item)  for item in canonical.column_names]
+            names = [rename_map.get(item,item) for item in canonical.column_names]
             canonical = canonical.rename_columns(names)
         if isinstance(rename_map, list) and len(rename_map) == canonical.num_columns:
             tbl = canonical.rename_columns(rename_map)
@@ -274,15 +274,14 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                     to_drop.append(col_2)
         return canonical.drop_columns(to_drop)
 
-    def auto_drop_correlated(self, canonical: pa.Table, threshold: float=None, by_importance: bool=None,
-                             save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                             replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+    def auto_drop_correlated(self, canonical: pa.Table, threshold: float=None, save_intent: bool=None,
+                             intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                             remove_duplicates: bool=None) -> pa.Table:
         """ uses 'brute force' techniques to remove highly correlated numeric columns based on the threshold,
         set by default to 0.95.
 
         :param canonical: the pa.Table
         :param threshold: (optional) threshold correlation between columns. default 0.95
-        :param by_importance: (optional) if true uses feature importance instead of brute force
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the level name that groups intent by a reference name
         :param intent_order: (optional) the order in which each intent should run.
@@ -308,14 +307,11 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         df_filter = tbl_filter.to_pandas()
         to_drop = set()
         corr_matrix = df_filter.corr()
-        if by_importance:
-            pass
-        else:
-            for i in range(len(corr_matrix.columns)):
-                for j in range(i):
-                    if abs(corr_matrix.iloc[i, j]) > threshold:  # we are interested in absolute coeff value
-                        col_name = corr_matrix.columns[i]  # getting the name of column
-                        to_drop.add(col_name)
+        for i in range(len(corr_matrix.columns)):
+            for j in range(i):
+                if abs(corr_matrix.iloc[i, j]) > threshold:  # we are interested in absolute coeff value
+                    col_name = corr_matrix.columns[i]  # getting the name of column
+                    to_drop.add(col_name)
         return canonical.drop_columns(to_drop)
 
     def auto_aggregate(self, canonical: pa.Table, action: str, headers: [str, list]=None, d_types: [str, list]=None,
