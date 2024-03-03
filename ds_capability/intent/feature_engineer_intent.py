@@ -2551,10 +2551,10 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         """ Removes columns that are selected.
 
         :param canonical: the pa.Table
-        :param headers: (optional) a filter of headers from the 'other' dataset
-        :param drop: (optional) to drop or not drop the headers if specified
+        :param headers: (optional) a filter of headers from the dataset
         :param d_types: (optional) a filter on data type for the 'other' dataset. int, float, bool, object
         :param regex: (optional) a regular expression to search the headers. example '^((?!_amt).)*$)' excludes '_amt'
+        :param drop: (optional) to drop or not drop the headers if specified
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the level name that groups intent by a reference name
         :param intent_order: (optional) the order in which each intent should run.

@@ -68,10 +68,10 @@ class FeatureEngineererTest(unittest.TestCase):
         tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000, extend=True)
         fs = FeatureSelect.from_memory()
         tools: FeatureSelectIntent = fs.tools
-        self.assertEqual(19, tbl.num_columns)
+        self.assertEqual(17, tbl.num_columns)
         result = tools.auto_drop_noise(tbl)
-        self.assertEqual(13, result.num_columns)
-        print(result.column_names)
+        self.assertEqual(14, result.num_columns)
+        self.assertCountEqual(['one_string', 'nest_list', 'nulls'], Commons.list_diff(tbl.column_names, result.column_names))
 
     def test_auto_drop_columns(self):
         tbl = FeatureEngineer.from_memory().tools.get_synthetic_data_types(1000)

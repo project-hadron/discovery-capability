@@ -5,6 +5,8 @@ import pyarrow as pa
 import pyarrow.compute as pc
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import VarianceThreshold
+
 
 from ds_capability.components.commons import Commons
 from ds_capability.intent.common_intent import CommonsIntentModel
@@ -122,21 +124,15 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         return Commons.table_cast(canonical, inc_cat=include_category, cat_max=category_max, inc_bool=include_bool,
                                   inc_time=include_timestamp, dt_format=tm_format, units=tm_units, tz=tm_tz)
 
-    def auto_drop_noise(self, canonical: pa.Table, nulls_threshold: float=None, nulls_list: [bool, list]=None,
-                        drop_predominant: bool=None, drop_empty_row: bool=None, drop_unknown: bool=None,
+    def auto_drop_noise(self, canonical: pa.Table, variance_threshold: float=None, nulls_threshold: float=None,
                         save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                         replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ auto removes columns that are at least 0.998 percent np.NaN, a single value, std equal zero or have a
         predominant value greater than the default 0.998 percent.
 
         :param canonical: the pa.Table
+        :param variance_threshold:  (optional) The threshold limit of variance of the valued. Default 0.01
         :param nulls_threshold:  (optional) The threshold limit of a nulls value. Default 0.95
-        :param nulls_list:  (optional) can be boolean or a list:
-                    if boolean and True then null_list equals ['NaN', 'nan', 'null', '', 'None', ' ']
-                    if list then this is considered potential null values.
-        :param drop_predominant:  (optional) drop columns that have a predominant value of the given predominant max
-        :param drop_empty_row:  (optional) also drop any rows where all the values are empty
-        :param drop_unknown:  (optional) drop objects that are not string types such as binary
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the level name that groups intent by a reference name
         :param intent_order: (optional) the order in which each intent should run.
@@ -157,14 +153,23 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
         nulls_threshold = nulls_threshold if isinstance(nulls_threshold, float) and 0 <= nulls_threshold <= 1 else 0.95
-        drop_unknown = drop_unknown if isinstance(drop_unknown, bool) else False
+        variance_threshold = variance_threshold if isinstance(variance_threshold, float) and 0 <= variance_threshold <= 1 else 0.01
+        numeric = Commons.filter_columns(canonical, d_types=['is_integer', 'is_floating'])
+        sel = VarianceThreshold(threshold=variance_threshold)
+        sel.fit(numeric)
+        var_dict = dict(zip(numeric.column_names, sel.get_support()))
         # drop knowns
         to_drop = []
         for n in canonical.column_names:
+            if n in var_dict.keys() and var_dict.get(n) == False:
+                to_drop.append(n)
+                continue
             c = canonical.column(n).combine_chunks()
             if pa.types.is_dictionary(c.type):
-                c = c.dictionary_decode()
+                c = c.dictionary_decode(c.type)
             if pa.types.is_nested(c.type) or pa.types.is_list(c.type) or pa.types.is_struct(c.type):
+                to_drop.append(n)
+            elif (pa.types.is_integer(c.type) or pa.types.is_floating(c.type)) and pc.stddev(c).as_py() == 0:
                 to_drop.append(n)
             elif c.null_count / canonical.num_rows > nulls_threshold:
                 to_drop.append(n)
@@ -269,14 +274,15 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                     to_drop.append(col_2)
         return canonical.drop_columns(to_drop)
 
-    def auto_drop_correlated(self, canonical: pa.Table, threshold: float=None, save_intent: bool=None,
-                             intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                             remove_duplicates: bool=None) -> pa.Table:
+    def auto_drop_correlated(self, canonical: pa.Table, threshold: float=None, by_importance: bool=None,
+                             save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
+                             replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ uses 'brute force' techniques to remove highly correlated numeric columns based on the threshold,
         set by default to 0.95.
 
         :param canonical: the pa.Table
         :param threshold: (optional) threshold correlation between columns. default 0.95
+        :param by_importance: (optional) if true uses feature importance instead of brute force
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the level name that groups intent by a reference name
         :param intent_order: (optional) the order in which each intent should run.
@@ -302,11 +308,14 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         df_filter = tbl_filter.to_pandas()
         to_drop = set()
         corr_matrix = df_filter.corr()
-        for i in range(len(corr_matrix.columns)):
-            for j in range(i):
-                if abs(corr_matrix.iloc[i, j]) > threshold:  # we are interested in absolute coeff value
-                    col_name = corr_matrix.columns[i]  # getting the name of column
-                    to_drop.add(col_name)
+        if by_importance:
+            pass
+        else:
+            for i in range(len(corr_matrix.columns)):
+                for j in range(i):
+                    if abs(corr_matrix.iloc[i, j]) > threshold:  # we are interested in absolute coeff value
+                        col_name = corr_matrix.columns[i]  # getting the name of column
+                        to_drop.add(col_name)
         return canonical.drop_columns(to_drop)
 
     def auto_aggregate(self, canonical: pa.Table, action: str, headers: [str, list]=None, d_types: [str, list]=None,

@@ -5,7 +5,7 @@ from ds_core.handlers.abstract_handlers import AbstractSourceHandler, AbstractPe
 from ds_core.handlers.abstract_handlers import ConnectorContract, HandlerFactory
 
 class MlflowSourceHandler(AbstractSourceHandler):
-    """ A DuckDB source handler"""
+    """ A MLFlow source handler"""
 
     def __init__(self, connector_contract: ConnectorContract):
         """ initialise the Handler passing the source_contract dictionary """
@@ -19,13 +19,11 @@ class MlflowSourceHandler(AbstractSourceHandler):
         self._changed_flag = True
 
     def supported_types(self) -> list:
-        return ['parquet']
+        return ['']
 
     def exists(self) -> bool:
         _kwargs = self.connector_contract.query
-        table = _kwargs.pop('table', 'hadron_table')
-        result = self.connection.execute("CALL duckdb_tables()").arrow()
-        return pc.is_in(table, result.column('table_name')).as_py()
+        return True
 
     def has_changed(self) -> bool:
         return True
@@ -37,14 +35,8 @@ class MlflowSourceHandler(AbstractSourceHandler):
 
     def load_canonical(self, **kwargs) -> pa.Table:
         _kwargs = {**self.connector_contract.query, **kwargs}
-        table = _kwargs.pop('table', 'hadron_table')
-        if table.startswith("s3://"):
-            return self.connection.execute(f"SELECT * FROM read_parquet('{table}')").arrow()
-        elif table.startswith('https://'):
-            return self.connection.execute(f"SELECT * FROM read_parquet('{table}')").arrow()
-        query = _kwargs.pop('sql_query', f"SELECT * FROM {table};")
-        query = query.replace('@', table)
-        return self.connection.execute(query).arrow()
+        model = None
+        return model
 
 
 class MlflowPersistHandler(MlflowSourceHandler, AbstractPersistHandler):
