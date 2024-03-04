@@ -1733,8 +1733,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         precision = precision if isinstance(precision, int) else 0
         units = units if isinstance(units, str) else 'D'
         selected = Commons.filter_columns(canonical, headers=[first_date, second_date]).to_pandas()
-        rename = (selected[second_date].sub(selected[first_date], axis=0) / np.timedelta64(1, units))
-        rtn_arr = pa.array([np.round(v, precision) for v in rename], pa.int64())
+        values = (selected[second_date].sub(selected[first_date], axis=0) / np.timedelta64(1, units))
+        rtn_arr = pc.cast(pc.round(pa.Array.from_pandas(values), 0), pa.int64())
         to_header = to_header if isinstance(to_header, str) else f"{first_date}-{second_date}"
         return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
