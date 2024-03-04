@@ -136,6 +136,15 @@ class FeatureEngineerCorrelateTest(unittest.TestCase):
         result = tools.correlate_column_join(tbl, header='int', others=['-PI-', 'date'], drop_others=False, to_header='compound')
         self.assertEqual(['cat', 'num', 'int', 'bool', 'date', 'string', 'compound'], result.column_names)
 
+    def test_correlate_date_delta(self):
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        tbl = tools.get_datetime(start=-30, until=-14, ordered=True, ignore_time=True, size=10, to_header='creationDate')
+        tbl = tools.get_number(-1,2, canonical=tbl, size=10, to_header='delta')
+        result = tools.correlate_date_delta(tbl, header='creationDate', delta='delta', to_header='newDate')
+        test = tools.correlate_date_diff(result, 'creationDate', 'newDate', to_header='diff')
+        self.assertEqual(10, pc.sum(pc.equal(result.column('delta'), test.column('diff'))).as_py())
+
     def test_correlate_date_diff(self):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools

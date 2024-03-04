@@ -1636,6 +1636,59 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([s_others], names=[to_header]))
 
+    def correlate_date_delta(self, canonical: pa.Table, header: str, delta: str, units: str=None, to_header: str=None,
+                             seed: int=None, save_intent: bool=None, intent_order: int=None,
+                             intent_level: [int, str]=None, replace_intent: bool=None,
+                             remove_duplicates: bool=None) -> pa.Table:
+        """ Correlates a timestamp column to an integer delta column.
+
+        :param canonical: a pa.Table as the reference table
+        :param header: the header for the target values to change
+        :param delta: a table column to use as the delta
+        :param units: (optional) The Timedelta units e.g. 'us', 'ms', 's', 'm', 'h', 'D'. default is 'D'
+        :param to_header: (optional) an optional name to call the column
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table
+        """
+        self._set_intend_signature( self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        delta = self._extract_value(delta)
+        units = units if isinstance(units, str) else 'D'
+        if units not in ['D', 'h', 'm', 's', 'ms', 'us']:
+            raise ValueError(f"The delta units '{units}' is not recognised. Use 'D', 'h', 'm', 's', 'ms' or 'us'")
+        to_header = self._extract_value(to_header)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        seed = seed if isinstance(seed, int) else self._seed()
+        t = canonical.column(header).combine_chunks()
+        d = canonical.column(delta).combine_chunks()
+        if not pa.types.is_timestamp(t.type):
+            raise ValueError(f"The header '{header}' is not a timestamp type")
+        if not pa.types.is_integer(d.type):
+            raise ValueError(f"The delta '{delta}' is not an integer type")
+        st = t.to_pandas()
+        sd = d.to_pandas()
+        values = st + pd.to_timedelta(sd, unit=units)
+        rtn_value = pa.Array.from_pandas(values)
+        to_header = to_header if isinstance(to_header, str) else header
+        return Commons.table_append(canonical, pa.table([rtn_value], names=[to_header]))
+
     def correlate_date_diff(self, canonical: pa.Table, first_date: str, second_date: str, units: str=None,
                             to_header: str=None, precision: int=None, seed: int=None, save_intent: bool=None,
                             intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
