@@ -1,6 +1,9 @@
 import time
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.compute as pc
+from ds_capability.components.commons import Commons
 from ds_core.handlers.abstract_handlers import ConnectorContract
 
 __author__ = 'Darryl Oatridge'
@@ -30,6 +33,21 @@ class CommonsIntentModel(object):
             if seed > 2 ** 31:
                 seed = int(time.time() * np.random.default_rng(seed=seed-1).random())
         return seed
+
+    @staticmethod
+    def _set_table_nulls(canonical: pa.Table, header: str, null_mask: pa.BooleanArray):
+        """ Returns a table where the null_mask has been applied to the canonical header column values """
+        values = canonical.column(header).combine_chunks()
+        result = CommonsIntentModel._set_nulls(values=values, null_mask=null_mask)
+        return Commons.table_append(canonical, pa.table([result], names=[header]))
+
+    @staticmethod
+    def _set_nulls(values: pa.Array, null_mask: pa.BooleanArray):
+        """ Returns an array where the null_mask has been applied to the column values"""
+        if len(values) != len(null_mask):
+            null_list = Commons.list_resize(null_mask.to_pylist(), len(values))
+            null_mask = pa.array(null_list, pa.bool_())
+        return pc.if_else(null_mask, values, None)
 
     def _set_quantity(self, selection, quantity, seed=None):
         """Returns the quantity percent of good values in selection with the rest fill"""

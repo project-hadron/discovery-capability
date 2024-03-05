@@ -1037,7 +1037,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         :param size: The number of rows
         :param other: a direct or generated pa.Table.
         :param canonical: (optional) a pa.Table to append the result table to
-        :param category_limit: (optional) a global cap on categories captured. zero value returns no limits
+        :param category_limit: (optional) a global cap on categories captured. default to 20
         :param sort_by: (optional) Name of the column to use to sort (ascending), or a
                 list of multiple sorting conditions where each entry is a tuple with
                 column name and sorting order (“ascending” or “descending”)
@@ -1072,6 +1072,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             return None
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
+        category_limit = category_limit if isinstance(category_limit, int) else 20
         date_jitter = date_jitter if isinstance(date_jitter, int) else 2
         units_allowed = ['W', 'D', 'h', 'm', 's', 'milli', 'micro']
         date_units = date_units if isinstance(date_units, str) and date_units in units_allowed else 'D'
@@ -1080,19 +1081,29 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         seed = self._seed(seed=seed)
         rtn_tbl = None
         gen = np.random.default_rng(seed)
-        for c in other.column_names:
-            column = other.column(c)
+        for name in other.column_names:
+            column = other.column(name).combine_chunks()
+            null_mask = column.is_null()
             if (pa.types.is_boolean(column.type) and pc.all(column).as_py() == False) or len(column.drop_null()) == 0:
-                result = pa.table([pa.nulls(size)], names=[c])
+                result = pa.table([pa.nulls(size)], names=[name])
+                result = self._set_table_nulls(result, name, null_mask)
                 rtn_tbl = Commons.table_append(rtn_tbl, result)
                 continue
-            nulls = round(column.null_count / other.num_rows, 5)
-            column = column.combine_chunks().drop_null()
             if pa.types.is_dictionary(column.type):
                 selection = column.dictionary.to_pylist()
                 frequency = column.value_counts().field(1).to_pylist()
-                result = self.get_category(selection=selection, relative_freq=frequency, size=size, to_header=c,
-                                           quantity=1-nulls, save_intent=False)
+                result = self.get_category(selection=selection, relative_freq=frequency, size=size, to_header=name,
+                                           save_intent=False)
+                result = self._set_table_nulls(result, name, null_mask)
+                rtn_tbl = Commons.table_append(rtn_tbl, result)
+            elif pa.types.is_string(column.type) and pc.count(column.unique()).as_py() <= category_limit:
+                col_cat = column.dictionary_encode()
+                selection = col_cat.dictionary.to_pylist()
+                frequency = col_cat.value_counts().field(1).to_pylist()
+                result = self.get_category(selection=selection, relative_freq=frequency, size=size, to_header=name,
+                                           save_intent=False)
+                result = self._set_table_nulls(result, name, null_mask)
+                rtn_tbl = Commons.table_append(rtn_tbl, result)
             elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
                 s_values = column.to_pandas()
                 if offset != 0:
@@ -1104,8 +1115,9 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                     _ = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
                     result = pd.concat([result, _], axis=0)
                 result = result.sample(frac=1).iloc[:size].astype(column.type.to_pandas_dtype()).reset_index(drop=True)
-                result = self._set_quantity(result, quantity=self._quantity(1-nulls), seed=seed)
-                result = pa.table([pa.Array.from_pandas(result)], names=[c])
+                result = pa.table([pa.Array.from_pandas(result)], names=[name])
+                result = self._set_table_nulls(result, name, null_mask)
+                rtn_tbl = Commons.table_append(rtn_tbl, result)
             elif pa.types.is_boolean(column.type):
                 frequency = dict(zip(column.value_counts().field(0).to_pylist(),
                                      column.value_counts().field(1).to_pylist())).get(True)
@@ -1113,18 +1125,20 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                     frequency = 0
                 prob = frequency/size
                 prob = prob if 0 < prob < 1 else 0.5
-                _ = gen.choice([True, False,], size=size, p=[prob, 1 - prob])
-                result = self._set_quantity(_, quantity=self._quantity(1 - nulls), seed=seed)
-                result = pa.table([pa.BinaryArray.from_pandas(result)], names=[c])
+                result = gen.choice([True, False,], size=size, p=[prob, 1 - prob])
+                result = pa.table([pa.BinaryArray.from_pandas(result)], names=[name])
+                result = self._set_table_nulls(result, name, null_mask)
+                rtn_tbl = Commons.table_append(rtn_tbl, result)
             elif pa.types.is_string(column.type):
                 # for the moment do nothing with strings
                 result = column.to_pandas()
                 while result.size < size:
                     result = pd.concat([result, result], axis=0)
                 result = result.sample(frac=1).iloc[:size].reset_index(drop=True)
-                result = pd.Series(self._set_quantity(result, quantity=self._quantity(1-nulls), seed=seed))
                 arr = pa.StringArray.from_pandas(result)
-                result = pa.table([arr], names=[c])
+                result = pa.table([arr], names=[name])
+                result = self._set_table_nulls(result, name, null_mask)
+                rtn_tbl = Commons.table_append(rtn_tbl, result)
             elif pa.types.is_date(column.type) or pa.types.is_timestamp(column.type):
                 s_values = column.to_pandas()
                 # set jitters to time deltas
@@ -1139,12 +1153,14 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                     result = pd.concat([result, s_values.add(_)], axis=0)
                 result = result.iloc[:size].astype(column.type.to_pandas_dtype())
                 result = result.sample(frac=1).reset_index(drop=True)
-                result = pd.Series(self._set_quantity(result, quantity=self._quantity(1-nulls), seed=seed))
-                result = pa.table([pa.TimestampArray.from_pandas(result)], names=[c])
+                result = pa.table([pa.TimestampArray.from_pandas(result)], names=[name])
+                result = self._set_table_nulls(result, name, null_mask)
+                rtn_tbl = Commons.table_append(rtn_tbl, result)
             else:
                 # return nulls for other types
-                result = pa.table([pa.nulls(size)], names=[c])
-            rtn_tbl = Commons.table_append(rtn_tbl, result)
+                result = pa.table([pa.nulls(size)], names=[name])
+                result = self._set_table_nulls(result, name, null_mask)
+                rtn_tbl = Commons.table_append(rtn_tbl, result)
         if isinstance(sort_by, str) and sort_by in rtn_tbl.columns:
             rtn_tbl = rtn_tbl.sort_by(sorting=sort_by)
         return Commons.table_append(canonical, rtn_tbl)
@@ -1680,8 +1696,6 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         d = canonical.column(delta).combine_chunks()
         if not pa.types.is_timestamp(t.type):
             raise ValueError(f"The header '{header}' is not a timestamp type")
-        if not pa.types.is_integer(d.type):
-            raise ValueError(f"The delta '{delta}' is not an integer type")
         st = t.to_pandas()
         sd = d.to_pandas()
         values = st + pd.to_timedelta(sd, unit=units)
