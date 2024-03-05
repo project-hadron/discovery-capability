@@ -47,7 +47,7 @@ class CommonsIntentModel(object):
         if len(values) != len(null_mask):
             null_list = Commons.list_resize(null_mask.to_pylist(), len(values))
             null_mask = pa.array(null_list, pa.bool_())
-        return pc.if_else(null_mask, values, None)
+        return pc.if_else(null_mask, None, values)
 
     def _set_quantity(self, selection, quantity, seed=None):
         """Returns the quantity percent of good values in selection with the rest fill"""
