@@ -156,4 +156,4 @@ class CommonsIntentModel(object):
         if sum(result) != size:
             gap = sum(result) - size
             result[result.index(max(result))] -= gap
-        return result[:size]
+        return result
