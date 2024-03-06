@@ -208,8 +208,8 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
-    def get_category(self, selection: list, size: int, canonical: pa.Table=None, relative_freq: list=None, encode: bool=None,
-                     quantity: float=None, to_header: str=None,  seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
+    def get_category(self, selection: list, size: int, canonical: pa.Table=None, relative_freq: list=None, to_categorical: bool=None,
+                     quantity: float=None, to_header: str=None, seed: int=None, save_intent: bool=None, intent_level: [int, str]=None,
                      intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ returns a categorical as a string.
 
@@ -217,7 +217,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         :param size: size of the return
         :param canonical: (optional) a pa.Table to append the result table to
         :param relative_freq: a weighting pattern that does not have to add to 1
-        :param encode: if the categorical should be returned encoded as a dictionary type or string type (default)
+        :param to_categorical: if the categorical should be returned encoded as a dictionary type or string type (default)
         :param quantity: a number between 0 and 1 representing the percentage quantity of the data
         :param to_header: (optional) an optional name to call the column
         :param seed: a seed value for the random function: default to None
@@ -246,7 +246,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             raise ValueError("size not set. Size must be an int greater than zero")
         if len(selection) < 1:
             return [None] * size
-        encode = encode if isinstance(encode, bool) else False
+        to_categorical = to_categorical if isinstance(to_categorical, bool) else False
         seed = self._seed() if seed is None else seed
         relative_freq = relative_freq if isinstance(relative_freq, list) else [1]*len(selection)
         select_index = self._freq_dist_size(relative_freq=relative_freq, size=size, dist_length=len(selection),
@@ -258,7 +258,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         gen.shuffle(rtn_list)
         rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
-        if encode:
+        if to_categorical:
             return Commons.table_append(canonical, pa.table([pa.DictionaryArray.from_pandas(rtn_list).dictionary_encode()], names=[to_header]))
         return Commons.table_append(canonical, pa.table([pa.DictionaryArray.from_pandas(rtn_list)], names=[to_header]))
 
@@ -1079,45 +1079,27 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         sort_by = Commons.list_formatter(sort_by)
         offset = offset if isinstance(offset, (int, float)) else 0
         seed = self._seed(seed=seed)
-        rtn_tbl = None
+        rtn_array = []
+        rtn_names = []
         gen = np.random.default_rng(seed)
         for name in other.column_names:
             column = other.column(name).combine_chunks()
-            null_mask = column.is_null()
-            if (pa.types.is_boolean(column.type) and pc.all(column).as_py() == False) or len(column.drop_null()) == 0:
-                result = pa.table([pa.nulls(size)], names=[name])
-                result = self._set_table_nulls(result, name, null_mask)
-                rtn_tbl = Commons.table_append(rtn_tbl, result)
-                continue
-            if pa.types.is_dictionary(column.type):
-                selection = column.dictionary.to_pylist()
-                frequency = column.value_counts().field(1).to_pylist()
-                result = self.get_category(selection=selection, relative_freq=frequency, size=size, to_header=name,
-                                           save_intent=False)
-                result = self._set_table_nulls(result, name, null_mask)
-                rtn_tbl = Commons.table_append(rtn_tbl, result)
+            if pa.types.is_nested(column.type) or pa.types.is_list(column.type) or pa.types.is_struct(column.type):
+                result = pa.nulls(size)
+            # elif (pa.types.is_integer(column.type) or pa.types.is_floating(column.type)) and pc.stddev(column).as_py() == 0:
+            #     result = pa.nulls(size)
+            # elif column.null_count / canonical.num_rows > 0.99:
+            #     result = pa.nulls(size)
+            # elif pc.count(pc.unique(c)).as_py() <= 1:
+            #     result = pa.nulls(size)
+            elif pa.types.is_dictionary(column.type):
+                result = self._gen_category(column=column, size=size, seed=seed)
             elif pa.types.is_string(column.type) and pc.count(column.unique()).as_py() <= category_limit:
-                col_cat = column.dictionary_encode()
-                selection = col_cat.dictionary.to_pylist()
-                frequency = col_cat.value_counts().field(1).to_pylist()
-                result = self.get_category(selection=selection, relative_freq=frequency, size=size, to_header=name,
-                                           save_intent=False)
-                result = self._set_table_nulls(result, name, null_mask)
-                rtn_tbl = Commons.table_append(rtn_tbl, result)
+                result = self._gen_category(column=column, size=size, seed=seed)
             elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
-                s_values = column.to_pandas()
-                if offset != 0:
-                    s_values = s_values.add(offset)
-                precision = 0 if pa.types.is_integer(column.type) else 5
-                jitter = pc.round(pc.multiply(pc.stddev(column), 0.1), 5).as_py()
-                result = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
-                while result.size < size:
-                    _ = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
-                    result = pd.concat([result, _], axis=0)
-                result = result.sample(frac=1).iloc[:size].astype(column.type.to_pandas_dtype()).reset_index(drop=True)
-                result = pa.table([pa.Array.from_pandas(result)], names=[name])
-                result = self._set_table_nulls(result, name, null_mask)
-                rtn_tbl = Commons.table_append(rtn_tbl, result)
+                result = self._jitter(column=column, size=size, seed=seed)
+            elif pa.types.is_date(column.type) or pa.types.is_timestamp(column.type):
+                result = self._jitter_date(column, size=size, variance=date_jitter, units=date_units, seed=seed)
             elif pa.types.is_boolean(column.type):
                 frequency = dict(zip(column.value_counts().field(0).to_pylist(),
                                      column.value_counts().field(1).to_pylist())).get(True)
@@ -1126,41 +1108,20 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                 prob = frequency/size
                 prob = prob if 0 < prob < 1 else 0.5
                 result = gen.choice([True, False,], size=size, p=[prob, 1 - prob])
-                result = pa.table([pa.BinaryArray.from_pandas(result)], names=[name])
-                result = self._set_table_nulls(result, name, null_mask)
-                rtn_tbl = Commons.table_append(rtn_tbl, result)
+                result = pa.BinaryArray.from_pandas(result)
             elif pa.types.is_string(column.type):
                 # for the moment do nothing with strings
                 result = column.to_pandas()
                 while result.size < size:
                     result = pd.concat([result, result], axis=0)
                 result = result.sample(frac=1).iloc[:size].reset_index(drop=True)
-                arr = pa.StringArray.from_pandas(result)
-                result = pa.table([arr], names=[name])
-                result = self._set_table_nulls(result, name, null_mask)
-                rtn_tbl = Commons.table_append(rtn_tbl, result)
-            elif pa.types.is_date(column.type) or pa.types.is_timestamp(column.type):
-                s_values = column.to_pandas()
-                # set jitters to time deltas
-                jitter = pd.Timedelta(value=date_jitter, unit=date_units) if isinstance(date_jitter, int) else pd.Timedelta(value=0)
-                jitter = int(jitter.to_timedelta64().astype(int) / 10 ** 3)
-                _ = gen.normal(loc=0, scale=jitter, size=s_values.size)
-                _ = pd.Series(pd.to_timedelta(_, unit='micro'), index=s_values.index)
-                result = s_values.add(_)
-                while result.size < size:
-                    _ = gen.normal(loc=0, scale=jitter, size=s_values.size)
-                    _ = pd.Series(pd.to_timedelta(_, unit='micro'), index=s_values.index)
-                    result = pd.concat([result, s_values.add(_)], axis=0)
-                result = result.iloc[:size].astype(column.type.to_pandas_dtype())
-                result = result.sample(frac=1).reset_index(drop=True)
-                result = pa.table([pa.TimestampArray.from_pandas(result)], names=[name])
-                result = self._set_table_nulls(result, name, null_mask)
-                rtn_tbl = Commons.table_append(rtn_tbl, result)
+                result = pa.StringArray.from_pandas(result)
             else:
                 # return nulls for other types
-                result = pa.table([pa.nulls(size)], names=[name])
-                result = self._set_table_nulls(result, name, null_mask)
-                rtn_tbl = Commons.table_append(rtn_tbl, result)
+                result = pa.nulls(size)
+            rtn_array.append(result)
+            rtn_names.append(name)
+        rtn_tbl = pa.table(rtn_array, names=rtn_names)
         if isinstance(sort_by, str) and sort_by in rtn_tbl.columns:
             rtn_tbl = rtn_tbl.sort_by(sorting=sort_by)
         return Commons.table_append(canonical, rtn_tbl)
@@ -1209,14 +1170,14 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                           to_header='birth_date', save_intent=False)
         canonical = self.get_category(
             selection=['Not Hispanic or latino', 'Hispanic or latino'], relative_freq=[8, 2],
-            canonical=canonical, size=size, seed=seed, encode=category_encode,
+            canonical=canonical, size=size, seed=seed, to_categorical=category_encode,
             to_header='ethnicity',
             save_intent=False)
         canonical = self.get_category(
             selection=['White', 'Black or African American', 'American Indian or Alaska Native',
                        'Native Hawaiian or Other Pacific Islander', 'Asian', 'Others'],
             relative_freq=[60, 16, 2, 1, 6, 3], canonical=canonical, size=size, seed=seed,
-            encode=category_encode,
+            to_categorical=category_encode,
             to_header='race', save_intent=False)
         canonical = self.get_sample_map(canonical=canonical, sample_map='us_persona',
                                             headers=['first_name', 'family_name', 'gender'],
@@ -1267,7 +1228,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         # cat
         canonical = self.get_category(selection=['SUSPENDED', 'ACTIVE', 'PENDING', 'INACTIVE', 'ARCHIVE'],
                                       canonical=canonical, size=size, seed=seed, relative_freq=[1, 70, 20, 30, 10],
-                                      encode=category_encode, to_header='cat', save_intent=False)
+                                      to_categorical=category_encode, to_header='cat', save_intent=False)
         # num
         canonical = self.get_dist_normal(mean=0, std=1, canonical=canonical, size=size, seed=seed, to_header='num',
                                          save_intent=False)
@@ -1292,7 +1253,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             canonical = self.get_category(selection=['High', 'Med', 'Low'], canonical=canonical, relative_freq=[9,8,4],
                                           quantity=1 - prob_nulls, to_header='cat_null', size=size,
-                                          encode=category_encode, seed=seed, save_intent=False)
+                                          to_categorical=category_encode, seed=seed, save_intent=False)
             # num_null
             prob_nulls = (gen.integers(1, 10, 1) * 0.001)[0] + prob_nulls
             canonical = self.get_number(start=-1.0, stop=1.0, canonical=canonical, size=size,
