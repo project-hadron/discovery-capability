@@ -111,13 +111,15 @@ class Visualisation(object):
             canonical = canonical.take(sample)
         canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
         canonical = Commons.filter_columns(canonical, d_types=['is_integer', 'is_floating'])
-        control = canonical.to_pandas()
-        sns.set(rc={'figure.figsize': (width, height)})
-        sns.heatmap(control.corr(), annot=True, cmap='BuGn', robust=True)
-        plt.title('correlated data', fontdict={'size': 20})
-        plt.tight_layout()
-        plt.show()
-        plt.clf()
+        corr = canonical.to_pandas().corr()
+        # Fill diagonal and upper half with NaNs
+        mask = np.zeros_like(corr, dtype=bool)
+        mask[np.triu_indices_from(mask)] = True
+        corr[mask] = np.nan
+        return (corr.style
+                 .background_gradient(cmap='coolwarm', axis=None, vmin=-1, vmax=1)
+                 .highlight_null(color='#f1f1f1')  # Color NaNs grey
+                 .format(precision=2))
 
     @staticmethod
     def show_distributions(canonical: pa.Table, headers: [str, list]=None, d_types: [str, list]=None,

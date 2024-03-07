@@ -37,6 +37,17 @@ observable values in order of count.
 
     capability.canonical_report(canonical)
 
+Data Describe Report
+--------------------
+
+The Data Describe it is similar to the Pandas describe report it in that it gives your
+specific statistics around the numeric values in your table. It describes data
+distribution around the mean, giving standard deviation, maximum, minimum and quantiles.
+
+.. code-block:: python
+
+    capability.numeric_report(canonical)
+
 Data Schema Report
 ------------------
 

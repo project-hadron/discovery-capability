@@ -6,5 +6,6 @@ Profiling Reports API
 .. autoclass:: AbstractCommonComponent
     :noindex:
     :members: canonical_report,
+        numeric_report,
         quality_report,
         schema_report

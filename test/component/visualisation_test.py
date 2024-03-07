@@ -109,6 +109,12 @@ class VisualisationTest(unittest.TestCase):
         result = viz.show_categories(titanic, headers=['Ticket', 'Cabin'], drop=True)
         print(result)
 
+    def test_show_correlated(self):
+        fe = FeatureEngineer.from_memory()
+        tbl = fe.tools.get_noise(20000, num_columns=8)
+        result = viz.show_correlated(tbl)
+        print(result.to_string())
+
 
     def test_raise(self):
         startTime = datetime.now()
