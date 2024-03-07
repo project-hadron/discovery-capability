@@ -87,12 +87,21 @@ class DiscoveryTest(unittest.TestCase):
         result = DataDiscovery.data_dictionary(tbl, stylise=False, ordered=True)
         pprint(result.column('Attributes'))
 
+    def test_data_describe(self):
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        tbl = tools.get_synthetic_data_types(1_000)
+        result = DataDiscovery.data_describe(tbl)
+
+        print(fe.table_report(result).to_string())
+
+
     def test_data_quality(self):
         sb = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = sb.tools
         tbl = tools.get_synthetic_data_types(100_000, extend=True)
         result = DataDiscovery.data_quality(tbl, stylise=True)
-        pprint(result.to_string())
+        print(result.to_string())
 
     def test_data_quality_ref(self):
         sb = FeatureEngineer.from_memory()

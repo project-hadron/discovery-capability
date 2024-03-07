@@ -251,6 +251,39 @@ class DataDiscovery(object):
         return pa.Table.from_pandas(df)
 
     @staticmethod
+    def data_describe(canonical: pa.Table, capped_at: int=None, stylise: bool=None):
+        """ how the data are distributed around the mean
+
+        :param canonical: The canonical to interpret
+        :param capped_at: the row and column cap or 0 to ignore. default 5_000_000
+        :param stylise: (optional) if the output is stylised for jupyter display
+        :return: a pa.Table or stylised pandas
+        """
+        stylise = stylise if isinstance(stylise, bool) else False
+        cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        if canonical.num_rows*canonical.num_columns > cap > 0:
+            row_count = int(round(cap / canonical.num_columns, 0))
+            canonical = canonical.slice(0, row_count)
+        record = []
+        labels = [f'attributes', 'count', 'valid', 'mean', 'stddev', 'max', '75%', '50%', '25%', 'min']
+        for n in canonical.column_names:
+            c = canonical.column(n).combine_chunks()
+            if pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
+                line = [n,
+                        len(c),
+                        pc.count(c).as_py(),
+                        pc.round(pc.mean(c),5).as_py(),
+                        pc.round(pc.sqrt(pc.variance(c)),5).as_py(),
+                        pc.round(pc.max(c),5).as_py()]
+                line += pc.round(pc.quantile(c,[0.75, 0.5, 0.25]), 5).to_pylist()
+                line.append(pc.round(pc.min(c),5).as_py())
+                record.append(line)
+        df = pd.DataFrame(record, columns=labels)
+        if stylise:
+            return Commons.report(df, index_header='attributes')
+        return pa.Table.from_pandas(df)
+
+    @staticmethod
     def data_schema(canonical: pa.Table, table_cast: bool=None, capped_at: int=None, stylise: bool=None):
         """ The data dictionary for a given canonical
 
