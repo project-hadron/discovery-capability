@@ -12,6 +12,7 @@ from ds_capability.intent.feature_build_intent import FeatureBuildIntent
 from ds_core.properties.property_manager import PropertyManager
 from ds_capability import *
 from ds_capability.components.commons import Commons
+from ds_capability.intent.common_intent import AnalysisOptions
 
 # Pandas setup
 pd.set_option('max_colwidth', 320)
@@ -80,6 +81,14 @@ class AbstractTest(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             mask = tools._extract_mask(tbl.column('B'), condition=(1, 'equal', None))
         self.assertTrue("The operator 'equal' is not supported for data type 'string'." in str(context.exception))
+
+    def test_analysis_options(self):
+        opt = AnalysisOptions()
+        opt.add_option(name='opt1', var=23, order=True, type='int')
+        result = opt.get_option('opt1')
+        print(result)
+        result = opt.options
+        print(result)
 
 
     def test_raise(self):

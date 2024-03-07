@@ -68,7 +68,7 @@ class Commons(CoreCommons):
     def table_report(t: pa.Table, head: int=None, index_header: [str, list]=None, bold: [str, list]=None,
                      large_font: [str, list]=None):
         """ generates a stylised version of the pyarrow table """
-        df = pd.DataFrame(Commons.table_nest(t))
+        df = t.to_pandas()
         if isinstance(head, int):
             df = df[:head]
         return Commons.report(df, index_header=index_header, bold=bold, large_font=large_font)

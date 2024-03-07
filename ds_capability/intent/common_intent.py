@@ -217,3 +217,30 @@ class CommonsIntentModel(object):
         if isinstance(ordered, str) and ordered.lower() in ['asc', 'des']:
             result = result.sort_values(ascending=True if ordered.lower() == 'asc' else False)
         return pa.TimestampArray.from_pandas(result)
+
+class AnalysisOptions(object):
+
+    def __init__(self):
+        self._options = {}
+
+    def add_option(self, name: str, **kwargs):
+        self._options[name] = kwargs
+
+    def get_option(self, name: str):
+        return self._options.get(name, {})
+
+    @property
+    def options(self):
+        return self._options.copy()
+
+    def __len__(self):
+        return self._options.__len__()
+
+    def __str__(self):
+        return self._options.__str__()
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} {self._options.__str__()}"
+
+    def __eq__(self, other: dict):
+        return self._options.__eq__(other)
