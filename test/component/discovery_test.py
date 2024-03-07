@@ -91,9 +91,8 @@ class DiscoveryTest(unittest.TestCase):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools
         tbl = tools.get_synthetic_data_types(1_000)
-        result = DataDiscovery.data_describe(tbl)
-
-        print(fe.table_report(result).to_string())
+        result = DataDiscovery.data_describe(tbl, stylise=True)
+        print(result.to_string())
 
 
     def test_data_quality(self):
