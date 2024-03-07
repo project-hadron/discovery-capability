@@ -139,6 +139,24 @@ class AbstractCommonComponent(AbstractComponent):
                                              ordered=ordered)
 
     @staticmethod
+    def numeric_report(canonical: pa.Table, headers: [str,list]=None, regex:[str,list]=None, d_types:list=None,
+                       drop: bool=None, stylise: bool=None):
+        """The Canonical Report is a data dictionary of the canonical providing a reference view of the dataset's
+        attribute properties
+
+        :param canonical: the table to view
+        :param headers: (optional) specific headers to display
+        :param regex: (optional) specify header regex to display. regex matching is done using the Google RE2 library.
+        :param d_types: (optional) a list of pyarrow DataType e.g [pa.string(), pa.bool_()]
+        :param drop: (optional) if the headers are to be dropped and the remaining to display
+        :param stylise: (optional) if True present the report stylised.
+        """
+        stylise = stylise if isinstance(stylise, bool) else True
+        tbl = Commons.filter_columns(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
+        return DataDiscovery.data_describe(canonical=tbl, stylise=stylise)
+
+
+    @staticmethod
     def schema_report(canonical: pa.Table, headers: [str,list]=None, regex:[str,list]=None, d_types:list=None,
                       drop: bool=None, stylise: bool=True, table_cast: bool=None):
         """ presents the current canonical schema
