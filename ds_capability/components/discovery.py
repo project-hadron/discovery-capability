@@ -269,14 +269,15 @@ class DataDiscovery(object):
         for n in canonical.column_names:
             c = canonical.column(n).combine_chunks()
             if pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
+                precision = Commons.column_precision(c) if Commons.column_precision(c) < 5 else 5
                 line = [n,
                         len(c),
                         pc.count(c).as_py(),
-                        pc.round(pc.mean(c),5).as_py(),
-                        pc.round(pc.sqrt(pc.variance(c)),5).as_py(),
-                        pc.round(pc.max(c),5).as_py()]
-                line += pc.round(pc.quantile(c,[0.75, 0.5, 0.25]), 5).to_pylist()
-                line.append(pc.round(pc.min(c),5).as_py())
+                        pc.round(pc.mean(c),3).as_py(),
+                        pc.round(pc.sqrt(pc.variance(c)),3).as_py(),
+                        pc.round(pc.max(c),precision).as_py()]
+                line += pc.round(pc.quantile(c,[0.75, 0.5, 0.25]), precision).to_pylist()
+                line.append(pc.round(pc.min(c),precision).as_py())
                 record.append(line)
         df = pd.DataFrame(record, columns=labels)
         if stylise:
