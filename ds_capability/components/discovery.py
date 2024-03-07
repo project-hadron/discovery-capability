@@ -282,8 +282,8 @@ class DataDiscovery(object):
         for n in df.columns:
             if df[n].dtype.kind in 'iufc': # i int (signed), u unsigned int, f float, c complex
                 max_p = max([Commons.precision_scale(x)[1] for x in df[n]])
-                precision = max_p if max_p < 3 else 3
-                df[n] = df[n].round(precision)
+                precision = max_p if max_p < 6 else 6
+                df[n] = np.round(df[n], precision)
         if stylise:
             return Commons.report(df, index_header='attributes')
         return pa.Table.from_pandas(df)
