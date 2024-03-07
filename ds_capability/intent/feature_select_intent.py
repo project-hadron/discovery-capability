@@ -303,7 +303,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
         # Code block for intent
         threshold = threshold if isinstance(threshold, float) and 0 < threshold < 1 else 0.95
         # extract numeric columns
-        tbl_filter = Commons.filter_columns(canonical, d_types=[pa.int64(), pa.int32(), pa.float64(), pa.float32()])
+        tbl_filter = Commons.filter_columns(canonical, d_types=['is_integer', 'is_floating'])
         df_filter = tbl_filter.to_pandas()
         to_drop = set()
         corr_matrix = df_filter.corr()
@@ -404,7 +404,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
         headers = Commons.list_formatter(headers)
-        sample = Commons.filter_columns(canonical, headers=headers, drop=drop, d_types=[pa.float64(), pa.int64()])
+        sample = Commons.filter_columns(canonical, headers=headers, drop=drop, d_types=['is_integer', 'is_floating'])
         sample = self.auto_drop_noise(sample, nulls_threshold=0.3)
         sample = Commons.table_fill_null(sample)
         if not sample or len(sample) == 0:

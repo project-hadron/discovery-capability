@@ -110,8 +110,7 @@ class Visualisation(object):
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
         canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
-        canonical = Commons.filter_columns(canonical, d_types=[pa.int64(),pa.int32(),pa.int16(),pa.int8(),
-                                                               pa.float64(),pa.float32(),pa.float16()])
+        canonical = Commons.filter_columns(canonical, d_types=['is_integer', 'is_floating'])
         control = canonical.to_pandas()
         sns.set(rc={'figure.figsize': (width, height)})
         sns.heatmap(control.corr(), annot=True, cmap='BuGn', robust=True)
@@ -131,8 +130,7 @@ class Visualisation(object):
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
         canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
-        canonical = Commons.filter_columns(canonical, d_types=[pa.int64(),pa.int32(),pa.int16(),pa.int8(),
-                                                               pa.float64(),pa.float32(),pa.float16()])
+        canonical = Commons.filter_columns(canonical, d_types=['is_integer', 'is_floating'])
         control = canonical.to_pandas()
         for target in canonical.column_names:
         # Define figure size.
@@ -188,7 +186,7 @@ class Visualisation(object):
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
         canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
-        col_names = Commons.filter_headers(canonical, d_types=[pa.string()])
+        col_names = Commons.filter_headers(canonical, d_types=['is_string'])
         for n in tuple(col_names):
             c = canonical.column(n).combine_chunks()
             if pc.count(pc.unique(c)).as_py() > category_limit:
@@ -279,7 +277,7 @@ class Visualisation(object):
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
         canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
-        col_names = Commons.filter_headers(canonical, d_types=[pa.string()])
+        col_names = Commons.filter_headers(canonical, d_types=['is_string'])
         for n in tuple(col_names):
             c = canonical.column(n).combine_chunks()
             if pc.count(pc.unique(c)).as_py() > category_limit:
@@ -323,8 +321,7 @@ class Visualisation(object):
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
         canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
-        num_cols = Commons.filter_headers(canonical, d_types=[pa.int64(),pa.int32(),pa.int16(),pa.int8(),
-                                                               pa.float64(),pa.float32(),pa.float16()])
+        num_cols = Commons.filter_headers(canonical, d_types=['is_integer', 'is_floating'])
         control = canonical.to_pandas()
         depth = int(round(len(num_cols) / 2, 0) + len(num_cols) % 2)
         _figsize = (width, height * depth)
@@ -354,7 +351,7 @@ class Visualisation(object):
             sample = random.sample(range(canonical.num_rows), k=int(cap/canonical.num_columns))
             canonical = canonical.take(sample)
         canonical = Commons.filter_columns(canonical, headers=headers, d_types=d_types, regex=regex, drop=drop)
-        cat_cols = Commons.filter_headers(canonical, d_types=[pa.string()])
+        cat_cols = Commons.filter_headers(canonical, d_types=['is_string'])
         control = canonical.to_pandas()
         sns.set(style='darkgrid', color_codes=True)
         if len(cat_cols) == 1:
