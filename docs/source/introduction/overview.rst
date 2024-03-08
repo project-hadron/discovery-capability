@@ -1,7 +1,7 @@
 Why Project Hadron?
 ===================
-Project Hadron provides a quick top market Machine Learning pipeline from preprocessing
-to model predict, run as a single or multiple microservices within an application
+Project Hadron provides a light touch, robust Machine Learning pipeline from preprocessing
+and model predict, run as a single or multiple microservices within an application
 solution. It also lends itself to exploratory data analysis (EDA) integrating with
 existing data science packages and processes.
 
