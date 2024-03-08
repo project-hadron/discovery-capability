@@ -8,13 +8,9 @@ machine learning, require efficiency and speed within an ML lifecycle. With
 **Project Hadron** offers effective data management, extensive interoperability, improved
 memory management and hardware optimization.
 
-As a concept, **Project Hadron** was conceived with a desire to improve the availability
-of objective relevant data, increase the transparency and traceability of data lineage and
-facilitate knowledge transfer, retrieval and reuse.
-
-At its core **Project Hadron** is a selection of :ref:`capabilities<What are capabilities?>`
-that represent an encapsulated set of actions that act upon a given set of features or
-dataset.
+Within this, **Project Hadron** looks to improve the availability of objective relevant
+data, increase the transparency and traceability of data lineage and facilitate knowledge
+transfer, retrieval and reuse.
 
 For a more in-depth view of **Project Hadron** read the section on :ref:`Why Project Hadron?` or
 jump straight to :ref:`Getting Started` once you have :ref:`installed<Installation>` the package.

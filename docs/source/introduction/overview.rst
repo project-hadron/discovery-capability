@@ -1,13 +1,13 @@
 Why Project Hadron?
 ===================
-Project Hadron came from a desire to improve the availability of objective relevant data,
-increase the transparency and traceability of data lineage and facilitate knowledge
-transfer, retrieval and reuse.
+Project Hadron provides a quick top market Machine Learning pipeline from preprocessing
+to model predict, run as a single or multiple microservices within an application
+solution. It also lends itself to exploratory data analysis (EDA) integrating with
+existing data science packages and processes.
 
-It was born from the frustration of working on machine learning projects in Jupyter that
-lent itself to indecipherable collection of notebooks a data scientist produces, and
-its separation from the expected production solution bundle. It also masked the thinking
-and knowledge gained from the subject matter experts they interacted with.
+Project Hadron provides a light weight, quick-to-market, machine learning framework,
+using apache arrow, to considerably increase productivity, performance and integration
+of reusable pipelines towards production objectives.
 
 What are we solving?
 --------------------
@@ -28,25 +28,25 @@ stakeholders directly effects success of business objectives.
 
 Where does Project Hadron fit?
 ------------------------------
-**Project Hadron** is an open-source application framework, taking raw data and identifying,
+Project Hadron is an open-source application framework, taking raw data and identifying,
 analysing and extracting prepared data along with the management of ML trained models
 and their prediction for the purposes of a down stream business objective.
 
-**Project Hadron** is a comprehensive set of tools to build, improved, optimise features of
+Project Hadron is a comprehensive set of tools to build, improved, optimise features of
 interest and auto run predictions within a data preprocessing pipeline. It complements and
 enhances both communication and redistribution within a data science project, while
 providing clear boundaries between the preprocessing of data and algorythm optimisation.
 This separation promotes transparency and reuse, vastly improving the identification and
 extraction of features of interest.
 
-**Project Hadron**, within a data processing step, executing business driven analysis, is a
+Project Hadron, within a data processing step, executing business driven analysis, is a
 quick-to-market, robust set of tools that build reusable pipelines for the interrogation and
 restructure of data for a target use case. It helps in identifying potential failures at the
 earliest stage and helps ensure a transparent and traceable data foundations for success. It
 handles large data through memory efficiency, facilitates interoperability and optimisation of
 CPU and GPU acceleration.
 
-**Project Hadron** has been built to help bridge the gap between data scientists, data engineers
+Project Hadron has been built to help bridge the gap between data scientists, data engineers
 and business stakeholders with a comprehensive set of reporting tools covering data profiling,
 data lineage and knowledge acquisition. Its targeted reports can be directly delivered as
 spreadsheets for stakeholders, absorbed into an already existing reporting tool for analytics or
