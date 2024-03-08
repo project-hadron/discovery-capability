@@ -120,7 +120,8 @@ class AbstractCommonComponent(AbstractComponent):
                                           dom_threshold=dom_threshold, cat_threshold=cat_threshold, stylise=stylise)
     @staticmethod
     def canonical_report(canonical: pa.Table, headers: [str,list]=None, regex:[str,list]=None, d_types:list=None,
-                         drop: bool=None, stylise: bool=None, display_width: int=None, ordered: bool=None):
+                         drop: bool=None, stylise: bool=None, display_width: int=None, ordered: bool=None,
+                         basic_style: bool=None):
         """The Canonical Report is a data dictionary of the canonical providing a reference view of the dataset's
         attribute properties
 
@@ -131,12 +132,13 @@ class AbstractCommonComponent(AbstractComponent):
         :param drop: (optional) if the headers are to be dropped and the remaining to display
         :param stylise: (optional) if True present the report stylised.
         :param display_width: (optional) the width of the observational display
+        :param basic_style: provide a basic style
         :param ordered: (optional) if the result should be in header order
         """
         stylise = stylise if isinstance(stylise, bool) else True
         tbl = Commons.filter_columns(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
         return DataDiscovery.data_dictionary(canonical=tbl, stylise=stylise, display_width=display_width,
-                                             ordered=ordered)
+                                             ordered=ordered, basic_style=basic_style)
 
     @staticmethod
     def numeric_report(canonical: pa.Table, headers: [str,list]=None, regex:[str,list]=None, d_types:list=None,

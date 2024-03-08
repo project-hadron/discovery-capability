@@ -177,7 +177,7 @@ class DataDiscovery(object):
 
     @staticmethod
     def data_dictionary(canonical: pa.Table, table_cast: bool=None, display_width: int=None, stylise: bool=None,
-                        capped_at: int=None, ordered: bool=None):
+                        capped_at: int=None, ordered: bool=None, basic_style: bool=None):
         """ The data dictionary for a given canonical
 
         :param canonical: The canonical to interpret
@@ -186,11 +186,13 @@ class DataDiscovery(object):
         :param stylise: if the output is stylised for jupyter display
         :param capped_at: the row and column cap or 0 to ignore. default 5_000_000
         :param ordered: if the columns are sorted by name.
+        :param basic_style: provide a basic style
         :return: a pa.Table or stylised pandas
         """
         display_width = display_width if isinstance(display_width, int) else 50
         stylise = stylise if isinstance(stylise, bool) else False
         cap = capped_at if isinstance(capped_at, int) else 5_000_000
+        basic_style = basic_style if isinstance(basic_style, bool) else False
         if canonical.num_rows*canonical.num_columns > cap > 0:
             row_count = int(round(cap / canonical.num_columns, 0))
             canonical = canonical.slice(0, row_count)
@@ -235,6 +237,8 @@ class DataDiscovery(object):
             line.append(s)
             record.append(line)
         df = pd.DataFrame(record, columns=labels)
+        if basic_style:
+            return Commons.report(df, index_header='Attributes')
         if stylise:
             style = [{'selector': 'th', 'props': [('font-size', "120%"), ("text-align", "center")]},
                      {'selector': '.row_heading, .blank', 'props': [('display', 'none;')]}]
