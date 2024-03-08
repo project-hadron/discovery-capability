@@ -512,9 +512,9 @@ class DataDiscovery(object):
             color = '#208a0f'
         elif str(dtype).startswith('int'):
             color = '#0f398a'
-        elif str(dtype).startswith('float'):
+        elif str(dtype).startswith('double'):
             color = '#2f0f8a'
-        elif str(dtype).startswith('date'):
+        elif str(dtype).startswith('date') or str(dtype).startswith('time'):
             color = '#790f8a'
         elif str(dtype).startswith('bool'):
             color = '#08488e'
