@@ -1,13 +1,13 @@
 Why Project Hadron?
 ===================
-Project Hadron provides a light touch, robust Machine Learning pipeline from preprocessing
-and model predict, run as a single or multiple microservices within an application
-solution. It also lends itself to exploratory data analysis (EDA) integrating with
-existing data science packages and processes.
+Project Hadron provides robust, reusable Machine Learning pipelines for a preprocessing
+and model predict lifecycle, run as a single or multiple microservices within an
+application solution. It also lends itself to exploratory data analysis (EDA) integrating
+with existing data science packages and processes.
 
 Project Hadron provides a light weight, quick-to-market, machine learning framework,
-using apache arrow, to considerably increase productivity, performance and integration
-of reusable pipelines towards production objectives.
+sitting on apache arrow, to considerably increase productivity, performance and
+integration of reusable pipelines towards production objectives.
 
 What are we solving?
 --------------------
