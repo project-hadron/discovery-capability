@@ -15,6 +15,8 @@ class AbstractCommonComponent(AbstractComponent):
     initialization, connectivity management, reporting and running the component.
     """
 
+    ASSET_BANK = 'https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/contracts/pyarrow/'
+
     @classmethod
     @abstractmethod
     def from_uri(cls, task_name: str, uri_pm_path: str, creator: str, uri_pm_repo: str=None, pm_file_type: str=None,
