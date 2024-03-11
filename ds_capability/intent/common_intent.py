@@ -49,6 +49,24 @@ class CommonsIntentModel(object):
             null_mask = pa.array(null_list, pa.bool_())
         return pc.if_else(null_mask, None, values)
 
+    def _add_null_mask(self, values: pa.Array, num_nulls: [int, float], seed: int=None):
+        """ Adds null values randomly over a given set of values in an array
+
+        :param values: a pyarrow array
+        :param num_nulls: the integer number of nulls or probability between 0 and 1
+        :param seed: (optional) a seed for the random generator
+        :return: pa.Array
+        """
+        size = len(values)
+        num_nulls = self._extract_value(num_nulls)
+        num_nulls = int(num_nulls * size) if isinstance(num_nulls, float) and 0 <= num_nulls <= 1 else int(num_nulls)
+        num_nulls = num_nulls if 0 <= num_nulls < size else size
+        rng = np.random.default_rng(seed)
+        mask = [True] * size
+        mask[:num_nulls] = [False] * num_nulls
+        rng.shuffle(mask)
+        return pc.if_else(mask, values, None)
+
     def _set_quantity(self, selection, quantity, seed=None):
         """Returns the quantity percent of good values in selection with the rest fill"""
         quantity = self._quantity(quantity)

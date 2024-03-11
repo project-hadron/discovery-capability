@@ -20,7 +20,7 @@ the data.
 
 Setup uc1
 ~~~~~~~~~
-Initially import our capability classes, and then any environment variables required. In this
+Initially import our capability classes, and then any :ref:`environment<Environment>` variables required. In this
 case we are dynamically annotating for the input of the raw data location and the output of the
 model prediction.
 

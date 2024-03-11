@@ -63,7 +63,8 @@ uc1: Remote Run
 With our synthetic data now created, we are ready to run our component pipeline.
 In the first instance we set our our predictive source, in this case our synthetic
 data, and the location of where to put the results. As you can see the use of
-environment variables gives us flexibility as we move, or share, environments.
+:ref:`environment<Environment>` variables gives us flexibility as we move, or share,
+environments.
 
 Having taken our pipeline recipes, including the Controller, and put it into
 a repository that is retrievable, we can now point to the location of that

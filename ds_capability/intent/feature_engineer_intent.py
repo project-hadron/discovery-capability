@@ -536,20 +536,23 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
         return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[to_header]))
 
-    def get_dist_choice(self, number: [int, str, float], canonical: pa.Table=None, size: int=None, quantity: float=None,
-                        to_header: str=None,  seed: int=None, save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
-                        replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
-        """Creates a list of latent values of 0 or 1 where 1 is randomly selected based upon the number given. The
-        ``number`` parameter can be a direct reference to the canonical column header or to an environment variable.
-        If the environment variable is used ``number`` should be set to ``"${<<YOUR_ENVIRON>>}"`` where
+    def get_dist_binomial(self, number: [int, str, float], canonical: pa.Table=None, size: int=None,
+                          num_nulls: [float, int]=None, to_header: str=None, seed: int=None, save_intent: bool=None,
+                          intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                          remove_duplicates: bool=None) -> pa.Table:
+        """Creates a binomial as a boolean set of values based the number or a probability, dependent on the number
+        passed. If the number is between 0 and 1 it is taken as a probability, else it is taken as a numeric count.
+
+        The number parameter can be a direct reference to the canonical column header or to an environment variable.
+        If the environment variable is used number should be set to ``"${<<YOUR_ENVIRON>>}"`` where
         <<YOUR_ENVIRON>> is the environment variable name
 
-        :param number: The number of true (1) values to randomly chose from the canonical. see below
+        :param number: a probability between 0 and 1 or the number of True values.
         :param canonical: (optional) a pa.Table to append the result table to
-        :param size: the size of the sample. if a tuple of intervals, size must match the tuple
-        :param quantity: a number between 0 and 1 representing data that isn't null
+        :param size: (optional) the size of the array.
+        :param num_nulls: (optional) a probability between 0 and 1 or the number of null values.
         :param to_header: (optional) an optional name to call the column
-        :param seed: a seed value for the random function: default to None
+        :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the column name that groups intent to create a column
         :param intent_order: (optional) the order in which each intent should run.
@@ -578,17 +581,14 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         number = self._extract_value(number)
         number = int(number * size) if isinstance(number, float) and 0 <= number <= 1 else int(number)
         number = number if 0 <= number < size else size
-        if isinstance(number, int) and 0 <= number <= size:
-            rtn_list = pd.Series(data=[0] * size)
-            choice_tbl = self.get_number(stop=size, size=number, at_most=1, precision=0, ordered='asc', seed=seed,
-                                         save_intent=False)
-            choice_idx = choice_tbl.columns.pop(0).to_pylist()
-            rtn_list.iloc[choice_idx] = [1] * number
-            return rtn_list.reset_index(drop=True).to_list()
-        rtn_list = pd.Series(data=[0] * size).to_list()
-        rtn_list = self._set_quantity(rtn_list, quantity=self._quantity(quantity), seed=seed)
+        rtn_list = [0] * size
+        rtn_list[:number] = [1] * number
+        rng = np.random.default_rng(seed)
+        rng.shuffle(rtn_list)
+        rtn_arr = pa.array(list(map(bool, rtn_list)), pa.bool_())
+        rtn_arr = self._add_null_mask(rtn_arr, num_nulls=num_nulls, seed=seed)
         to_header = to_header if isinstance(to_header, str) else next(self.label_gen)
-        return Commons.table_append(canonical, pa.table([pa.NumericArray.from_pandas(rtn_list)], names=[to_header]))
+        return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
     def get_dist_bernoulli(self, probability: float, canonical: pa.Table=None, size: int=None, quantity: float=None,
                            to_header: str=None,  seed: int=None, save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,

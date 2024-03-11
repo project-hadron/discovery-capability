@@ -7,6 +7,14 @@ from ds_core.components.core_commons import CoreCommons
 class Commons(CoreCommons):
 
     @staticmethod
+    def list_formatter(value: Any) -> list:
+        if isinstance(value, pd.Series):
+            return value.to_list()
+        if isinstance(value, pd.DataFrame):
+            return value.iloc[0].to_list()
+        return super().list_formatter(value)
+
+    @staticmethod
     def date2value(dates: Any, day_first: bool=True, year_first: bool=False) -> list:
         """ converts a date to a number represented by to number of microseconds to the epoch"""
         values = pd.Series(pd.to_datetime(dates, errors='coerce', dayfirst=day_first, yearfirst=year_first))
