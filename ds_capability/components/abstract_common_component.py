@@ -16,6 +16,7 @@ class AbstractCommonComponent(AbstractComponent):
     """
 
     ASSET_BANK = 'https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/contracts/pyarrow/'
+    TOY_SAMPLE = 'https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/datasets/toy_sample'
 
     @classmethod
     @abstractmethod
