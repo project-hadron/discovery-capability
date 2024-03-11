@@ -2608,3 +2608,37 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_drop = Commons.filter_headers(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
         to_drop = Commons.list_intersect(canonical.column_names, to_drop)
         return canonical.drop_columns(to_drop)
+
+    def model_filter_mask(self, canonical: pa.Table, mask: str, save_intent: bool=None, drop_mask: bool=None,
+                          intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                          remove_duplicates: bool=None) -> pa.Table:
+        """ using a mask boolean column to filter a table.
+
+        :param canonical: the pa.Table
+        :param mask: the header name of the mask
+        :param drop_mask: (optional) if the mask column should be dropped
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the level name that groups intent by a reference name
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table.
+        """
+        # resolve intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # Code block for intent
+        canonical = self._get_canonical(canonical)
+        mask = self._extract_value(mask)
+        canonical = canonical.filter(canonical.column(mask))
+        if isinstance(drop_mask, bool) and drop_mask:
+            canonical.drop_columns(mask)
+        return canonical

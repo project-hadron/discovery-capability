@@ -7,7 +7,7 @@ FeatureEngineer - sample
     :noindex:
     :members: get_distribution,
         get_dist_normal,
-        get_dist_choice,
+        get_dist_binomial,
         get_dist_bernoulli,
         get_dist_bounded_normal,
         get_noise,
