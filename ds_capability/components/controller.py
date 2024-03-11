@@ -18,6 +18,9 @@ class Controller(AbstractComponent):
     capabilities inherit from.
     """
 
+    ASSET_BANK = 'https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/contracts/pyarrow/'
+    TOY_SAMPLE = 'https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/datasets/toy_sample'
+
     REPORT_USE_CASE = 'use_case'
     URI_PM_REPO = None
 
