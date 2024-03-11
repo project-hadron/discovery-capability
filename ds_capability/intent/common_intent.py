@@ -57,8 +57,10 @@ class CommonsIntentModel(object):
         :param seed: (optional) a seed for the random generator
         :return: pa.Array
         """
-        size = len(values)
         num_nulls = self._extract_value(num_nulls)
+        if num_nulls is None or num_nulls == 0:
+            return values
+        size = len(values)
         num_nulls = int(num_nulls * size) if isinstance(num_nulls, float) and 0 <= num_nulls <= 1 else int(num_nulls)
         num_nulls = num_nulls if 0 <= num_nulls < size else size
         rng = np.random.default_rng(seed)
