@@ -12,7 +12,7 @@ class Commons(CoreCommons):
             return value.to_list()
         if isinstance(value, pd.DataFrame):
             return value.iloc[0].to_list()
-        return super().list_formatter(value)
+        return CoreCommons.list_formatter(value)
 
     @staticmethod
     def date2value(dates: Any, day_first: bool=True, year_first: bool=False) -> list:

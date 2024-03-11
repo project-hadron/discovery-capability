@@ -11,4 +11,5 @@ FeatureEngineer - model
         model_num_cast,
         model_cat_cast,
         model_reinstate_nulls,
-        model_drop_columns
+        model_drop_columns,
+        model_filter_mask
