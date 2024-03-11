@@ -10,7 +10,7 @@ class PostgresSourceHandler(AbstractSourceHandler):
     def __init__(self, connector_contract: ConnectorContract):
         """ initialise the Hander passing the source_contract dictionary """
         # required module import
-        self.psycopg2 = HandlerFactory.get_module('psycopg2')
+        self.psycopg2 = HandlerFactory.get_module('psycopg2-binary')
         super().__init__(connector_contract)
         connector_type = self.connector_contract.schema
         if connector_type.lower() not in self.supported_types():

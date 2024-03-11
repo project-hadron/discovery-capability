@@ -574,7 +574,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
-        size = self._extract_value(size)
+        size = canonical.num_rows if isinstance(canonical, pa.Table) else self._extract_value(size)
         if not isinstance(size, int):
             raise ValueError("size not set. Size must be an int greater than zero")
         seed = self._seed() if seed is None else seed
