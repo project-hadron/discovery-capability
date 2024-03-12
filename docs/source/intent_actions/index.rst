@@ -103,6 +103,7 @@ Methods::
 
     correlate_column_join
     correlate_date_diff
+    correlate_date_delta
     correlate_date_element
     correlate_dates
     correlate_missing
@@ -134,6 +135,7 @@ Methods::
     model_num_cast
     model_reinstate_nulls
     model_drop_columns
+    model_filter_mask
 
 Feature Transformation
 ----------------------
@@ -242,7 +244,7 @@ Methods::
 
     get_distribution
     get_dist_normal
-    get_dist_choice
+    get_dist_binomial
     get_dist_bernoulli
     get_dist_bounded_normal
     get_noise
