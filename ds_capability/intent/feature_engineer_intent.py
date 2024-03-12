@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
-from sklearn.impute import KNNImputer
 from ds_capability.components.discovery import DataDiscovery
 from scipy import stats
 from ds_capability.intent.common_intent import CommonsIntentModel
@@ -1713,16 +1712,17 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else f"{first_date}-{second_date}"
         return Commons.table_append(canonical, pa.table([rtn_arr], names=[to_header]))
 
-    def correlate_date_element(self, canonical: pa.Table, target: [str, list], matrix: [str, list],
-                               drop_target:bool =None, day_first: bool=None, year_first: bool=None,
+    def correlate_date_element(self, canonical: pa.Table, header: [str, list], elements: [dict, list],
+                               drop_header:bool =None, day_first: bool=None, year_first: bool=None,
                                date_format: str=None, save_intent: bool=None, intent_level: [int, str]=None,
                                intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None):
-        """ breaks a date down into value representations of the various parts that date.
+        """ breaks a date down into value representations of the various parts that date and returns the elements given.
+        The elements are: yr, dec: decade, mon, day, dow: day of week, hr, min, woy: week of year, doy: day of year
 
         :param canonical:
-        :param target: a target column header
-        :param matrix: the matrix options (see below)
-        :param drop_target: drop the target column
+        :param header: The column header to take the elements from
+        :param elements: a list of elements or a dict of element keys and column name values
+        :param drop_header: drop the target column
         :param year_first: specifies if to parse with the year first
                 If True parses dates with the year first, eg 10/11/12 is parsed as 2010-11-12.
                 If both dayfirst and yearfirst are True, yearfirst is preceded (same as dateutil).
@@ -1743,17 +1743,6 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
 
         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
         :return: pandas.DataFrame.
-
-        Matrix options are:
-        - yr: year
-        - dec: decade
-        - mon: month
-        - day: day
-        - dow: day of week
-        - hr: hour
-        - min: minute
-        - woy: week of year
-        = doy: day of year
         """
         # intent persist options
         self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
@@ -1761,35 +1750,38 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
-        if not isinstance(target, str) or target not in canonical.column_names:
-            raise ValueError(f"The header '{target}' can't be found in the canonical headers")
-        values = canonical.column(target).combine_chunks()
-        matrix = Commons.list_formatter(matrix)
+        if not isinstance(header, str) or header not in canonical.column_names:
+            raise ValueError(f"The header '{header}' can't be found in the canonical headers")
+        if not isinstance(elements,(list, dict)):
+            raise ValueError(f"The elements must be a list or dict but '{type(elements)} was passed")
+        values = canonical.column(header).combine_chunks()
         day_first = day_first if isinstance(day_first, bool) else False
         year_first = year_first if isinstance(year_first, bool) else False
+        if isinstance(elements, list):
+            names = [f'{header}_' + sub for sub in elements]
+            elements = dict(zip(elements, names))
         p_values = values.to_pandas()
         p_values = pd.to_datetime(p_values, errors='coerce', dayfirst=day_first, yearfirst=year_first, format=date_format)
-        matrix = Commons.list_formatter(matrix)
-        if 'yr' in matrix:
-            canonical = Commons.table_append(canonical, pa.table([p_values.dt.year], names=[f"{target}_yr"]))
-        if 'dec' in matrix:
-            canonical = Commons.table_append(canonical, pa.table([p_values.dt.year % 10], names=[f"{target}_dec"]))
-        if 'mon' in matrix:
-            canonical = Commons.table_append(canonical, pa.table([p_values.dt.month], names=[f"{target}_mon"]))
-        if 'day' in matrix:
-            canonical = Commons.table_append(canonical, pa.table([p_values.dt.day], names=[f"{target}_day"]))
-        if 'dow' in matrix:
-            canonical = Commons.table_append(canonical, pa.table([p_values.dt.dayofweek], names=[f"{target}_dow"]))
-        if 'hr' in matrix:
-            canonical = Commons.table_append(canonical, pa.table([p_values.dt.hour], names=[f"{target}_hr"]))
-        if 'min' in matrix:
-            canonical = Commons.table_append(canonical, pa.table([p_values.dt.minute], names=[f"{target}_min"]))
-        if 'woy' in matrix:
-            canonical = Commons.table_append(canonical, pa.table([p_values.dt.isocalendar().week], names=[f"{target}_woy"]))
-        if 'doy' in matrix:
-            canonical = Commons.table_append(canonical, pa.table([p_values.dt.dayofyear], names=[f"{target}_doy"]))
-        if isinstance(drop_target, bool) and drop_target:
-            canonical = canonical.drop_columns(target)
+        if 'yr' in elements:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.year], names=[elements.get("yr")]))
+        if 'dec' in elements:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.year % 10], names=[elements.get("dec")]))
+        if 'mon' in elements:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.month], names=[elements.get("mon")]))
+        if 'day' in elements:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.day], names=[elements.get("day")]))
+        if 'dow' in elements:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.dayofweek], names=[elements.get("dow")]))
+        if 'hr' in elements:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.hour], names=[elements.get("hr")]))
+        if 'min' in elements:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.minute], names=[elements.get("min")]))
+        if 'woy' in elements:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.isocalendar().week], names=[elements.get("woy")]))
+        if 'doy' in elements:
+            canonical = Commons.table_append(canonical, pa.table([p_values.dt.dayofyear], names=[elements.get("doy")]))
+        if isinstance(drop_header, bool) and drop_header:
+            canonical = canonical.drop_columns(header)
         return canonical
 
     def correlate_on_pandas(self, canonical: pa.Table, header: str, code_str: str, to_header: str=None, seed: int=None,

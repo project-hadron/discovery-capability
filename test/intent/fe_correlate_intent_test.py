@@ -223,9 +223,11 @@ class FeatureEngineerCorrelateTest(unittest.TestCase):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools
         tbl = tools.get_synthetic_data_types(10, seed=101)
-        result = tools.correlate_date_element(tbl, target='date', matrix=['hr', 'min'])
-        print(result.column_names)
-        print(Commons.table_report(result).to_string())
+        result = tools.correlate_date_element(tbl, header='date', elements=['hr', 'min'])
+        self.assertCountEqual(['id', 'cat', 'num', 'int', 'bool', 'date', 'string', 'date_hr', 'date_min'], result.column_names)
+        result = tools.correlate_date_element(tbl, header='date', elements={'hr':'hours', 'min':'mins'}, drop_header=True)
+        self.assertCountEqual(['id', 'cat', 'num', 'int', 'bool', 'string', 'hours', 'mins'], result.column_names)
+
 
     def test_model_missing(self):
         fe = FeatureEngineer.from_memory()
