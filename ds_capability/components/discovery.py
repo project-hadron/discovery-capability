@@ -1,4 +1,7 @@
-import collections
+import warnings
+import math
+from collections import Counter
+import scipy.stats as ss
 import pandas as pd
 import numpy as np
 import pyarrow as pa
@@ -326,7 +329,7 @@ class DataDiscovery(object):
                 record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
                 record.append([n, 'null_proportions', (c.null_count/len(c))])
                 record.append([n, 'valid_proportions', ((pc.sum(c.is_valid()).as_py())/len(c))])
-                unique_count =  sum(1 for _, count in collections.Counter(c.to_pylist()).items() if count == 1)
+                unique_count =  sum(1 for _, count in Counter(c.to_pylist()).items() if count == 1)
                 record.append([n, 'unique', unique_count])
                 record.append([n, 'unique_proportions', (unique_count/len(c))])
                 distinct_count = len(c.unique())
@@ -346,7 +349,7 @@ class DataDiscovery(object):
                 record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
                 record.append([n, 'null_proportions', (c.null_count/len(c))])
                 record.append([n, 'valid_proportions', ((pc.sum(c.is_valid()).as_py())/len(c))])
-                unique_count =  sum(1 for _, count in collections.Counter(c.to_pylist()).items() if count == 1)
+                unique_count =  sum(1 for _, count in Counter(c.to_pylist()).items() if count == 1)
                 record.append([n, 'unique', unique_count])
                 record.append([n, 'unique_proportions', (unique_count/len(c))])
                 distinct_count = len(c.unique())
@@ -385,7 +388,7 @@ class DataDiscovery(object):
                 record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
                 record.append([n, 'null_proportions', (c.null_count/len(c))])
                 record.append([n, 'valid_proportions', ((pc.sum(c.is_valid()).as_py())/len(c))])
-                unique_count =  sum(1 for _, count in collections.Counter(c.to_pylist()).items() if count == 1)
+                unique_count =  sum(1 for _, count in Counter(c.to_pylist()).items() if count == 1)
                 record.append([n, 'unique', unique_count])
                 record.append([n, 'unique_proportions', (unique_count/len(c))])
                 distinct_count = len(c.unique())
@@ -405,7 +408,7 @@ class DataDiscovery(object):
                 record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
                 record.append([n, 'null_proportions', (c.null_count/len(c))])
                 record.append([n, 'valid_proportions', ((pc.sum(c.is_valid()).as_py())/len(c))])
-                unique_count =  sum(1 for _, count in collections.Counter(c.to_pylist()).items() if count == 1)
+                unique_count =  sum(1 for _, count in Counter(c.to_pylist()).items() if count == 1)
                 record.append([n, 'unique', unique_count])
                 record.append([n, 'unique_proportions', (unique_count/len(c))])
                 distinct_count = len(c.unique())
@@ -422,7 +425,7 @@ class DataDiscovery(object):
                 record.append([n, 'valid', pc.sum(c.is_valid()).as_py()])
                 record.append([n, 'null_proportions', (c.null_count/len(c))])
                 record.append([n, 'valid_proportions', ((pc.sum(c.is_valid()).as_py())/len(c))])
-                unique_count =  sum(1 for _, count in collections.Counter(c.to_pylist()).items() if count == 1)
+                unique_count =  sum(1 for _, count in Counter(c.to_pylist()).items() if count == 1)
                 record.append([n, 'unique', unique_count])
                 record.append([n, 'unique_proportions', (unique_count/len(c))])
                 distinct_count = len(c.unique())
@@ -504,6 +507,106 @@ class DataDiscovery(object):
         rtn_list = np.select(conditions, choices, default=None).tolist()
         return pa.StringArray.from_pandas(rtn_list)
 
+    @staticmethod
+    def conditional_entropy(x: [list, np.array, pa.Array], y: [list, np.array, pa.Array]):
+        """ conditional entropy quantifies the amount of information needed to describe the outcome of a random variable
+        given that the value of another random variable is known.
+
+        :param x: an array like object
+        :param y: an array like object
+        :return: a number between 0 and 1 where 0 is total entropy
+        """
+        y_counter = Counter(y)
+        xy_counter = Counter(list(zip(x, y)))
+        total_occurrences = sum(y_counter.values())
+        entropy = 0.0
+        for xy in xy_counter.keys():
+            p_xy = xy_counter[xy] / total_occurrences
+            p_y = y_counter[xy[1]] / total_occurrences
+            entropy += p_xy * math.log(p_y / p_xy, math.e)
+        return entropy
+
+    @staticmethod
+    def association_cramers_v(x: [list, np.array, pa.Array], y: [list, np.array, pa.Array], bias_correction: bool = True) -> float:
+        """ Calculates Cramer's V statistic for categorical-categorical association.
+        Cramér’s V is based on a nominal variation of Pearson’s Chi-Square Test.
+        The value is on the range of [0,1] - where 0 means y provides no information
+        about x, and 1 means y provides full information about x.
+
+        It is a symmetric coefficient: V(x,y) = V(y,x)
+
+        Original function taken from: https://stackoverflow.com/a/46498792/5863503
+        Wikipedia: https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V
+
+        :param x: an array like object
+        :param y: an array like object
+        :param bias_correction: (optional) bias correction from Bergsma and Wicher
+        :return: a number between 0 and 1 where 0 means y provides no information about x
+        """
+        _PRECISION = 1e-13
+        confusion_matrix = pd.crosstab(x, y)
+        chi2 = ss.chi2_contingency(confusion_matrix)[0]
+        n = confusion_matrix.sum().sum()
+        phi2 = chi2 / n
+        r, k = confusion_matrix.shape
+        if bias_correction:
+            phi2corr = max(0, phi2 - ((k - 1) * (r - 1)) / (n - 1))
+            rcorr = r - ((r - 1) ** 2) / (n - 1)
+            kcorr = k - ((k - 1) ** 2) / (n - 1)
+            if min((kcorr - 1), (rcorr - 1)) == 0:
+                warnings.warn(
+                    "Unable to calculate Cramer's V using bias correction. Consider using bias_correction=False",
+                    RuntimeWarning,
+                )
+                return np.nan
+            else:
+                v = np.sqrt(phi2corr / min((kcorr - 1), (rcorr - 1)))
+        else:
+            v = np.sqrt(phi2 / min(k - 1, r - 1))
+        if - _PRECISION <= v < 0.0 or 1.0 < v <= 1.0 + _PRECISION:
+            rounded_v = 0.0 if v < 0 else 1.0
+            warnings.warn(
+                f"Rounded V = {v} to {rounded_v}. This is probably due to floating point precision issues.",
+                RuntimeWarning,
+            )
+            return rounded_v
+        else:
+            return v
+
+    @staticmethod
+    def association_theils_u(x: [list, np.array, pa.Array], y: [list, np.array, pa.Array]) -> float:
+        """ Calculates Theil's U statistic (Uncertainty coefficient) for categorical-
+        categorical association. This is the uncertainty of x given y: value is
+        on the range of [0,1] - where 0 means y provides no information about
+        x, and 1 means y provides full information about x.
+
+        This is an asymmetric coefficient: U(x,y) != U(y,x)
+
+        Wikipedia: https://en.wikipedia.org/wiki/Uncertainty_coefficient
+
+        :param x: an array like object
+        :param y: an array like object
+        :return: a number between 0 and 1 where 0 means y provides no information about x
+        """
+        _PRECISION = 1e-13
+        s_xy = DataDiscovery.conditional_entropy(x, y)
+        x_counter = Counter(x)
+        total_occurrences = sum(x_counter.values())
+        p_x = list(map(lambda n: n / total_occurrences, x_counter.values()))
+        s_x = ss.entropy(p_x)
+        if s_x == 0:
+            return 1.0
+        else:
+            u = (s_x - s_xy) / s_x  # type: ignore
+            if - _PRECISION <= u < 0.0 or 1.0 < u <= 1.0 + _PRECISION:
+                rounded_u = 0.0 if u < 0 else 1.0
+                warnings.warn(
+                    f"Rounded U = {u} to {rounded_u}. This is probably due to floating point precision issues.",
+                    RuntimeWarning,
+                )
+                return rounded_u
+            else:
+                return u
 
     @staticmethod
     def _dtype_color(dtype: str):

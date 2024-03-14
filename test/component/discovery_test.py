@@ -65,22 +65,22 @@ class DiscoveryTest(unittest.TestCase):
             pass
 
     def test_interquartile_outliers(self):
-        sb = FeatureEngineer.from_memory()
-        tools: FeatureEngineerIntent = sb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         arr = pa.array([1,2,1,34,1,2,3])
         result = DataDiscovery.outliers_iqr(arr)
         self.assertEqual(([],[34]), result)
 
     def test_empirical_outliers(self):
-        sb = FeatureEngineer.from_memory()
-        tools: FeatureEngineerIntent = sb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         arr = pa.array([1,2,1,1,2,3]*100 +[34])
         result = DataDiscovery.outliers_empirical(arr)
         self.assertEqual(([],[34]), result)
 
     def test_data_dictionary(self):
-        sb = FeatureEngineer.from_memory()
-        tools: FeatureEngineerIntent = sb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         tbl = tools.get_synthetic_data_types(1_000)
         result = DataDiscovery.data_dictionary(tbl, stylise=False)
         self.assertEqual(['Attributes', 'DataType', 'Nulls', 'Dominate', 'Valid', 'Unique', 'Observations'], result.column_names)
@@ -94,27 +94,53 @@ class DiscoveryTest(unittest.TestCase):
         result = DataDiscovery.data_describe(tbl, stylise=True)
         print(result.to_string())
 
-
     def test_data_quality(self):
-        sb = FeatureEngineer.from_memory()
-        tools: FeatureEngineerIntent = sb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         tbl = tools.get_synthetic_data_types(100_000, extend=True)
         result = DataDiscovery.data_quality(tbl, stylise=True)
         print(result.to_string())
 
     def test_data_quality_ref(self):
-        sb = FeatureEngineer.from_memory()
-        tools: FeatureEngineerIntent = sb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         tbl = tools.get_synthetic_data_types(100_000, extend=True)
         result = DataDiscovery.data_quality(tbl, stylise=False)
         pprint(result.schema)
 
     def test_data_schema(self):
-        sb = FeatureEngineer.from_memory()
-        tools: FeatureEngineerIntent = sb.tools
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
         tbl = tools.get_synthetic_data_types(1_000, extend=True)
         result = DataDiscovery.data_schema(tbl, stylise=True)
         pprint(result.to_string())
+
+    def test_condition_entropy(self):
+        fe = FeatureEngineer.from_memory()
+        x = fe.tools.get_category(['M', 'F'], size=1000, to_header='x', seed=0).column('x')
+        y = fe.tools.get_category(list('ABCDEFGHIJK'), size=1000, to_header='y', seed=1).column('y')
+        result = DataDiscovery.conditional_entropy(x, x)
+        self.assertEqual(0, result)
+        result = DataDiscovery.conditional_entropy(x, y)
+        self.assertGreater(result, 0.5)
+
+    def test_cramers_v(self):
+        fe = FeatureEngineer.from_memory()
+        x = fe.tools.get_category(['M', 'F'], size=1000, to_header='x', seed=0).column('x')
+        y = fe.tools.get_category(list('ABCDEFGHIJK'), size=1000, to_header='y', seed=1).column('y')
+        result = DataDiscovery.association_cramers_v(x, x)
+        self.assertGreater(result, 0.99)
+        result = DataDiscovery.association_cramers_v(x, y)
+        self.assertLess(result, 0.2)
+
+    def test_theils_u(self):
+        fe = FeatureEngineer.from_memory()
+        x = fe.tools.get_category(['M', 'F'], size=1000, to_header='x', seed=0).column('x')
+        y = fe.tools.get_category(list('ABCDEFGHIJK'), size=1000, to_header='y', seed=1).column('y')
+        result = DataDiscovery.association_theils_u(x, x)
+        self.assertGreater(result, 0.99)
+        result = DataDiscovery.association_theils_u(x, y)
+        self.assertLess(result, 0.2)
 
     def test_raise(self):
         startTime = datetime.now()
