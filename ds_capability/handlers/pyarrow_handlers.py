@@ -58,10 +58,12 @@ class PyarrowSourceHandler(AbstractSourceHandler):
             return feather.read_table(address, **load_params)
         # csv
         if file_type.lower() in ['csv', 'gz', 'bz2']:
-            parse_options = csv.ParseOptions(**load_params)
+            _kwargs = {**_cc.query, **_cc.kwargs, **load_params}
+            parse_options = _kwargs.get('parse_options')
+            read_options = _kwargs.get('read_options')
             if _cc.schema.startswith('http'):
                 address = io.BytesIO(requests.get(address).content)
-            return csv.read_csv(address, parse_options=parse_options)
+            return csv.read_csv(address, parse_options=parse_options, read_options=read_options)
         # json
         if file_type.lower() in ['json']:
             data =  self._json_load(path_file=address, **load_params)
@@ -133,6 +135,18 @@ class PyarrowSourceHandler(AbstractSourceHandler):
             return r.json()
         with closing(open(path_file, mode='r')) as f:
             return json.load(f, **kwargs)
+
+    @staticmethod
+    def read_options(**kwargs) -> csv.ReadOptions:
+        if not isinstance(kwargs, dict):
+            return None
+        return csv.ReadOptions(**kwargs)
+
+    @staticmethod
+    def parse_options(**kwargs) -> csv.ParseOptions:
+        if not isinstance(kwargs, dict):
+            return None
+        return csv.ParseOptions(**kwargs)
 
 
 class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):

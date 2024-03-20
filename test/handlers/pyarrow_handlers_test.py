@@ -81,6 +81,14 @@ class FeatureBuilderTest(unittest.TestCase):
         result = handler.load_canonical()
         self.assertEqual(tbl.column_names, result.column_names)
         self.assertEqual(tbl.shape, result.shape)
+        read_options = PyarrowPersistHandler.read_options(autogenerate_column_names=True, skip_rows=1)
+        cc = ConnectorContract(uri, 'module_name', 'handler', read_options=read_options)
+        handler = PyarrowPersistHandler(cc)
+        handler.persist_canonical(tbl)
+        result = handler.load_canonical()
+        self.assertEqual(['f0', 'f1', 'f2', 'f3', 'f4', 'f5'], result.column_names)
+        self.assertEqual(tbl.shape, result.shape)
+
 
     def test_csv_https(self):
         tbl = get_table()
