@@ -166,6 +166,7 @@ class MongodbHandlerTest(unittest.TestCase):
         print(f"raw_kwargs = {cc.raw_kwargs}")
         print(f"address = {cc.address}")
         print(f"schema = {cc.schema}")
+        print(f"netloc = {cc.netloc}")
         print(f"hostname = {cc.hostname}")
         print(f"port = {cc.port}")
         print(f"username = {cc.username}")

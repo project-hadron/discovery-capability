@@ -79,16 +79,27 @@ class FeaturePredict(AbstractCommonComponent):
     def tools(self) -> FeaturePredictIntent:
         return self._intent_model
 
-    def add_trained_model(self, model_name: str, trained_model: Any, metrics: dict=None, description: str=None,
-                          hyper_params: dict=None):
+    @staticmethod
+    def create_model_canonical(model_name: str, trained_model: Any, metrics: dict=None, description: str=None,
+                              params: dict=None) -> pa.Table:
         """"""
         descr = description if isinstance(description, str) else ""
-        hyper_params = hyper_params if isinstance(hyper_params, dict) else {}
+        params = params if isinstance(params, dict) else {}
         metrics = metrics if isinstance(metrics, tuple) else {}
         byte_model = pa.array([pickle.dumps(trained_model)], type=pa.binary())
-        byte_params = pa.array([pickle.dumps(hyper_params)], type=pa.binary())
+        byte_params = pa.array([pickle.dumps(params)], type=pa.binary())
         byte_metrics = pa.array([pickle.dumps(metrics)], type=pa.binary())
-        tbl = pa.table([pa.array([model_name]), byte_model, pa.array([descr]), byte_params, byte_metrics],
-                       names=['model_name', 'model', 'description', 'hyper_params', 'metrics'])
-        self.persist_canonical(connector_name=model_name, canonical=tbl)
-        return
+        return pa.table(data=[pa.array([model_name]), byte_model, pa.array([descr]), byte_params, byte_metrics],
+                        names=['model_name', 'model', 'description', 'params', 'metrics'])
+
+    @staticmethod
+    def explode_model_canonical(canonical: pa.Table):
+        """"""
+        name = canonical.column('model_name')[0].as_py()
+        description = canonical.column('description')[0].as_py()
+        model = pickle.loads(canonical.column('model')[0].as_py())
+        params = pickle.loads(canonical.column('params')[0].as_py())
+        metrics = pickle.loads(canonical.column('metrics')[0].as_py())
+        return name, model, description, params, metrics
+
+
