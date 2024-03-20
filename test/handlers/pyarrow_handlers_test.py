@@ -81,7 +81,7 @@ class FeatureBuilderTest(unittest.TestCase):
         result = handler.load_canonical()
         self.assertEqual(tbl.column_names, result.column_names)
         self.assertEqual(tbl.shape, result.shape)
-        read_options = PyarrowPersistHandler.read_options(autogenerate_column_names=True, skip_rows=1)
+        read_options = {'read_options': Commons.param2dict(autogenerate_column_names=True, skip_rows=1)}
         cc = ConnectorContract(uri, 'module_name', 'handler', read_options=read_options)
         handler = PyarrowPersistHandler(cc)
         handler.persist_canonical(tbl)

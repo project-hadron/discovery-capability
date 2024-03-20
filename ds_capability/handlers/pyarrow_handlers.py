@@ -59,8 +59,10 @@ class PyarrowSourceHandler(AbstractSourceHandler):
         # csv
         if file_type.lower() in ['csv', 'gz', 'bz2']:
             _kwargs = {**_cc.query, **_cc.kwargs, **load_params}
-            parse_options = _kwargs.get('parse_options')
-            read_options = _kwargs.get('read_options')
+            parse_options = _kwargs.get('parse_options', {}).get('parse_options', {})
+            parse_options = self.parse_options(**parse_options)
+            read_options = _kwargs.get('read_options', {}).get('read_options', {})
+            read_options = self.read_options(**read_options)
             if _cc.schema.startswith('http'):
                 address = io.BytesIO(requests.get(address).content)
             return csv.read_csv(address, parse_options=parse_options, read_options=read_options)
@@ -138,13 +140,13 @@ class PyarrowSourceHandler(AbstractSourceHandler):
 
     @staticmethod
     def read_options(**kwargs) -> csv.ReadOptions:
-        if not isinstance(kwargs, dict):
+        if kwargs is None or not kwargs:
             return None
         return csv.ReadOptions(**kwargs)
 
     @staticmethod
     def parse_options(**kwargs) -> csv.ParseOptions:
-        if not isinstance(kwargs, dict):
+        if kwargs is None or not kwargs:
             return None
         return csv.ParseOptions(**kwargs)
 
