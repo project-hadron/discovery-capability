@@ -67,7 +67,7 @@ class FeatureSelectIntent(AbstractFeatureSelectIntentModel, CommonsIntentModel):
             names = [rename_map.get(item,item) for item in canonical.column_names]
             canonical = canonical.rename_columns(names)
         if isinstance(rename_map, list) and len(rename_map) == canonical.num_columns:
-            tbl = canonical.rename_columns(rename_map)
+            canonical = canonical.rename_columns(rename_map)
         # tidy
         headers = []
         for s in canonical.column_names:

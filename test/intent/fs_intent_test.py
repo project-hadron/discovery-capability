@@ -70,6 +70,8 @@ class FeatureEngineererTest(unittest.TestCase):
         tools: FeatureSelectIntent = fs.tools
         result = tools.auto_clean_header(tbl, rename_map={'num': 'float'})
         self.assertEqual(['id', 'cat', 'float', 'int', 'bool', 'date', 'string'], result.column_names)
+        result = tools.auto_clean_header(tbl, rename_map=['cid', 'category', 'float', 'integer', 'boolean', 'date', 'str'])
+        self.assertEqual(['cid', 'category', 'float', 'integer', 'boolean', 'date', 'str'], result.column_names)
 
 
     def test_auto_drop_noise(self):
