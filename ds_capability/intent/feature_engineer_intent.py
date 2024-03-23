@@ -1,5 +1,5 @@
 import inspect
-from typing import Any
+from typing import Any, Callable
 import string
 import numpy as np
 import pandas as pd
@@ -1895,6 +1895,54 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([pc.if_else(_mask, value, default)], names=[to_header]))
 
+    def correlate_aggregate(self, canonical: pa.Table, headers: [str, list], action: str, to_header: str=None,
+                            seed: int=None, save_intent: bool=None, intent_order: int=None,
+                            intent_level: [int, str]=None, replace_intent: bool=None,
+                            remove_duplicates: bool=None) -> pa.Table:
+        """ Aggrigate the first header in a list headers to the next for all headers in
+        the list. If only one header is given, then the action is expected to be a single
+        parameter function such as 'sqrt'. All actions must be a pyarrow compute numeric
+        operation.
+
+        :param canonical: a pa.Table as the reference table
+        :param headers: one or more headers of numeric type
+        :param action: a string representation of a pyarrow compute numeric operation.
+        :param to_header: (optional) an optional name to call the column
+        :param seed: (optional) the random seed. defaults to current datetime
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the column name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        :return: pa.Table
+        """
+        self._set_intend_signature( self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                    intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        to_header = self._extract_value(to_header)
+        headers = Commons.list_formatter(headers)
+        # only allow numeric columns
+        num_cols = Commons.filter_headers(canonical, d_types=['is_integer', 'is_floating'])
+        headers = Commons.list_intersect(headers, num_cols)
+        seed = seed if isinstance(seed, int) else self._seed()
+        arr = canonical.column(headers[0])
+        if len(headers) == 1:
+            arr = eval(f'pc.{action}(arr)', globals(), locals())
+        else:
+            for idx in range(1, len(headers)):
+                arr = eval(f'pc.{action}(arr, canonical.column(headers[idx]))', globals(), locals())
+        to_header = to_header if isinstance(to_header, str) else headers[0]
+        return Commons.table_append(canonical, pa.table([arr], names=[to_header]))
+
     def correlate_column_join(self, canonical: pa.Table, header: str, others: [str, list], drop_others: bool=None,
                               sep: str=None, to_header: str=None, seed: int=None, save_intent: bool=None, intent_order: int=None,
                               intent_level: [int, str]=None, replace_intent: bool=None,
@@ -2233,7 +2281,7 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
         other = pa.Table.from_pandas(other)
         return Commons.table_append(canonical, other)
 
-    def model_group(self, canonical: Any, group_by: [str, list], headers: [str, list]=None, regex: bool=None,
+    def model_group(self, canonical: pa.Table, group_by: [str, list], headers: [str, list]=None, regex: bool=None,
                     aggregator: str=None, list_choice: int=None, list_max: int=None, drop_group_by: bool = False,
                     seed: int=None, include_weighting: bool = False, freq_precision: int=None,
                     remove_weighting_zeros: bool = False, remove_aggregated: bool = False, save_intent: bool=None,

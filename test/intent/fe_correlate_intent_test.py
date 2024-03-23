@@ -251,7 +251,7 @@ class FeatureEngineerCorrelateTest(unittest.TestCase):
         result = tools.correlate_missing(tbl, header='num_null', strategy='constant', constant=0)
         self.assertEqual(0, result.column('num_null').null_count)
 
-    def test_model_missing_titanic(self):
+    def test_correlate_missing_probability_titanic(self):
         fe = FeatureEngineer.from_memory()
         tools: FeatureEngineerIntent = fe.tools
         fe.set_source_uri('https://raw.githubusercontent.com/project-hadron/hadron-asset-bank/master/datasets/toy_sample/titanic.csv')
@@ -259,6 +259,15 @@ class FeatureEngineerCorrelateTest(unittest.TestCase):
         self.assertEqual(263, tbl.column('age').null_count)
         result = tools.correlate_missing_probability(tbl, header='age')
         self.assertEqual(0, result.column('age').null_count)
+
+    def test_correlate_aggregate(self):
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        t1 = pa.Table.from_pydict({'A': [1, 2], 'B': [1, 3], 'C': [2, 4]})
+        result = tools.correlate_aggregate(t1, headers=['A', 'B', 'C'], action='multiply', to_header='agg')
+        print(fe.table_report(result).to_string())
+        result = tools.correlate_aggregate(t1, headers=['A'], action='sqrt', to_header='agg')
+        print(fe.table_report(result).to_string())
 
 
 
