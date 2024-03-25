@@ -6,6 +6,7 @@ FeatureEngineer - correlate
 .. autoclass:: FeatureEngineerIntent
     :noindex:
     :members: correlate_column_join,
+        correlate_aggregate,
         correlate_date_delta,
         correlate_date_diff,
         correlate_date_element,

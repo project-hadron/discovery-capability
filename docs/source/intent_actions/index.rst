@@ -102,6 +102,7 @@ of interests. Its focus is around correlate of two value streams to produce a th
 Methods::
 
     correlate_column_join
+    correlate_aggregate
     correlate_date_diff
     correlate_date_delta
     correlate_date_element
