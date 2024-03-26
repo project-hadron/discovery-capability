@@ -1,4 +1,6 @@
 import time
+from typing import Callable
+
 import numpy as np
 import pandas as pd
 import pyarrow as pa
@@ -180,60 +182,54 @@ class CommonsIntentModel(object):
         return result
 
     @staticmethod
-    def _gen_category(column: pa.Array, size: int, seed: int=None):
+    def _gen_category(column: pa.Array, size: int, generator: np.random.default_rng, seed: int=None):
         """"""
-        seed = seed if isinstance(seed, int) else int(time.time() * np.random.random())
         if not pa.types.is_dictionary(column.type):
             column = column.dictionary_encode()
-        column = column.fill_null('')
-        vc = column.drop_null().value_counts()
+        column = column.fill_null('<N>')
+        vc = column.value_counts()
         t = pa.table([vc.field(1), vc.field(0).dictionary], names=['v','n']).sort_by([("v", "descending")])
         frequency = pc.round(pc.divide_checked(t.column('v').cast(pa.float64()), pc.sum(t.column('v'))),3).to_pylist()
         select = pc.cast(t.column('n'), pa.string()).to_pylist()
         if sum(frequency) != 1:
             frequency = np.round(frequency / np.sum(frequency), 5)
             frequency[0] += 1-sum(frequency)
-        gen = np.random.default_rng(seed)
-        result = gen.choice(a=select, size=size, replace=True, p=frequency)
+        result = generator.choice(a=select, size=size, replace=True, p=frequency)
         rtn_arr = pa.array(result)
-        mask = pc.is_in(rtn_arr, pa.array(['']))
+        mask = pc.is_in(rtn_arr, pa.array(['<N>']))
         rtn_arr = pc.if_else(mask, None, rtn_arr)
         return rtn_arr
 
     @staticmethod
-    def _jitter(column: pa.Array, size: int, variance: float=None, seed: int=None):
+    def _jitter(column: pa.Array, size: int, generator: np.random.default_rng, variance: float=None, probability: list=None):
         """"""
         variance = variance if isinstance(variance, float) else 0.4
-        seed = seed if isinstance(seed, int) else int(time.time() * np.random.random())
-        s_values = column.to_pandas()
-        gen = np.random.default_rng(seed)
+        values = column.to_numpy()
+        values = generator.choice(values, size=size, replace=True, p=probability)
+        zeros = pc.equal(values, 0)
         jitter = pc.round(pc.multiply(pc.stddev(column), variance), 5).as_py()
-        result = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
-        while result.size < size:
-            _ = s_values.add(gen.normal(loc=0, scale=jitter, size=s_values.size))
-            result = pd.concat([result, _], axis=0)
-        result = result.sample(frac=1, random_state=seed).reset_index(drop=True)
-        return pa.Array.from_pandas(result.iloc[:size])
+        result = np.add(values, generator.normal(loc=0, scale=jitter, size=size))
+        arr = pa.Array.from_pandas(result)
+        if pa.types.is_integer(column.type):
+            arr = pc.round(arr, 0).cast(column.type)
+        else:
+            arr = pc.round(arr, Commons.column_precision(column))
+        return pc.if_else(zeros, 0, arr)
 
     @staticmethod
-    def _jitter_date(column: pa.Array, size: int, variance: int=None, units: str=None, ordered: str=None, seed: int=None):
+    def _jitter_date(column: pa.Array, size: int, generator: np.random.default_rng, variance: int=None, units: str=None,
+                     ordered: str=None, probability: list=None):
         """"""
         variance = variance if isinstance(variance, int) else 2
-        seed = seed if isinstance(seed, int) else int(time.time() * np.random.random())
         units_allowed = ['W', 'D', 'h', 'm', 's', 'milli', 'micro']
         units = units if isinstance(units, str) and units in units_allowed else 'D'
         s_values = column.to_pandas()
-        gen = np.random.default_rng(seed)
+        s_values = generator.choice(s_values, size=size, replace=True, p=probability)
         jitter = pd.Timedelta(value=variance, unit=units) if isinstance(variance, int) else pd.Timedelta(value=0)
         jitter = int(jitter.to_timedelta64().astype(int) / 10 ** 3)
-        _ = gen.normal(loc=0, scale=jitter, size=s_values.size)
+        _ = generator.normal(loc=0, scale=jitter, size=size)
         _ = pd.Series(pd.to_timedelta(_, unit='micro'), index=s_values.index)
         result = s_values.add(_)
-        while result.size < size:
-            _ = gen.normal(loc=0, scale=jitter, size=s_values.size)
-            _ = pd.Series(pd.to_timedelta(_, unit='micro'), index=s_values.index)
-            result = pd.concat([result, s_values.add(_)], axis=0)
-        result = result.sample(frac=1, random_state=seed).reset_index(drop=True).iloc[:size]
         if isinstance(ordered, str) and ordered.lower() in ['asc', 'des']:
             result = result.sort_values(ascending=True if ordered.lower() == 'asc' else False)
         return pa.TimestampArray.from_pandas(result)

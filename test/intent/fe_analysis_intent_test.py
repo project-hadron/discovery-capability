@@ -2,6 +2,7 @@ import unittest
 import os
 from pathlib import Path
 import shutil
+import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -57,6 +58,18 @@ class SyntheticTest(unittest.TestCase):
             shutil.rmtree('working')
         except OSError:
             pass
+
+    def test_jitter(self):
+        fe = FeatureEngineer.from_memory()
+        tools: FeatureEngineerIntent = fe.tools
+        g = np.random.default_rng(1257643)
+        arr = pa.array([0,0,1,5,3,-1,0,5,3])
+        result = tools._jitter(arr, 12, generator=g)
+        self.assertEqual([4, 0, 7, 0, 1, 0, 2, 0, 5, 0, 3, 1], result.to_pylist())
+        arr = pa.array([0., 0., 1.1, 5., 3, -1, 0, 5, 3])
+        result = tools._jitter(arr, 5, generator=g)
+        self.assertEqual([4.6, 4.1, 0.0, 3.7, 0.0], result.to_pylist())
+
 
     def test_for_smoke(self):
         fe = FeatureEngineer.from_memory()
