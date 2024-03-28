@@ -287,8 +287,8 @@ class DataDiscovery(object):
                 record.append(line)
         df = pd.DataFrame(record, columns=labels)
         for n in df.columns:
-            if df[n].dtype.kind in 'iufc': # i int (signed), u unsigned int, f float, c complex
-                max_p = max([Commons.precision_scale(x)[1] for x in df[n]])
+            if df[n].dtype.kind in 'fc': # f float, c complex
+                max_p = Commons.column_precision(df[n])
                 precision = max_p if max_p < 6 else 6
                 df[n] = np.round(df[n], precision)
         if stylise:

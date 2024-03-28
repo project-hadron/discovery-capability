@@ -38,17 +38,17 @@ class Commons(CoreCommons):
 
     @staticmethod
     def report(canonical: pd.DataFrame, index_header: [str, list]=None, bold: [str, list]=None,
-               large_font: [str, list]=None, precisions: dict=None):
+               large_font: [str, list]=None, precision: int=None):
         """ generates a stylised report
 
         :param canonical: the DataFrame to report on
         :param index_header: the header to index on
         :param bold: any columns to make bold
         :param large_font: any columns to enlarge
-        :param precisions: the format of key values e.g {'my_col1': "{:.1%}", 'my_col2': '{:.1%}'})
+        :param precision: a numeric precision for floating points
         :return: stylised report DataFrame
         """
-        precisions = precisions if isinstance(precisions, dict) else {'precision': 3}
+        precision = precision if isinstance(precision, dict) else 4
         index_header = Commons.list_formatter(index_header)
         pd.set_option('max_colwidth', 200)
         pd.set_option('expand_frame_repr', True)
@@ -67,7 +67,7 @@ class Commons(CoreCommons):
                     prev = canonical[header].iloc[idx]
         canonical = canonical.reset_index(drop=True)
         df_style = canonical.style.set_table_styles(style)
-        _ = df_style.format(**precisions)
+        _ = df_style.format(precision=precision)
         _ = df_style.set_properties(**{'text-align': 'left'})
         if len(bold) > 0:
             _ = df_style.set_properties(subset=bold, **{'font-weight': 'bold'})
