@@ -182,7 +182,7 @@ class CommonsIntentModel(object):
         return result
 
     @staticmethod
-    def _gen_category(column: pa.Array, size: int, generator: np.random.default_rng, seed: int=None):
+    def _gen_category(column: pa.Array, size: int, generator: np.random.default_rng):
         """"""
         if not pa.types.is_dictionary(column.type):
             column = column.dictionary_encode()

@@ -1092,13 +1092,13 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
             # elif pc.count(pc.unique(c)).as_py() <= 1:
             #     result = pa.nulls(size)
             elif pa.types.is_dictionary(column.type):
-                result = self._gen_category(column=column, size=size, seed=seed)
+                result = self._gen_category(column=column, size=size, generator=gen)
             elif pa.types.is_string(column.type) and pc.count(column.unique()).as_py() <= category_limit:
-                result = self._gen_category(column=column, size=size, seed=seed)
+                result = self._gen_category(column=column, size=size, generator=gen)
             elif pa.types.is_integer(column.type) or pa.types.is_floating(column.type):
-                result = self._jitter(column=column, size=size, seed=seed)
+                result = self._jitter(column=column, size=size, generator=gen)
             elif pa.types.is_date(column.type) or pa.types.is_timestamp(column.type):
-                result = self._jitter_date(column, size=size, variance=date_jitter, units=date_units, seed=seed)
+                result = self._jitter_date(column, size=size, variance=date_jitter, units=date_units, generator=gen)
             elif pa.types.is_boolean(column.type):
                 frequency = dict(zip(column.value_counts().field(0).to_pylist(),
                                      column.value_counts().field(1).to_pylist())).get(True)
