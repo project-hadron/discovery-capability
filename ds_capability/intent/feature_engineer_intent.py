@@ -2449,11 +2449,10 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                           indicator=indicator, validate=validate)
         return pa.Table.from_pandas(df_rtn)
 
-    def model_cat_cast(self, canonical: pa.Table, cat_type: bool=None, headers: [str, list]=None,
-                       d_types: [str, list]=None, regex: [str, list]=None, drop: bool=None,
-                       save_intent: bool=None, tm_format: str=None, tm_locale:str=None,
-                       intent_level: [int, str]=None, intent_order: int=None,
-                       replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
+    def model_cat_cast(self, canonical: pa.Table, cat_type: bool=None, cat_threshold: int=None,
+                       headers: [str, list]=None,d_types: [str, list]=None, regex: [str, list]=None, drop: bool=None,
+                       save_intent: bool=None, tm_format: str=None, tm_locale:str=None,intent_level: [int, str]=None,
+                       intent_order: int=None, replace_intent: bool=None, remove_duplicates: bool=None) -> pa.Table:
         """ Reverses casting of int, float values to string, decodes Dictionary types to string,
         casts bools to 1 and 0, then converts to string and converts dates to a given string format.
         If cat_type is True then all string types passed are converted to dictionary type
@@ -2486,11 +2485,14 @@ class FeatureEngineerIntent(AbstractFeatureEngineerIntentModel, CommonsIntentMod
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # Code block for intent
         cat_type = cat_type if isinstance(cat_type, bool) else False
+        cat_threshold = cat_threshold if isinstance(cat_threshold, int) else 20
         tm_format = tm_format if isinstance(tm_format, str) else '%Y-%m-%dT%H:%M:%S'
         tm_locale = tm_locale if isinstance(tm_locale, str) else "C"
         cast_names = Commons.filter_headers(canonical, headers=headers, regex=regex, d_types=d_types, drop=drop)
         for n in cast_names:
             c = canonical.column(n).combine_chunks()
+            if pc.count(pc.unique(c)).as_py() > cat_threshold:
+                continue
             if pa.types.is_integer(c.type) or pa.types.is_floating(c.type):
                 c = pc.cast(c, pa.string())
             elif pa.types.is_dictionary(c.type):
