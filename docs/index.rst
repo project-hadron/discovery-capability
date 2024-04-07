@@ -1,10 +1,9 @@
 Project Hadron
 ==============
 
-**Project Hadron** is an open-source application framework for in-memory preprocessing
-and trained model predict, where data analysis, feature optimisation and supervised
-machine learning, require efficiency and speed within an ML lifecycle. With
-:ref:`Apache Arrow<What is PyArrow?>` as its canonical, and a more directed use of Pandas,
+**Project Hadron** is an open-source application framework for in-memory data
+preprocessing and model processing to prediction across a machine learning lifecycle.
+With :ref:`Apache Arrow<What is PyArrow?>` as its canonical, and a more directed use of Pandas,
 **Project Hadron** offers effective data management, extensive interoperability, improved
 memory management and hardware optimization.
 

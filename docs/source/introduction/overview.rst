@@ -26,6 +26,8 @@ organization to perform certain steps, within stringent deadlines, in a data pro
 Yet poor communication and limited visibility between data scientists, data engineers and business
 stakeholders directly effects success of business objectives.
 
+What is
+
 Where does Project Hadron fit?
 ------------------------------
 Project Hadron is an open-source application framework, taking raw data and identifying,
