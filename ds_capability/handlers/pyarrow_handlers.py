@@ -3,12 +3,12 @@ import io
 import requests
 import os
 from contextlib import closing
-import json
 import pandas as pd
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pyarrow.feather as feather
+import json
 from pyarrow import csv
 from ds_capability.components.commons import Commons
 from ds_core.handlers.abstract_handlers import AbstractSourceHandler, AbstractPersistHandler
@@ -73,6 +73,9 @@ class PyarrowSourceHandler(AbstractSourceHandler):
                 data = [data]
             data = pa.Table.from_pylist(data)
             return Commons.table_flatten(data)
+        if file_type.lower() in ['yml', 'yaml']:
+            data = self._yaml_load(path_file=address, **load_params)
+            return pa.Table.from_pydict(data)
         # complex nested
         if file_type.lower() in ['complex', 'nested', 'txt']:
             with open(address) as f:
@@ -137,6 +140,25 @@ class PyarrowSourceHandler(AbstractSourceHandler):
             return r.json()
         with closing(open(path_file, mode='r')) as f:
             return json.load(f, **kwargs)
+
+    @staticmethod
+    def _yaml_load(path_file, **kwargs) -> dict:
+        """ loads the YAML file"""
+        module_name = 'yaml'
+        if HandlerFactory.check_module(module_name=module_name):
+            module = HandlerFactory.get_module(module_name=module_name)
+        else:
+            raise ModuleNotFoundError(f"The required module {module_name} has not been installed. "
+                                      f"Please pip install the appropriate package in order to complete this action")
+        encoding = kwargs.pop('encoding', 'utf-8')
+        try:
+            with closing(open(path_file, mode='r', encoding=encoding)) as yml_file:
+                rtn_dict = module.safe_load(yml_file)
+        except IOError as e:
+            raise IOError(f"The yaml file {path_file} failed to open with: {e}")
+        if not isinstance(rtn_dict, dict) or not rtn_dict:
+            raise TypeError(f"The yaml file {path_file} could not be loaded as a dict type")
+        return rtn_dict
 
     @staticmethod
     def read_options(**kwargs) -> csv.ReadOptions:
@@ -211,6 +233,11 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
             with closing(open(_address, mode='w')) as f:
                 json.dump(cfg_dict, f, cls=NpEncoder, **kwargs)
             return True
+        # yaml
+        if file_type.lower() in ['yml', 'yaml']:
+            cfg_dict = canonical.to_pydict()
+            self._yaml_dump(data=cfg_dict, path_file=_address, **write_params)
+            return True
         # complex nested
         if file_type.lower() in ['complex', 'nested', 'txt']:
             values = Commons.table_nest(canonical)
@@ -230,6 +257,31 @@ class PyarrowPersistHandler(PyarrowSourceHandler, AbstractPersistHandler):
             os.remove(_cc.address)
             return True
         return False
+
+    @staticmethod
+    def _yaml_dump(data, path_file, **kwargs) -> None:
+        """ dump YAML file
+
+        :param data: the data to persist
+        :param path_file: the name and path of the file
+        :param default_flow_style: (optional) if to include the default YAML flow style
+        """
+        module_name = 'yaml'
+        if HandlerFactory.check_module(module_name=module_name):
+            module = HandlerFactory.get_module(module_name=module_name)
+        else:
+            raise ModuleNotFoundError(f"The required module {module_name} has not been installed. "
+                                      f"Please pip install the appropriate package in order to complete this action")
+        encoding = kwargs.pop('encoding', 'utf-8')
+        default_flow_style = kwargs.pop('default_flow_style', False)
+        # make sure the dump is clean
+        try:
+            with closing(open(path_file, mode='w', encoding=encoding)) as yml_file:
+                module.safe_dump(data=data, stream=yml_file, default_flow_style=default_flow_style, **kwargs)
+        except IOError as e:
+            raise IOError(f"The yaml file {path_file} failed to open with: {e}")
+        # check the file was created
+        return
 
 
 class NpEncoder(json.JSONEncoder):
